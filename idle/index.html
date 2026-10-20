@@ -3,148 +3,179 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#1b1f3b">
-<title>コインタウン</title>
+<meta name="theme-color" content="#2a3a5c">
+<title>ぽこたま</title>
 <style>
   /* ===== 色や大きさのきまり ===== */
   :root{
-    --bg:#1b1f3b; --bg2:#262b52; --card:#2f3563; --card2:#3a4178;
-    --gold:#ffd447; --gold2:#ffb800; --text:#f4f5ff; --sub:#aab0e0;
-    --ok:#5fe08a; --ng:#6b7099;
+    --bg:#2a3a5c; --bg2:#34497a; --card:#3d5590; --text:#f6f7ff; --sub:#b9c3ea;
+    --food:#ff9f5a; --fun:#5ad1ff; --xp:#ffd447; --ok:#62e08f;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{margin:0; height:100%;}
   body{
-    background:radial-gradient(circle at 50% 0%, #34407a 0%, var(--bg) 60%);
+    background:linear-gradient(#3b5a94 0%, var(--bg) 55%, #24304d 100%);
     color:var(--text);
     font-family:"Hiragino Maru Gothic ProN","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
     overflow:hidden; user-select:none; -webkit-user-select:none; touch-action:manipulation;
   }
-  /* 全体：スマホは縦にならべる・PC は左右にならべる */
-  #app{display:flex; flex-direction:column; height:100%; max-width:1000px; margin:0 auto;
-       padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);}
-  @media (min-width:760px){ #app{flex-direction:row;} #left,#right{flex:1;} #right{border-left:2px solid var(--bg2);} }
+  #app{display:flex; flex-direction:column; height:100%; max-width:480px; margin:0 auto;
+       padding:calc(env(safe-area-inset-top) + 8px) 16px calc(env(safe-area-inset-bottom) + 10px);}
 
-  /* ===== 上：コインの数とタップする所 ===== */
-  #left{display:flex; flex-direction:column; align-items:center; padding:12px 16px 6px; flex:0 0 auto;}
-  #title{font-size:15px; color:var(--sub); letter-spacing:2px; margin-bottom:2px;}
-  #coins{font-size:clamp(30px,9vw,46px); font-weight:900; color:var(--gold);
-         text-shadow:0 3px 0 #8a5d00; line-height:1.1; text-align:center; word-break:break-all;}
-  #cps{font-size:15px; color:var(--sub); margin:2px 0 8px;}
-  #tapWrap{position:relative; width:min(46vw,210px); height:min(46vw,210px); margin:4px 0;}
-  @media (min-width:760px){ #tapWrap{width:260px; height:260px; margin-top:30px;} }
-  #bigCoin{
-    width:100%; height:100%; border-radius:50%; border:none; cursor:pointer; padding:0;
-    background:radial-gradient(circle at 35% 30%, #fff6b0 0%, var(--gold) 35%, var(--gold2) 75%, #c98a00 100%);
-    box-shadow:0 8px 0 #8a5d00, 0 0 40px rgba(255,212,71,.35);
-    font-size:min(22vw,110px); line-height:1; transition:transform .06s;
-    display:flex; align-items:center; justify-content:center;
-  }
-  @media (min-width:760px){ #bigCoin{font-size:130px;} }
-  #bigCoin.push{transform:scale(.92) translateY(4px); box-shadow:0 3px 0 #8a5d00, 0 0 60px rgba(255,212,71,.6);}
-  #tapInfo{font-size:13px; color:var(--sub); margin-top:8px;}
-  /* タップしたときに出る「+1」の字 */
-  .pop{position:fixed; pointer-events:none; font-weight:900; color:var(--gold); font-size:22px;
-       text-shadow:0 2px 0 #000a; animation:popUp .9s ease-out forwards; z-index:20;}
-  @keyframes popUp{from{opacity:1; transform:translate(-50%,0) scale(1);} to{opacity:0; transform:translate(-50%,-70px) scale(1.2);}}
+  /* ===== 上：名前と段階 ===== */
+  #top{display:flex; justify-content:space-between; align-items:center;}
+  #title{font-size:15px; color:var(--sub); letter-spacing:2px;}
+  #stage{font-size:14px; background:#0003; padding:4px 10px; border-radius:20px;}
+  #formName{text-align:center; font-size:22px; font-weight:900; margin-top:6px;}
+  #formDesc{text-align:center; font-size:13px; color:var(--sub); min-height:18px;}
 
-  /* ===== 下：お店のリスト ===== */
-  #right{flex:1 1 auto; display:flex; flex-direction:column; min-height:0; background:#0003; border-radius:18px 18px 0 0;}
-  #shopHead{display:flex; align-items:center; justify-content:space-between; padding:10px 14px 6px;}
-  #shopHead h2{font-size:17px; margin:0;}
-  #amountBtns button{background:var(--card); color:var(--text); border:none; border-radius:10px;
-       padding:6px 12px; font-size:14px; font-weight:bold; margin-left:4px; cursor:pointer;}
-  #amountBtns button.on{background:var(--gold); color:#4a3200;}
-  #shop{overflow-y:auto; padding:0 12px 12px; flex:1; -webkit-overflow-scrolling:touch;}
-  .item{display:flex; align-items:center; gap:10px; background:var(--card); border-radius:14px;
-        padding:10px 12px; margin-bottom:8px; cursor:pointer; border:2px solid transparent; transition:transform .05s;}
-  .item.can{border-color:var(--gold); background:var(--card2);}
-  .item.cant{opacity:.55;}
-  .item:active{transform:scale(.98);}
-  .item .ico{font-size:34px; width:44px; text-align:center;}
-  .item .mid{flex:1; min-width:0;}
-  .item .nm{font-weight:bold; font-size:16px;}
-  .item .desc{font-size:12px; color:var(--sub); margin-top:1px;}
-  .item .cost{font-size:14px; font-weight:bold; margin-top:3px;}
-  .item.can .cost{color:var(--ok);}
-  .item .own{font-size:26px; font-weight:900; color:var(--sub); min-width:40px; text-align:right;}
-  .item.locked .nm{color:var(--ng);}
-  .item.locked .ico{filter:brightness(0) opacity(.4);}
+  /* ===== まん中：生き物 ===== */
+  #room{position:relative; flex:1 1 auto; min-height:180px; display:flex; align-items:flex-end; justify-content:center;}
+  #floor{position:absolute; left:-16px; right:-16px; bottom:0; height:28%;
+         background:linear-gradient(#5f9b5a,#4b8247); border-radius:50% 50% 0 0 / 30% 30% 0 0;}
+  #pet{position:relative; width:min(80vw,300px); height:min(80vw,300px); margin-bottom:6%; cursor:pointer;}
+  #pet svg{width:100%; height:100%; overflow:visible;}
+  /* ふわふわ上下にゆれる */
+  #petBody{animation:bob 2.4s ease-in-out infinite; transform-origin:100px 190px;}
+  @keyframes bob{0%,100%{transform:translateY(0) scale(1,1);} 50%{transform:translateY(-6px) scale(.98,1.02);}}
+  /* たまごはぐらぐらゆれる */
+  #petBody.egg{animation:wobble 3s ease-in-out infinite;}
+  @keyframes wobble{0%,70%,100%{transform:rotate(0);} 76%{transform:rotate(-7deg);} 82%{transform:rotate(7deg);} 88%{transform:rotate(-4deg);}}
+  /* さわったとき・食べたとき */
+  #petBody.jump{animation:jump .45s ease-out;}
+  @keyframes jump{0%{transform:translateY(0) scale(1.1,.9);} 40%{transform:translateY(-28px) scale(.95,1.05);} 100%{transform:translateY(0);}}
+  /* まばたき */
+  .eye{animation:blink 4s infinite; transform-box:fill-box; transform-origin:center;}
+  @keyframes blink{0%,94%,100%{transform:scaleY(1);} 97%{transform:scaleY(.1);}}
+  /* ハートや音符が出る */
+  .fx{position:fixed; pointer-events:none; font-size:26px; animation:fxUp 1s ease-out forwards; z-index:20;}
+  @keyframes fxUp{from{opacity:1; transform:translate(-50%,0);} to{opacity:0; transform:translate(-50%,-80px) scale(1.3);}}
 
-  /* ===== おかえりのまど ===== */
-  #welcome{position:fixed; inset:0; background:#000a; display:none; align-items:center; justify-content:center; z-index:30; padding:16px;}
-  #welcome.show{display:flex;}
-  #welcome .box{background:var(--bg2); border-radius:20px; padding:22px 20px; text-align:center; width:100%; max-width:340px;
-                border:3px solid var(--gold); animation:boxIn .3s ease-out;}
+  /* ===== ゲージ ===== */
+  #gauges{margin:8px 0 4px;}
+  .g{display:flex; align-items:center; gap:8px; margin:6px 0; font-size:14px;}
+  .g .lb{width:86px; white-space:nowrap;}
+  .g .bar{flex:1; height:14px; background:#0004; border-radius:8px; overflow:hidden;}
+  .g .fill{height:100%; border-radius:8px; transition:width .3s;}
+  .g .num{width:58px; text-align:right; font-size:12px; color:var(--sub);}
+  #gFood .fill{background:var(--food);} #gFun .fill{background:var(--fun);} #gXp .fill{background:var(--xp);}
+  #speed{text-align:center; font-size:12px; color:var(--sub); min-height:16px;}
+
+  /* ===== ボタン ===== */
+  #btns{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:8px;}
+  #btns button{border:none; border-radius:16px; padding:10px 4px; font-size:15px; font-weight:900; color:#20263f;
+       cursor:pointer; box-shadow:0 4px 0 #0005; font-family:inherit;}
+  #btns button:active{transform:translateY(3px); box-shadow:0 1px 0 #0005;}
+  #btns button:disabled{filter:grayscale(1) brightness(.7); cursor:default;}
+  #btnFood{background:var(--food);} #btnPlay{background:var(--fun);} #btnBook{background:#e3e7ff;}
+  #btns small{display:block; font-size:11px; font-weight:bold; margin-top:2px;}
+  #newEgg{display:none; width:100%; margin-top:8px; border:none; border-radius:16px; padding:12px; font-size:16px;
+          font-weight:900; background:var(--xp); color:#4a3200; box-shadow:0 4px 0 #0005; cursor:pointer; font-family:inherit;}
+
+  /* ===== まど（おかえり・進化・ずかん） ===== */
+  .modal{position:fixed; inset:0; background:#000a; display:none; align-items:center; justify-content:center; z-index:30; padding:16px;}
+  .modal.show{display:flex;}
+  .modal .box{background:var(--bg2); border-radius:20px; padding:20px; text-align:center; width:100%; max-width:340px;
+              border:3px solid var(--xp); animation:boxIn .3s ease-out; max-height:85vh; overflow-y:auto;}
   @keyframes boxIn{from{transform:scale(.7); opacity:0;} to{transform:scale(1); opacity:1;}}
-  #welcome h3{margin:0 0 6px; font-size:20px;}
-  #welcome .got{font-size:30px; font-weight:900; color:var(--gold); margin:10px 0; word-break:break-all;}
-  #welcome .small{font-size:13px; color:var(--sub);}
-  #welcome button{margin-top:14px; background:var(--gold); color:#4a3200; border:none; border-radius:12px;
-                  padding:12px 30px; font-size:17px; font-weight:900; cursor:pointer;}
+  .modal h3{margin:0 0 8px; font-size:20px;}
+  .modal p{margin:6px 0; font-size:14px; line-height:1.6;}
+  .modal .ok{margin-top:12px; background:var(--xp); color:#4a3200; border:none; border-radius:12px;
+             padding:11px 30px; font-size:16px; font-weight:900; cursor:pointer; font-family:inherit;}
+  #bookList{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px;}
+  .bk{background:#0003; border-radius:12px; padding:6px; font-size:12px;}
+  .bk svg{width:70px; height:70px;}
+  .bk.no svg{filter:brightness(0) opacity(.35);}
 </style>
 </head>
 <body>
 <div id="app">
-  <div id="left">
-    <div id="title">🪙 コインタウン</div>
-    <div id="coins">0</div>
-    <div id="cps">毎秒 0 コイン</div>
-    <div id="tapWrap"><button id="bigCoin" aria-label="コインをタップ">🪙</button></div>
-    <div id="tapInfo">タップで +1</div>
+  <div id="top"><div id="title">🥚 ぽこたま</div><div id="stage">たまご</div></div>
+  <div id="formName">ふしぎなたまご</div>
+  <div id="formDesc">タップすると、あたためられるよ</div>
+
+  <div id="room">
+    <div id="floor"></div>
+    <div id="pet"><svg viewBox="0 0 200 200"><g id="petBody"></g></svg></div>
   </div>
-  <div id="right">
-    <div id="shopHead">
-      <h2>🏪 お店・工場</h2>
-      <div id="amountBtns">
-        <button data-n="1" class="on">×1</button><button data-n="10">×10</button>
-      </div>
-    </div>
-    <div id="shop"></div>
+
+  <div id="gauges">
+    <div class="g" id="gFood"><span class="lb">🍙 おなか</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
+    <div class="g" id="gFun"><span class="lb">🎵 ごきげん</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
+    <div class="g" id="gXp"><span class="lb">⭐ せいちょう</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
   </div>
+  <div id="speed"></div>
+
+  <div id="btns">
+    <button id="btnFood">🍙 えさ<small id="foodStock"></small></button>
+    <button id="btnPlay">🎾 あそぶ<small id="playWait"></small></button>
+    <button id="btnBook">📖 ずかん<small id="bookCount"></small></button>
+  </div>
+  <button id="newEgg">🥚 新しいたまごをもらう</button>
 </div>
 
-<div id="welcome">
-  <div class="box">
-    <h3>おかえり！</h3>
-    <div class="small" id="awayTime"></div>
-    <div class="got" id="awayCoins"></div>
-    <div class="small" id="awayNote"></div>
-    <button id="welcomeOk">うけとる</button>
-  </div>
-</div>
+<!-- おかえり -->
+<div class="modal" id="mWelcome"><div class="box">
+  <h3>おかえり！</h3><p id="wText"></p><button class="ok">うん！</button>
+</div></div>
+<!-- 生まれた・進化した -->
+<div class="modal" id="mEvolve"><div class="box">
+  <h3 id="eTitle"></h3>
+  <svg viewBox="0 0 200 200" style="width:150px;height:150px"><g id="eSvg"></g></svg>
+  <p id="eText"></p><button class="ok">やったー！</button>
+</div></div>
+<!-- ずかん -->
+<div class="modal" id="mBook"><div class="box">
+  <h3>📖 ずかん</h3><p style="font-size:12px;color:var(--sub)">そだて方で、すがたが変わるよ</p>
+  <div id="bookList"></div><button class="ok">とじる</button>
+</div></div>
 
 <script>
 // =====================================================
-//  コインタウン（放置・育成ゲーム）
-//  タップでコインをかせいで、お店や工場を買うと
-//  放っておいてもコインがふえていく。
-//  閉じていた間のコインも、最大 8 時間ぶんもらえる。
+//  ぽこたま（生き物を育てる放置ゲーム）
+//  たまごから生まれた生き物に、えさをあげたり遊んだりして育てる。
+//  おなかとごきげんがいいほど、はやく成長する。
+//  閉じていた間も時間は進む（最大 8 時間ぶん）。
+//  たくさん食べさせるか・たくさん遊ぶかで、おとなのすがたが変わる。
 // =====================================================
 
-// ----- お店・工場のリスト（5種類） -----
-// cost = さいしょのねだん / cps = 1つで毎秒ふえるコイン
-const BUILDINGS = [
-  { id:'lemon',   ico:'🍋', name:'レモネード屋台', cost:15,     cps:0.1, desc:'小さな屋台。のんびりかせぐ' },
-  { id:'bakery',  ico:'🍞', name:'パン屋',         cost:100,    cps:1,   desc:'朝から行列のパン屋さん' },
-  { id:'store',   ico:'🏪', name:'コンビニ',       cost:1100,   cps:8,   desc:'24時間ずっと開いている' },
-  { id:'factory', ico:'🏭', name:'工場',           cost:12000,  cps:47,  desc:'コインを大量に作る工場' },
-  { id:'bank',    ico:'🏦', name:'銀行',           cost:130000, cps:260, desc:'お金がお金をうむ' },
+// ----- 成長の段階 -----
+// need = つぎの段階になるのに必要な「せいちょう」ポイント
+const STAGES = [
+  { id:'egg',   name:'たまご',     need:40   },
+  { id:'baby',  name:'あかちゃん', need:400  },
+  { id:'child', name:'こども',     need:2000 },
+  { id:'adult', name:'おとな',     need:Infinity },
 ];
-const PRICE_UP = 1.15;               // 1つ買うごとに、ねだんが 1.15 倍になる
-const OFFLINE_MAX_SEC = 8 * 60 * 60; // 閉じていた間のコインは最大 8 時間ぶん
-const SAVE_KEY = 'coin-town-save-v1'; // セーブの名前（ほかのゲームとかぶらない名前）
+
+// ----- すがたのリスト（ずかんにのる） -----
+const FORMS = {
+  egg:    { name:'ふしぎなたまご', desc:'タップすると、あたためられるよ', color:'#fff3d6', spot:'#ffb36b' },
+  baby:   { name:'ぽこ',           desc:'生まれたばかり。よく食べてよく遊ぶ', color:'#ffe08a', cheek:'#ff9f9f' },
+  child:  { name:'ぽこぽこ',       desc:'ちょっと大きくなって、耳が生えた',   color:'#ffcf6b', cheek:'#ff8f8f' },
+  mochi:  { name:'もちぽこ',       desc:'たくさん食べて、もちもちに育った',   color:'#ffc2d6', cheek:'#ff7fa6' },
+  hane:   { name:'はねぽこ',       desc:'たくさん遊んで、はねが生えた',       color:'#9fe3ff', cheek:'#ff9fb8' },
+  kira:   { name:'きらぽこ',       desc:'食べるのも遊ぶのもバランスよく育った', color:'#ffe066', cheek:'#ffa07a' },
+};
+const BOOK_ORDER = ['baby','child','mochi','hane','kira'];
+
+// ----- 時間で変わる速さ（1秒あたり） -----
+const FOOD_DOWN = 1/30;  // おなかは 30 秒で 1 へる（100 → 0 で 50 分）
+const FUN_DOWN  = 1/20;  // ごきげんは 20 秒で 1 へる
+const XP_BASE   = 1;     // せいちょうは 1 秒で 1（ふつう）
+const STOCK_MAX = 10;    // えさは最大 10 こまでためられる
+const STOCK_SEC = 120;   // えさは 2 分で 1 こ、畑からとれる
+const PLAY_WAIT = 15;    // 「あそぶ」は 15 秒に 1 回
+const OFFLINE_MAX_SEC = 8 * 60 * 60; // 閉じていた間は最大 8 時間ぶん
+const OFFLINE_FLOOR = 20; // るすの間、おなか・ごきげんは 20 より下がらない（かわいそうにならないように）
+const SAVE_KEY = 'pokotama-save-v1';
 
 // ----- いまの状態（セーブするもの） -----
-let state = {
-  coins: 0,          // 持っているコイン
-  total: 0,          // いままでにかせいだコインの合計（お店を見せるかどうかに使う）
-  owned: {},         // お店ごとの持っている数  例: {lemon: 3}
-  lastTime: Date.now(), // さいごに遊んでいた時刻（ミリ秒）
-};
-let buyN = 1; // まとめ買いの数（1 か 10）
+function newPet(){
+  return { stage:0, form:'egg', xp:0, food:80, fun:80, fed:0, played:0, stock:3, stockT:0, playT:0 };
+}
+let state = { pet:newPet(), book:{}, lastTime:Date.now() };
 
-// ----- セーブとロード（localStorage） -----
 function save(){
   state.lastTime = Date.now();
   try{ localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }catch(e){}
@@ -152,189 +183,286 @@ function save(){
 function load(){
   try{
     const s = JSON.parse(localStorage.getItem(SAVE_KEY));
-    if(s && typeof s.coins === 'number'){
-      state.coins = s.coins; state.total = s.total || 0;
-      state.owned = s.owned || {}; state.lastTime = s.lastTime || Date.now();
-      return true;
-    }
+    if(s && s.pet){ state = { pet:Object.assign(newPet(), s.pet), book:s.book||{}, lastTime:s.lastTime||Date.now() }; return true; }
   }catch(e){}
   return false;
 }
 
-// ----- 計算 -----
-function count(b){ return state.owned[b.id] || 0; }
-// いま毎秒ふえるコイン（全部のお店の合計）
-function totalCps(){ return BUILDINGS.reduce((s,b)=> s + b.cps * count(b), 0); }
-// タップ1回でもらえるコイン：1 ＋ 毎秒コインの 5%（お店がふえるとタップも強くなる）
-function tapValue(){ return 1 + totalCps() * 0.05; }
-// n こまとめて買うときのねだん（1こ目, 2こ目… と 1.15 倍ずつ上がる合計）
-function costOf(b, n){
-  const first = b.cost * Math.pow(PRICE_UP, count(b));
-  return Math.ceil(first * (Math.pow(PRICE_UP, n) - 1) / (PRICE_UP - 1));
+// ----- 成長の速さ：おなか・ごきげんがいいほど速い -----
+// どちらも 50 以上 → 2 倍、どちらかが 20 より下 → 0.3 倍
+function xpRate(p){
+  if(p.stage === 0) return XP_BASE;           // たまごは時間だけで育つ
+  if(p.food >= 50 && p.fun >= 50) return XP_BASE * 2;
+  if(p.food < 20 || p.fun < 20) return XP_BASE * 0.3;
+  return XP_BASE;
 }
 
-// ----- 大きい数を読みやすく（万・億・兆…） -----
-const UNITS = ['', '万', '億', '兆', '京', '垓'];
-function fmt(n){
-  if(n < 100) return (Math.floor(n*10)/10).toString();  // 小さいときは小数1けた
-  n = Math.floor(n);
-  if(n < 10000) return n.toLocaleString('ja-JP');
-  let u = 0;
-  while(n >= 10000 && u < UNITS.length-1){ n /= 10000; u++; }
-  return (n < 100 ? n.toFixed(2) : n < 1000 ? n.toFixed(1) : Math.floor(n)) + UNITS[u];
+// ----- 時間を進める（sec 秒ぶん）。offline=true はるすの間 -----
+function tick(sec, offline){
+  const p = state.pet;
+  const stock0 = p.stock;
+  let gained = 0; // この間にふえた「せいちょう」の合計
+  if(p.stage < 3){
+    // 1 秒ずつだと 8 時間で重いので、60 秒ずつまとめて計算する
+    let left = sec;
+    while(left > 0){
+      const d = Math.min(left, offline ? 60 : left);
+      if(p.stage > 0){
+        // るすの間は 20 より下がらない（もともと 20 より下なら、そのまま）
+        p.food = Math.max(p.food - FOOD_DOWN * d, offline ? Math.min(p.food, OFFLINE_FLOOR) : 0);
+        p.fun  = Math.max(p.fun  - FUN_DOWN  * d, offline ? Math.min(p.fun,  OFFLINE_FLOOR) : 0);
+      }
+      const add = xpRate(p) * d;
+      p.xp += add; gained += add;
+      left -= d;
+      // つぎの段階になれるか
+      if(p.xp >= STAGES[p.stage].need){
+        grow(offline);
+        if(p.stage >= 3) break; // おとなになったら、もう育たない
+      }
+    }
+  }
+  // えさは畑から少しずつとれる
+  p.stockT += sec;
+  while(p.stockT >= STOCK_SEC){ p.stockT -= STOCK_SEC; if(p.stock < STOCK_MAX) p.stock++; }
+  if(p.stock >= STOCK_MAX) p.stockT = 0;
+  p.playT = Math.max(0, p.playT - sec);
+  return { xp:gained, stock:p.stock - stock0 };
 }
-// 秒を「◯時間◯分」に
+
+// ----- 成長・進化 -----
+let pendingEvolve = null; // るすの間に進化したら、おかえりのあとに見せる
+function grow(quiet){
+  const p = state.pet;
+  p.xp = 0; p.stage++;
+  if(p.stage === 1) p.form = 'baby';
+  else if(p.stage === 2) p.form = 'child';
+  else if(p.stage === 3){
+    // おとなのすがたは、えさと遊びの回数できまる
+    const all = p.fed + p.played || 1;
+    if(p.fed / all >= 0.65) p.form = 'mochi';
+    else if(p.played / all >= 0.65) p.form = 'hane';
+    else p.form = 'kira';
+  }
+  state.book[p.form] = true;
+  pendingEvolve = p.stage === 1 ? '生まれた！' : p.stage === 3 ? 'おとなになった！' : '大きくなった！';
+  if(!quiet) showEvolve();
+  save();
+}
+function showEvolve(){
+  if(!pendingEvolve) return;
+  const f = FORMS[state.pet.form];
+  document.getElementById('eTitle').textContent = '🎉 ' + pendingEvolve;
+  document.getElementById('eSvg').innerHTML = drawPet(state.pet.form, 80, 80);
+  document.getElementById('eText').textContent = '「' + f.name + '」　' + f.desc;
+  pendingEvolve = null;
+  openModal('mEvolve');
+}
+
+// ----- 生き物の絵（SVG）。実在のキャラクターには似せないオリジナル -----
+// form = すがた / food・fun = 顔の表情に使う
+function drawPet(form, food, fun){
+  const f = FORMS[form];
+  if(form === 'egg'){
+    return `<ellipse cx="100" cy="192" rx="46" ry="8" fill="#0003"/>
+      <ellipse cx="100" cy="125" rx="52" ry="66" fill="${f.color}" stroke="#e8cfa0" stroke-width="3"/>
+      <circle cx="80" cy="105" r="10" fill="${f.spot}"/><circle cx="118" cy="140" r="13" fill="${f.spot}"/>
+      <circle cx="110" cy="88" r="6" fill="${f.spot}"/><circle cx="78" cy="152" r="7" fill="${f.spot}"/>`;
+  }
+  // 大きさ：あかちゃん小さめ・おとな大きめ
+  const big = form === 'baby' ? 0.72 : form === 'child' ? 0.86 : 1;
+  const w = (form === 'mochi' ? 78 : 64) * big, h = (form === 'mochi' ? 58 : 64) * big;
+  const cy = 190 - h;
+  const happy = food >= 40 && fun >= 40, sad = food < 20 || fun < 20;
+  let s = `<ellipse cx="100" cy="192" rx="${w*0.85}" ry="8" fill="#0003"/>`;
+  // はねぽこ：うしろに小さなはね
+  if(form === 'hane'){
+    s += `<ellipse cx="${100-w-6}" cy="${cy-6}" rx="26" ry="14" fill="#fff" opacity=".9" transform="rotate(-25 ${100-w-6} ${cy-6})"/>
+          <ellipse cx="${100+w+6}" cy="${cy-6}" rx="26" ry="14" fill="#fff" opacity=".9" transform="rotate(25 ${100+w+6} ${cy-6})"/>`;
+  }
+  // こども以上：まるい小さな耳
+  if(form !== 'baby'){
+    s += `<circle cx="${100-w*0.6}" cy="${cy-h*0.8}" r="${12*big}" fill="${f.color}" stroke="#0002" stroke-width="2"/>
+          <circle cx="${100+w*0.6}" cy="${cy-h*0.8}" r="${12*big}" fill="${f.color}" stroke="#0002" stroke-width="2"/>`;
+  }
+  // からだ（まるいおもち形）
+  s += `<ellipse cx="100" cy="${cy}" rx="${w}" ry="${h}" fill="${f.color}" stroke="#0002" stroke-width="3"/>
+        <ellipse cx="${100-w*0.35}" cy="${cy-h*0.45}" rx="${w*0.22}" ry="${h*0.14}" fill="#fff" opacity=".45"/>`;
+  // 頭の上の小さな葉っぱ（ぽこのしるし）
+  s += `<path d="M100 ${cy-h+2} q-4 -16 -16 -18 q8 14 16 18 z" fill="#6fcf6f"/>
+        <path d="M100 ${cy-h+2} q6 -18 20 -16 q-10 12 -20 16 z" fill="#58b858"/>`;
+  // きらぽこ：ほしのかざり
+  if(form === 'kira'){
+    s += `<text x="100" y="${cy-h-14}" font-size="26" text-anchor="middle">⭐</text>`;
+  }
+  // 顔：目・ほっぺ・口
+  const ey = cy - h*0.08, ex = w*0.36;
+  s += `<ellipse class="eye" cx="${100-ex}" cy="${ey}" rx="${6*big+1}" ry="${8*big+1}" fill="#2b2b3a"/>
+        <ellipse class="eye" cx="${100+ex}" cy="${ey}" rx="${6*big+1}" ry="${8*big+1}" fill="#2b2b3a"/>
+        <circle cx="${100-ex+2}" cy="${ey-3}" r="2.2" fill="#fff"/><circle cx="${100+ex+2}" cy="${ey-3}" r="2.2" fill="#fff"/>
+        <ellipse cx="${100-ex-8}" cy="${ey+14}" rx="8" ry="5" fill="${f.cheek}" opacity=".7"/>
+        <ellipse cx="${100+ex+8}" cy="${ey+14}" rx="8" ry="5" fill="${f.cheek}" opacity=".7"/>`;
+  const my = ey + 16;
+  if(happy) s += `<path d="M${100-9} ${my} q9 10 18 0" stroke="#2b2b3a" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+  else if(sad) s += `<path d="M${100-8} ${my+5} q8 -7 16 0" stroke="#2b2b3a" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+  else s += `<line x1="${100-6}" y1="${my+2}" x2="${100+6}" y2="${my+2}" stroke="#2b2b3a" stroke-width="3" stroke-linecap="round"/>`;
+  return s;
+}
+
+// ----- 画面を新しくする -----
+const $ = id => document.getElementById(id);
+const petBody = $('petBody');
+let lastDrawKey = '';
+function setGauge(id, v, max, text){
+  $(id).querySelector('.fill').style.width = Math.max(0, Math.min(100, v / max * 100)) + '%';
+  $(id).querySelector('.num').textContent = text;
+}
 function fmtTime(sec){
-  sec = Math.floor(sec);
+  sec = Math.max(0, Math.ceil(sec));
   const h = Math.floor(sec/3600), m = Math.floor(sec%3600/60), s = sec%60;
   if(h > 0) return h + '時間' + m + '分';
   if(m > 0) return m + '分' + s + '秒';
   return s + '秒';
 }
-
-// ----- コインをふやす -----
-function addCoins(n){ state.coins += n; state.total += n; }
-
-// ----- 画面：お店のリストを作る -----
-const shopEl = document.getElementById('shop');
-const itemEls = [];
-BUILDINGS.forEach((b, i) => {
-  const el = document.createElement('div');
-  el.className = 'item';
-  el.innerHTML = `<div class="ico">${b.ico}</div>
-    <div class="mid"><div class="nm"></div><div class="desc"></div><div class="cost"></div></div>
-    <div class="own">0</div>`;
-  el.addEventListener('click', () => buy(i));
-  shopEl.appendChild(el);
-  itemEls.push(el);
-});
-
-// 買う
-function buy(i){
-  const b = BUILDINGS[i];
-  if(!isVisible(i)) return;
-  const c = costOf(b, buyN);
-  if(state.coins < c) return;
-  state.coins -= c;
-  state.owned[b.id] = count(b) + buyN;
-  save();
-  updateShop();
-}
-// お店を見せるか：1つ前のお店を持っている or そのねだんの半分までかせいだ
-function isVisible(i){
-  const b = BUILDINGS[i];
-  return count(b) > 0 || i === 0 || count(BUILDINGS[i-1]) > 0 || state.total >= b.cost / 2;
-}
-
-function updateShop(){
-  BUILDINGS.forEach((b, i) => {
-    const el = itemEls[i];
-    const vis = isVisible(i);
-    const c = costOf(b, buyN);
-    el.classList.toggle('locked', !vis);
-    el.classList.toggle('can', vis && state.coins >= c);
-    el.classList.toggle('cant', vis && state.coins < c);
-    el.querySelector('.nm').textContent   = vis ? b.name : '？？？';
-    el.querySelector('.desc').textContent = vis ? `1つで 毎秒+${fmt(b.cps)}　（いま 毎秒+${fmt(b.cps*count(b))}）` : 'もっとかせぐと出てくる';
-    el.querySelector('.cost').textContent = vis ? `🪙 ${fmt(c)}` + (buyN>1 ? `（${buyN}こ）` : '') : '';
-    el.querySelector('.own').textContent  = count(b);
-  });
-}
-
-// ----- 画面：上の数字 -----
-const coinsEl = document.getElementById('coins');
-const cpsEl = document.getElementById('cps');
-const tapInfoEl = document.getElementById('tapInfo');
-function updateTop(){
-  coinsEl.textContent = fmt(state.coins);
-  cpsEl.textContent = '毎秒 ' + fmt(totalCps()) + ' コイン';
-  tapInfoEl.textContent = 'タップで +' + fmt(tapValue());
-}
-
-// ----- タップ -----
-const bigCoin = document.getElementById('bigCoin');
-function onTap(x, y){
-  const v = tapValue();
-  addCoins(v);
-  // 「+1」の字を出す
-  const p = document.createElement('div');
-  p.className = 'pop';
-  p.textContent = '+' + fmt(v);
-  p.style.left = x + 'px'; p.style.top = (y - 20) + 'px';
-  document.body.appendChild(p);
-  setTimeout(() => p.remove(), 900);
-  // ボタンをへこませる
-  bigCoin.classList.add('push');
-  setTimeout(() => bigCoin.classList.remove('push'), 70);
-  updateTop(); updateShop();
-}
-// スマホは指が何本でも1回ずつ数える（pointerdown）。連打でズームしないように
-bigCoin.addEventListener('pointerdown', e => { e.preventDefault(); onTap(e.clientX, e.clientY); });
-bigCoin.addEventListener('contextmenu', e => e.preventDefault());
-
-// まとめ買いのボタン
-document.querySelectorAll('#amountBtns button').forEach(btn => {
-  btn.addEventListener('click', () => {
-    buyN = +btn.dataset.n;
-    document.querySelectorAll('#amountBtns button').forEach(b => b.classList.toggle('on', b === btn));
-    updateShop();
-  });
-});
-
-// ----- 閉じていた間のコイン -----
-// 前の時刻と今の時刻の差（秒）× 毎秒コイン。最大 8 時間ぶん。
-// 時計を前にもどした（差がマイナス）ときは 0。
-const welcomeEl = document.getElementById('welcome');
-function giveAwayCoins(awaySec){
-  if(awaySec <= 0) return;
-  const useSec = Math.min(awaySec, OFFLINE_MAX_SEC);
-  const got = totalCps() * useSec;
-  if(got <= 0) return;
-  addCoins(got);
-  // 1分より長く留守にしていたら「おかえり」を出す
-  if(awaySec >= 60){
-    document.getElementById('awayTime').textContent = fmtTime(awaySec) + ' るすにしていた間に…';
-    document.getElementById('awayCoins').textContent = '🪙 +' + fmt(got);
-    document.getElementById('awayNote').textContent = awaySec > OFFLINE_MAX_SEC
-      ? '（もらえるのは最大 8 時間ぶんまで）' : 'お店や工場がかせいでくれた！';
-    welcomeEl.classList.add('show');
+function render(){
+  const p = state.pet, st = STAGES[p.stage], f = FORMS[p.form];
+  $('stage').textContent = st.name;
+  $('formName').textContent = f.name;
+  $('formDesc').textContent = f.desc;
+  // 表情が変わったときだけ絵をかき直す
+  const mood = p.food >= 40 && p.fun >= 40 ? 'h' : (p.food < 20 || p.fun < 20) ? 's' : 'n';
+  const key = p.form + mood;
+  if(key !== lastDrawKey){
+    petBody.innerHTML = drawPet(p.form, p.food, p.fun);
+    petBody.classList.toggle('egg', p.form === 'egg');
+    lastDrawKey = key;
   }
+  const egg = p.stage === 0, adult = p.stage === 3;
+  $('gFood').style.visibility = egg ? 'hidden' : 'visible';
+  $('gFun').style.visibility  = egg ? 'hidden' : 'visible';
+  setGauge('gFood', p.food, 100, Math.floor(p.food));
+  setGauge('gFun',  p.fun,  100, Math.floor(p.fun));
+  if(adult) setGauge('gXp', 1, 1, 'MAX');
+  else setGauge('gXp', p.xp, st.need, Math.floor(p.xp) + '/' + st.need);
+  // せいちょうの速さと、つぎの段階までの時間
+  const r = xpRate(p);
+  $('speed').textContent = adult ? 'りっぱなおとなになった！ずかんに登録されたよ'
+    : (r >= 2 ? '✨ ごきげん！成長 2倍' : r < 1 ? '😢 おなか・ごきげんが少ない…成長がおそい' : '')
+      + '　つぎまで 約' + fmtTime((st.need - p.xp) / r);
+  // ボタン
+  $('btnFood').disabled = egg || p.stock <= 0 || p.food >= 100;
+  $('foodStock').textContent = p.stock >= STOCK_MAX ? `のこり ${p.stock}` : `のこり ${p.stock}（+1 まで ${fmtTime(STOCK_SEC - p.stockT)}）`;
+  $('btnPlay').disabled = egg || p.playT > 0;
+  $('playWait').textContent = p.playT > 0 ? `あと ${Math.ceil(p.playT)}秒` : 'いつでも';
+  $('bookCount').textContent = BOOK_ORDER.filter(k => state.book[k]).length + '/' + BOOK_ORDER.length;
+  $('newEgg').style.display = adult ? 'block' : 'none';
 }
-document.getElementById('welcomeOk').addEventListener('click', () => welcomeEl.classList.remove('show'));
+
+// ----- ハートなどの演出 -----
+function fx(ch, x, y){
+  const e = document.createElement('div');
+  e.className = 'fx'; e.textContent = ch;
+  e.style.left = x + 'px'; e.style.top = y + 'px';
+  document.body.appendChild(e);
+  setTimeout(() => e.remove(), 1000);
+}
+function jump(){
+  petBody.classList.remove('jump'); void petBody.getBoundingClientRect();
+  petBody.classList.add('jump');
+  setTimeout(() => petBody.classList.remove('jump'), 460);
+}
+function petCenter(){
+  const r = $('pet').getBoundingClientRect();
+  return [r.left + r.width/2 + (Math.random()-.5)*60, r.top + r.height*0.35];
+}
+
+// ----- さわる（タップ） -----
+// たまご：あたためると +2 成長 / 生まれたあと：ごきげん少しアップ
+$('pet').addEventListener('pointerdown', e => {
+  e.preventDefault();
+  const p = state.pet;
+  if(p.stage === 0){
+    p.xp += 2; fx('🔥', e.clientX, e.clientY - 20);
+    if(p.xp >= STAGES[0].need) grow(false);
+  }else{
+    p.fun = Math.min(100, p.fun + 1); fx('💗', e.clientX, e.clientY - 20); jump();
+  }
+  render();
+});
+// ----- えさ -----
+$('btnFood').addEventListener('click', () => {
+  const p = state.pet;
+  if(p.stock <= 0 || p.stage === 0 || p.food >= 100) return;
+  p.stock--; p.food = Math.min(100, p.food + 30); p.fed++;
+  const [x,y] = petCenter(); fx('🍙', x, y); jump();
+  save(); render();
+});
+// ----- あそぶ -----
+$('btnPlay').addEventListener('click', () => {
+  const p = state.pet;
+  if(p.playT > 0 || p.stage === 0) return;
+  p.playT = PLAY_WAIT; p.fun = Math.min(100, p.fun + 30); p.food = Math.max(0, p.food - 5); p.played++;
+  const [x,y] = petCenter(); fx('🎵', x, y); setTimeout(()=>fx('🎾', x+30, y), 150); jump();
+  save(); render();
+});
+// ----- 新しいたまご（おとなになったら） -----
+$('newEgg').addEventListener('click', () => {
+  state.pet = newPet(); lastDrawKey = ''; save(); render();
+});
+// ----- ずかん -----
+$('btnBook').addEventListener('click', () => {
+  $('bookList').innerHTML = BOOK_ORDER.map(k => {
+    const has = state.book[k];
+    return `<div class="bk ${has ? '' : 'no'}"><svg viewBox="0 0 200 200">${drawPet(k, 80, 80)}</svg><br>${has ? FORMS[k].name : '？？？'}</div>`;
+  }).join('');
+  openModal('mBook');
+});
+// ----- まどを開く・とじる -----
+function openModal(id){ $(id).classList.add('show'); }
+document.querySelectorAll('.modal .ok').forEach(b => b.addEventListener('click', () => {
+  b.closest('.modal').classList.remove('show');
+  // おかえりをとじたあと、るすの間の進化を見せる
+  if(b.closest('#mWelcome')) showEvolve();
+}));
+
+// ----- 閉じていた間 -----
+// 前の時刻と今の時刻の差で計算。最大 8 時間・時計をもどしたら 0
+function away(sec){
+  if(sec <= 0) return;
+  const use = Math.min(sec, OFFLINE_MAX_SEC);
+  const name = FORMS[state.pet.form].name;
+  const got = tick(use, true);
+  if(sec >= 60){
+    let t = `${fmtTime(sec)} るすにしていた間に…<br>`;
+    if(got.xp > 0) t += `${name} は すくすく育った！（⭐ +${Math.floor(got.xp)}）<br>`;
+    if(FORMS[state.pet.form].name !== name) t += `なんと「${FORMS[state.pet.form].name}」になっていた！<br>`;
+    if(got.stock > 0) t += `畑から えさが ${got.stock} こ とれた！<br>`;
+    if(state.pet.stage > 0) t += 'おなかがすいて、さみしがってるかも。かまってあげよう';
+    if(sec > OFFLINE_MAX_SEC) t += '<br><small>（進むのは最大 8 時間ぶんまで）</small>';
+    $('wText').innerHTML = t;
+    openModal('mWelcome');
+  }else showEvolve();
+}
 
 // ----- メインのループ（本当の時間で進める） -----
-// 1コマごとに「前のコマから何秒たったか」を見て、そのぶんだけコインをふやす。
-// 画面が裏にいってループが止まっていたときは、もどってきたときにまとめて計算する。
-let lastFrame = Date.now();
-let lastSave = Date.now();
+let lastFrame = Date.now(), lastSave = Date.now();
 function loop(){
   const now = Date.now();
-  const dt = (now - lastFrame) / 1000; // 秒
+  const dt = (now - lastFrame) / 1000;
   lastFrame = now;
-  if(dt > 2){
-    // 2秒より長く止まっていた → 留守のあいだの計算（最大8時間）
-    giveAwayCoins(dt);
-  }else if(dt > 0){
-    addCoins(totalCps() * dt);
-  }
-  updateTop(); updateShop();
-  // 5秒ごとに自動セーブ
+  if(dt > 2) away(dt);          // 画面が裏にいって止まっていた → るすの計算
+  else if(dt > 0) tick(dt, false);
+  render();
   if(now - lastSave > 5000){ save(); lastSave = now; }
   requestAnimationFrame(loop);
 }
-
-// 画面を閉じる・裏にいくときもセーブ
 document.addEventListener('visibilitychange', () => { if(document.hidden) save(); });
-window.addEventListener('pagehide', save);
+window.addEventListener('pagehide', () => save());
 
 // ----- はじめる -----
-if(load()){
-  // 前に遊んでいたときの時刻との差で、閉じていた間のコインをもらう
-  giveAwayCoins((Date.now() - state.lastTime) / 1000);
-}
+if(load()) away((Date.now() - state.lastTime) / 1000);
 lastFrame = Date.now();
-save();
-updateTop(); updateShop();
+save(); render();
 requestAnimationFrame(loop);
 </script>
 </body>
