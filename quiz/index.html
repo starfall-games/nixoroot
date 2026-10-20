@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#1b1f3b">
+<title>ひらめき60秒</title>
+<style>
+  /* ===== 色や大きさの決まり ===== */
+  :root{
+    --bg:#1b1f3b; --card:#2a3060; --card2:#353c78; --text:#fff; --sub:#b9c0ff;
+    --ok:#3ddc84; --ng:#ff5a6a; --gold:#ffd54a; --accent:#6c7bff;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; height:100%; background:var(--bg); color:var(--text);
+    font-family:"Hiragino Maru Gothic ProN","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
+    overscroll-behavior:none; user-select:none; -webkit-user-select:none;}
+  #app{max-width:480px; margin:0 auto; height:100dvh; display:flex; flex-direction:column; padding:12px 16px; padding-bottom:max(12px, env(safe-area-inset-bottom));}
+  .screen{display:none; flex:1; flex-direction:column; min-height:0;}
+  .screen.show{display:flex;}
+  button{font:inherit; color:inherit; border:none; cursor:pointer; touch-action:manipulation;}
+
+  /* ===== タイトル画面 ===== */
+  .logo{text-align:center; margin:4vh 0 2vh;}
+  .logo .big{font-size:44px; font-weight:900; letter-spacing:2px;
+    background:linear-gradient(90deg,#ffd54a,#ff8a5c,#ff5aa8); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  .logo .small{color:var(--sub); font-size:14px; margin-top:4px;}
+  .modeBtn{background:var(--card); border-radius:18px; padding:18px; margin:8px 0; text-align:left; display:flex; gap:14px; align-items:center;
+    box-shadow:0 4px 0 #11142b; transition:transform .08s;}
+  .modeBtn:active{transform:translateY(3px); box-shadow:0 1px 0 #11142b;}
+  .modeBtn .ic{font-size:40px;}
+  .modeBtn .t{font-size:20px; font-weight:800;}
+  .modeBtn .d{font-size:13px; color:var(--sub); margin-top:2px;}
+  .modeBtn .best{font-size:13px; color:var(--gold); margin-top:4px;}
+  .modeBtn.daily{background:linear-gradient(135deg,#3b2f7a,#6a2f6e); border:2px solid var(--gold);}
+  .modeBtn .date{font-size:13px; color:var(--gold); font-weight:700;}
+  .howto{margin-top:auto; background:#232852; border-radius:14px; padding:12px 14px; font-size:13px; line-height:1.7; color:var(--sub);}
+  .howto b{color:#fff;}
+
+  /* ===== ゲーム画面の上の部分（時間・点・コンボ） ===== */
+  .hud{display:flex; justify-content:space-between; align-items:flex-end; gap:8px;}
+  .hud .lbl{font-size:11px; color:var(--sub);}
+  .hud .val{font-size:26px; font-weight:900; font-variant-numeric:tabular-nums;}
+  #timeVal.low{color:var(--ng);}
+  .bar{height:10px; background:#11142b; border-radius:6px; overflow:hidden; margin:8px 0 6px;}
+  .bar i{display:block; height:100%; width:100%; background:linear-gradient(90deg,var(--ok),var(--gold)); transform-origin:left; }
+  #combo{text-align:center; height:24px; font-weight:900; color:var(--gold); font-size:18px;}
+  .pop{position:fixed; left:50%; top:30%; transform:translate(-50%,-50%); font-size:32px; font-weight:900; pointer-events:none; animation:pop .7s ease-out forwards; text-shadow:0 2px 8px #0008; z-index:9;}
+  @keyframes pop{0%{opacity:0; transform:translate(-50%,-30%) scale(.6);} 20%{opacity:1; transform:translate(-50%,-50%) scale(1.15);} 100%{opacity:0; transform:translate(-50%,-90%) scale(1);}}
+  .shake{animation:shake .3s;}
+  @keyframes shake{0%,100%{transform:translateX(0);} 25%{transform:translateX(-8px);} 75%{transform:translateX(8px);}}
+
+  /* ===== 絵文字クイズ ===== */
+  .qcat{text-align:center; color:var(--sub); font-size:14px; margin-top:6px;}
+  .qemoji{flex:1; display:flex; align-items:center; justify-content:center; text-align:center; font-size:min(16vw,72px); line-height:1.2; padding:8px; word-break:keep-all; min-height:120px;}
+  .choices{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .choice{background:var(--card); border-radius:16px; min-height:72px; padding:10px; font-size:17px; font-weight:800; line-height:1.3; box-shadow:0 4px 0 #11142b;}
+  .choice:active{transform:translateY(3px); box-shadow:0 1px 0 #11142b;}
+  .choice.ok{background:var(--ok); color:#06301a;}
+  .choice.ng{background:var(--ng);}
+
+  /* ===== 10を作れ ===== */
+  .tenGoal{text-align:center; color:var(--sub); font-size:14px; margin-top:6px;}
+  .tenGoal b{color:var(--gold); font-size:22px;}
+  .tiles{flex:1; display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:center; align-content:center; min-height:150px;}
+  .tile{width:min(20vw,92px); height:min(20vw,92px); border-radius:20px; background:#fff; color:#1b1f3b; font-size:min(9vw,40px); font-weight:900; box-shadow:0 5px 0 #9aa3e8; display:flex; align-items:center; justify-content:center; transition:transform .1s;}
+  .tile.small{font-size:min(6vw,26px);}
+  .tile.sel{background:var(--gold); box-shadow:0 5px 0 #c99a10; transform:translateY(-4px);}
+  .tile.win{background:var(--ok);}
+  .ops{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:10px;}
+  .op{background:var(--accent); border-radius:16px; height:64px; font-size:32px; font-weight:900; box-shadow:0 4px 0 #3c47b8;}
+  .op.sel{background:var(--gold); color:#1b1f3b; box-shadow:0 4px 0 #c99a10;}
+  .op:active{transform:translateY(3px);}
+  .tools{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;}
+  .tool{background:var(--card2); border-radius:14px; height:48px; font-size:15px; font-weight:700;}
+  .tenMsg{text-align:center; min-height:22px; font-size:14px; color:var(--sub); margin:4px 0;}
+
+  /* ===== 結果画面 ===== */
+  .result{text-align:center; margin:auto 0;}
+  .result .ttl{font-size:20px; color:var(--sub);}
+  .result .score{font-size:64px; font-weight:900; color:var(--gold); margin:6px 0;}
+  .result .newbest{display:inline-block; background:var(--ng); border-radius:20px; padding:4px 14px; font-weight:900; animation:blink 0.8s infinite alternate;}
+  @keyframes blink{to{opacity:.5;}}
+  .stats{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin:18px 0;}
+  .stats div{background:var(--card); border-radius:12px; padding:10px 4px; font-size:12px; color:var(--sub);}
+  .stats b{display:block; font-size:22px; color:#fff;}
+  .bigBtn{width:100%; background:linear-gradient(90deg,#ff8a5c,#ff5aa8); border-radius:18px; height:62px; font-size:21px; font-weight:900; margin-top:10px; box-shadow:0 4px 0 #a2335f;}
+  .bigBtn.gray{background:var(--card); box-shadow:0 4px 0 #11142b; font-size:17px; height:52px;}
+  .missList{text-align:left; font-size:13px; color:var(--sub); background:#232852; border-radius:12px; padding:8px 12px; max-height:22vh; overflow:auto; margin-top:6px;}
+  .missList div{padding:3px 0;}
+
+  /* ===== はじまるまでのカウント ===== */
+  #count{position:fixed; inset:0; display:none; align-items:center; justify-content:center; font-size:120px; font-weight:900; background:#1b1f3bcc; z-index:20;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- タイトル画面 -->
+  <div class="screen show" id="title">
+    <div class="logo">
+      <div class="big">ひらめき60秒</div>
+      <div class="small">60秒で、いくつ解ける？</div>
+    </div>
+    <button class="modeBtn daily" data-mode="daily">
+      <div class="ic">📅</div>
+      <div><div class="t">今日のチャレンジ <span id="dailyDate" class="date"></span></div><div class="d">毎日かわる問題（みんな同じ問題）・絵文字と10がまざって出る</div><div class="best" id="bestDaily"></div></div>
+    </button>
+    <button class="modeBtn" data-mode="emoji">
+      <div class="ic">🤔</div>
+      <div><div class="t">絵文字クイズ</div><div class="d">絵文字が表すことば・ことわざを当てよう</div><div class="best" id="bestEmoji"></div></div>
+    </button>
+    <button class="modeBtn" data-mode="ten">
+      <div class="ic">🔟</div>
+      <div><div class="t">10を作れ！</div><div class="d">4つの数字と ＋−×÷ で 10 を作ろう</div><div class="best" id="bestTen"></div></div>
+    </button>
+    <div class="howto">
+      <b>あそびかた</b><br>
+      ・時間は <b>60秒</b>。正解するほど点が入る<br>
+      ・<b>連続正解（コンボ）</b>で点が どんどん増える<br>
+      ・まちがえると <b>時間が5秒へる</b>＆コンボが切れる<br>・10を作れの「パス」は 3秒へる
+    </div>
+  </div>
+
+  <!-- ゲーム画面 -->
+  <div class="screen" id="game">
+    <div class="hud">
+      <div><div class="lbl">のこり時間</div><div class="val" id="timeVal">60.0</div></div>
+      <div style="text-align:right"><div class="lbl">スコア</div><div class="val" id="scoreVal">0</div></div>
+    </div>
+    <div class="bar"><i id="timeBar"></i></div>
+    <div id="combo"></div>
+
+    <!-- 絵文字クイズの部分 -->
+    <div id="emojiArea" style="display:none; flex:1; flex-direction:column; min-height:0;">
+      <div class="qcat" id="qCat"></div>
+      <div class="qemoji" id="qEmoji"></div>
+      <div class="choices" id="choices"></div>
+    </div>
+
+    <!-- 10を作れの部分 -->
+    <div id="tenArea" style="display:none; flex:1; flex-direction:column; min-height:0;">
+      <div class="tenGoal">数字をタップ → 記号 → 数字 で合体！ 最後に <b>10</b> にしよう</div>
+      <div class="tiles" id="tiles"></div>
+      <div class="tenMsg" id="tenMsg"></div>
+      <div class="ops" id="ops">
+        <button class="op" data-op="+">＋</button>
+        <button class="op" data-op="-">−</button>
+        <button class="op" data-op="*">×</button>
+        <button class="op" data-op="/">÷</button>
+      </div>
+      <div class="tools">
+        <button class="tool" id="undoBtn">↩ もどす</button>
+        <button class="tool" id="resetBtn">🔄 やり直し</button>
+        <button class="tool" id="skipBtn">⏭ パス</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 結果画面 -->
+  <div class="screen" id="result">
+    <div class="result">
+      <div class="ttl" id="rMode"></div>
+      <div id="rDaily" style="color:var(--gold); font-size:14px; margin-top:4px;"></div>
+      <div class="score" id="rScore">0</div>
+      <div id="rNew"></div>
+      <div class="stats">
+        <div>正解<b id="rOk">0</b></div>
+        <div>最大コンボ<b id="rCombo">0</b></div>
+        <div>ベスト<b id="rBest">0</b></div>
+      </div>
+      <div id="rMiss"></div>
+      <button class="bigBtn" id="againBtn">もう1回！</button>
+      <button class="bigBtn gray" id="homeBtn">タイトルへ</button>
+    </div>
+  </div>
+</div>
+<div id="count"></div>
+
+<script>
+// =============================================================
+//  ひらめき60秒（早押しクイズ・ひらめき）
+//  モード：絵文字クイズ ／ 10を作れ
+//  時間は「本当の時間」（performance.now）で進む
+// =============================================================
+
+// ---------- 絵文字クイズの問題（自分で作った問題・答えはまちがいがないものだけ） ----------
+// c: カテゴリ, e: 絵文字, a: 答え
+// まちがいの選択肢は、同じカテゴリのほかの答えから選ぶ
+const EMOJI_QUIZ = [
+  // ことわざ
+  {c:'ことわざ・慣用句', e:'🐒🌳⬇️', a:'猿も木から落ちる'},
+  {c:'ことわざ・慣用句', e:'🐱💰', a:'猫に小判'},
+  {c:'ことわざ・慣用句', e:'🐷💎', a:'豚に真珠'},
+  {c:'ことわざ・慣用句', e:'👹➕🏏', a:'鬼に金棒'},
+  {c:'ことわざ・慣用句', e:'🐸👶＝🐸', a:'蛙の子は蛙'},
+  {c:'ことわざ・慣用句', e:'🐇🐇🏃➡️0️⃣', a:'二兎を追う者は一兎をも得ず'},
+  {c:'ことわざ・慣用句', e:'😭➕🐝', a:'泣きっ面に蜂'},
+  {c:'ことわざ・慣用句', e:'🌸＜🍡', a:'花より団子'},
+  {c:'ことわざ・慣用句', e:'🐴👂🙏', a:'馬の耳に念仏'},
+  {c:'ことわざ・慣用句', e:'🪨🧘3️⃣📅', a:'石の上にも三年'},
+  {c:'ことわざ・慣用句', e:'⏰＝💰', a:'時は金なり'},
+  {c:'ことわざ・慣用句', e:'😆🚪🍀', a:'笑う門には福来る'},
+  {c:'ことわざ・慣用句', e:'🌅⏰➡️3️⃣💰', a:'早起きは三文の徳'},
+  {c:'ことわざ・慣用句', e:'🦐🎣🐟', a:'海老で鯛を釣る'},
+  {c:'ことわざ・慣用句', e:'🐱🖐️🙏', a:'猫の手も借りたい'},
+  {c:'ことわざ・慣用句', e:'🌕🆚🐢', a:'月とすっぽん'},
+  {c:'ことわざ・慣用句', e:'🦅🤫💅', a:'能ある鷹は爪を隠す'},
+  {c:'ことわざ・慣用句', e:'2️⃣🏠⬇️👁️💧', a:'二階から目薬'},
+  {c:'ことわざ・慣用句', e:'🐕🚶➡️🪵💥', a:'犬も歩けば棒に当たる'},
+  {c:'ことわざ・慣用句', e:'🌧️➡️🟫💪', a:'雨降って地固まる'},
+  {c:'ことわざ・慣用句', e:'🐸🕳️', a:'井の中の蛙大海を知らず'},
+  {c:'ことわざ・慣用句', e:'🙈🍑', a:'頭隠して尻隠さず'},
+  // 四字熟語
+  {c:'四字熟語', e:'1️⃣🪨2️⃣🐦', a:'一石二鳥'},
+  {c:'四字熟語', e:'🔟👥🔟🎨', a:'十人十色'},
+  {c:'四字熟語', e:'🦁🍖🐰', a:'弱肉強食'},
+  {c:'四字熟語', e:'🖼️🤳👏', a:'自画自賛'},
+  {c:'四字熟語', e:'❤️➡️❤️', a:'以心伝心'},
+  {c:'四字熟語', e:'⚡🪨🔥', a:'電光石火'},
+  {c:'四字熟語', e:'5️⃣🛣️🌫️', a:'五里霧中'},
+  {c:'四字熟語', e:'3️⃣📅👨‍🦲', a:'三日坊主'},
+  {c:'四字熟語', e:'7️⃣🤸8️⃣⬆️', a:'七転八起'},
+  {c:'ことわざ・慣用句', e:'🐶🐒💢', a:'犬猿の仲'},
+  // 行事
+  {c:'行事', e:'🎄🎅🎁', a:'クリスマス'},
+  {c:'行事', e:'🎃👻🍬', a:'ハロウィン'},
+  {c:'行事', e:'🎍🌅🧧', a:'お正月'},
+  {c:'行事', e:'🎋⭐🌌', a:'七夕'},
+  {c:'行事', e:'🎎🍑', a:'ひな祭り'},
+  {c:'行事', e:'🎏👦', a:'こどもの日'},
+  {c:'行事', e:'🌸🍱👀', a:'お花見'},
+  {c:'行事', e:'👹🫘👋', a:'節分'},
+  {c:'行事', e:'🌕🍡🐇', a:'お月見'},
+  // 場所
+  {c:'場所', e:'🦒🐘🦁', a:'動物園'},
+  {c:'場所', e:'🐬🐧🐠', a:'水族館'},
+  {c:'場所', e:'🎢🎡🎠', a:'遊園地'},
+  {c:'場所', e:'📚🤫📖', a:'図書館'},
+  {c:'場所', e:'🚑🩺💊', a:'病院'},
+  {c:'場所', e:'🚃🎫⏱️', a:'駅'},
+  {c:'場所', e:'✈️🧳🛫', a:'空港'},
+  // たべもの
+  {c:'たべもの', e:'🥚➕🍚', a:'卵かけごはん'},
+  {c:'たべもの', e:'🐝🍯', a:'はちみつ'},
+  {c:'たべもの', e:'🍫🍌', a:'チョコバナナ'},
+  {c:'たべもの', e:'🧊🍧🍓', a:'かき氷'},
+  {c:'たべもの', e:'🐙🔵⚪', a:'たこ焼き'},
+  {c:'たべもの', e:'🍙🔺🌊', a:'おにぎり'},
+  // スポーツ
+  {c:'スポーツ', e:'⚽🧤🥅', a:'ゴールキーパー'},
+  {c:'スポーツ', e:'⚾🏠🏃', a:'ホームラン'},
+  {c:'スポーツ', e:'🏃‍♂️🎽🏁', a:'マラソン'},
+  {c:'スポーツ', e:'🏊💦🏆', a:'水泳'},
+
+  // ===== 2026-10-20 ふやした問題 =====
+  // ことわざ・慣用句
+  {c:'ことわざ・慣用句', e:'🏃💨➡️🔄', a:'急がば回れ'},
+  {c:'ことわざ・慣用句', e:'🤏➕🤏➕🤏＝⛰️', a:'塵も積もれば山となる'},
+  {c:'ことわざ・慣用句', e:'🤢🐟👑', a:'腐っても鯛'},
+  {c:'ことわざ・慣用句', e:'🚫🔥🚫💨', a:'火のない所に煙は立たぬ'},
+  {c:'ことわざ・慣用句', e:'💯👂＜1️⃣👀', a:'百聞は一見に如かず'},
+  {c:'ことわざ・慣用句', e:'👹👁️😢', a:'鬼の目にも涙'},
+  {c:'ことわざ・慣用句', e:'🦊🐯😤', a:'虎の威を借る狐'},
+  {c:'ことわざ・慣用句', e:'🐦💧🤏', a:'雀の涙'},
+  {c:'ことわざ・慣用句', e:'👁️🐟⬇️😲', a:'目から鱗が落ちる'},
+  {c:'ことわざ・慣用句', e:'🦴💥😩', a:'骨折り損のくたびれもうけ'},
+  {c:'ことわざ・慣用句', e:'3️⃣👥➡️💡', a:'三人寄れば文殊の知恵'},
+  {c:'ことわざ・慣用句', e:'🎒🔦➡️😌', a:'備えあれば憂いなし'},
+  {c:'ことわざ・慣用句', e:'👄➡️💥', a:'口は災いのもと'},
+  {c:'ことわざ・慣用句', e:'🔚🎁🍀', a:'残り物には福がある'},
+  // 四字熟語
+  {c:'四字熟語', e:'1️⃣❤️👫', a:'一心同体'},
+  {c:'四字熟語', e:'4️⃣😣8️⃣😖', a:'四苦八苦'},
+  {c:'四字熟語', e:'8️⃣➡️😊😊', a:'八方美人'},
+  {c:'四字熟語', e:'🌸🐦🌬️🌙', a:'花鳥風月'},
+  {c:'四字熟語', e:'🌸🌻🍁⛄', a:'春夏秋冬'},
+  {c:'四字熟語', e:'⬅️➡️⬆️⬇️🧭', a:'東西南北'},
+  {c:'四字熟語', e:'🙋🌾⬅️💧', a:'我田引水'},
+  {c:'四字熟語', e:'📜➡️💡', a:'温故知新'},
+  // 行事
+  {c:'行事', e:'🏃🏅🎌📣', a:'運動会'},
+  {c:'行事', e:'🥒🐎🍆🐄', a:'お盆'},
+  {c:'行事', e:'🔔🍜🕛', a:'大みそか'},
+  {c:'行事', e:'💝🍫', a:'バレンタインデー'},
+  {c:'行事', e:'🎓🌸📜', a:'卒業式'},
+  {c:'行事', e:'🎒🌸🏫', a:'入学式'},
+  {c:'行事', e:'🚄🏯📸👥', a:'修学旅行'},
+  // 場所
+  {c:'場所', e:'🎬🍿🎟️', a:'映画館'},
+  {c:'場所', e:'🖼️🗿🎨', a:'美術館'},
+  {c:'場所', e:'🚒🧑‍🚒', a:'消防署'},
+  {c:'場所', e:'📮✉️📦', a:'郵便局'},
+  {c:'場所', e:'⛩️🙏🔔', a:'神社'},
+  {c:'場所', e:'♨️🛁🐒', a:'温泉'},
+  {c:'場所', e:'🏪🍙🕛', a:'コンビニ'},
+  // たべもの
+  {c:'たべもの', e:'🥞🧈🍯', a:'ホットケーキ'},
+  {c:'たべもの', e:'🐔🥚🍚', a:'親子丼'},
+  {c:'たべもの', e:'🔥🍠', a:'焼きいも'},
+  {c:'たべもの', e:'🍓🥝🥪', a:'フルーツサンド'},
+  {c:'たべもの', e:'🌽💥🎬', a:'ポップコーン'},
+  {c:'たべもの', e:'🍓⚪🫘', a:'いちご大福'},
+  // スポーツ
+  {c:'スポーツ', e:'⚽⚽⚽🎩', a:'ハットトリック'},
+  {c:'スポーツ', e:'⛸️💃🌀', a:'フィギュアスケート'},
+  {c:'スポーツ', e:'⛳🏌️', a:'ゴルフ'},
+  {c:'スポーツ', e:'🏃🤝🏃🏁', a:'リレー'},
+  {c:'スポーツ', e:'🏀⬇️💥', a:'ダンクシュート'},
+  {c:'スポーツ', e:'🏓🔴⚪', a:'卓球'},
+];
+
+// ---------- セーブ（ベスト記録） ----------
+const SAVE_KEY = 'hirameki60-v1';
+let save = {best:{emoji:0, ten:0, daily:0}, daily:null};
+try{ const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if(s && s.best) save = s; }catch(e){}
+function writeSave(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }catch(e){} }
+
+// ---------- 小さな道具 ----------
+const $ = id => document.getElementById(id);
+// RNG：乱数を出す関数。ふだんは Math.random、今日のチャレンジでは「日付から決まる乱数」に切りかえる
+//（同じ日ならだれが遊んでも同じ順番で問題が出る＝友だちとくらべられる）
+let RNG = Math.random;
+function seededRandom(seed){   // mulberry32 という小さな乱数の作り方
+  return function(){ seed|=0; seed=seed+0x6D2B79F5|0; let t=Math.imul(seed^seed>>>15,1|seed); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; };
+}
+// 今日の日付（その人のスマホの時計で）"2026-10-20" の形
+function todayStr(d){ d=d||new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function dateSeed(str){ let h=2166136261; for(const ch of str){ h^=ch.charCodeAt(0); h=Math.imul(h,16777619); } return h>>>0; }
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(RNG()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('show', s.id===id)); }
+function popText(text, color){
+  const d=document.createElement('div'); d.className='pop'; d.textContent=text; d.style.color=color;
+  document.body.appendChild(d); setTimeout(()=>d.remove(), 700);
+}
+// 効果音（WebAudio で「ピッ」と鳴らすだけ。音のファイルはいらない）
+let actx=null;
+function beep(freq, len, type){
+  try{
+    if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)();
+    const o=actx.createOscillator(), g=actx.createGain();
+    o.type=type||'sine'; o.frequency.value=freq; g.gain.value=0.12;
+    o.connect(g); g.connect(actx.destination);
+    const t=actx.currentTime; g.gain.exponentialRampToValueAtTime(0.001, t+len);
+    o.start(t); o.stop(t+len);
+  }catch(e){}
+}
+const sndOk = ()=>{ beep(880,.12); setTimeout(()=>beep(1320,.15),70); };
+const sndNg = ()=>beep(160,.3,'square');
+
+// ---------- ゲームの状態 ----------
+const GAME_TIME = 60;      // 1回の時間（秒）
+const MISS_PENALTY = 5;    // まちがえたときにへる時間（秒）
+const SKIP_PENALTY = 3;    // パスしたときにへる時間（秒）
+let G = null;              // いま遊んでいるゲームの情報
+
+// コンボの倍率：3連続で×1.5、5連続で×2、10連続で×3
+function comboRate(c){ return c>=10?3 : c>=5?2 : c>=3?1.5 : 1; }
+
+function startGame(mode){
+  G = {mode, timeLeft:GAME_TIME, score:0, combo:0, maxCombo:0, ok:0, lock:false, running:false, last:0, misses:[]};
+  // 今日のチャレンジなら日付の乱数、それ以外はふつうの乱数
+  G.day = todayStr();
+  RNG = mode==='daily' ? seededRandom(dateSeed('hirameki-'+G.day)) : Math.random;
+  G.qNo = 0;
+  showScreen('game');
+  updateHud();
+  if(mode!=='ten') G.deck = shuffle(EMOJI_QUIZ.slice());
+  nextQ();
+  // 3・2・1 のカウントダウン（これも本当の時間）
+  const cnt=$('count'); cnt.style.display='flex'; let n=3; cnt.textContent=n; beep(600,.1);
+  const iv=setInterval(()=>{
+    n--; if(n>0){ cnt.textContent=n; beep(600,.1); return; }
+    clearInterval(iv); cnt.style.display='none'; beep(1000,.2);
+    G.running=true; G.last=performance.now(); requestAnimationFrame(loop);
+  },700);
+}
+
+// 毎コマ（1秒に約60回）時間をへらす
+function loop(now){
+  if(!G || !G.running) return;
+  const dt=(now-G.last)/1000; G.last=now;
+  G.timeLeft -= dt;
+  if(G.timeLeft<=0){ G.timeLeft=0; updateHud(); endGame(); return; }
+  updateHud();
+  requestAnimationFrame(loop);
+}
+
+// 次の問題を出す。今日のチャレンジは 4問に1問が「10を作れ」
+function nextQ(){
+  G.qNo++;
+  const type = G.mode==='daily' ? (G.qNo%4===0 ? 'ten' : 'emoji') : G.mode;
+  G.qType = type;
+  $('emojiArea').style.display = type==='emoji' ? 'flex':'none';
+  $('tenArea').style.display   = type==='ten'   ? 'flex':'none';
+  if(type==='emoji') nextEmoji(); else nextTen();
+}
+
+function updateHud(){
+  $('timeVal').textContent = G.timeLeft.toFixed(1);
+  $('timeVal').classList.toggle('low', G.timeLeft<10);
+  $('timeBar').style.transform = `scaleX(${Math.max(0,G.timeLeft/GAME_TIME)})`;
+  $('scoreVal').textContent = G.score;
+  const r=comboRate(G.combo);
+  $('combo').textContent = G.combo>=2 ? `🔥 ${G.combo} コンボ！${r>1?' ×'+r:''}` : '';
+}
+
+// 正解したとき（base はモードごとの点）
+function onCorrect(base){
+  G.combo++; G.ok++; G.maxCombo=Math.max(G.maxCombo,G.combo);
+  const pts=Math.round(base*comboRate(G.combo));
+  G.score+=pts; popText('+'+pts, '#3ddc84'); sndOk(); updateHud();
+}
+// まちがえたとき
+function onMiss(){
+  G.combo=0; G.timeLeft=Math.max(0,G.timeLeft-MISS_PENALTY);
+  popText('−'+MISS_PENALTY+'秒', '#ff5a6a'); sndNg(); updateHud();
+  $('game').classList.remove('shake'); void $('game').offsetWidth; $('game').classList.add('shake');
+}
+
+function endGame(){
+  G.running=false;
+  const best=save.best[G.mode]||0, isNew=G.score>best;
+  if(isNew){ save.best[G.mode]=G.score; }
+  $('rDaily').textContent='';
+  if(G.mode==='daily') finishDaily();
+  writeSave();
+  $('rMode').textContent = G.mode==='emoji' ? '🤔 絵文字クイズ' : G.mode==='ten' ? '🔟 10を作れ！' : '📅 今日のチャレンジ（'+G.day+'）';
+  $('rScore').textContent = G.score;
+  $('rNew').innerHTML = isNew && G.score>0 ? '<span class="newbest">🎉 ベスト記録こうしん！</span>' : '';
+  $('rOk').textContent=G.ok; $('rCombo').textContent=G.maxCombo; $('rBest').textContent=save.best[G.mode];
+  // まちがえた問題の答えを見せる（覚えられるように）
+  $('rMiss').innerHTML = G.misses.length ? '<div class="missList">'+G.misses.slice(0,20).map(m=>`<div>${m}</div>`).join('')+'</div>' : '';
+  setTimeout(()=>showScreen('result'), 400);
+}
+
+// 今日のチャレンジの記録：今日のベストと「連続で遊んだ日数」
+// save.daily = {date:'2026-10-20', best:今日のベスト, streak:連続日数, plays:今日の回数}
+function finishDaily(){
+  const d = save.daily || {date:'', best:0, streak:0, plays:0};
+  if(d.date!==G.day){
+    // 前の日も遊んでいたら連続日数+1、あいだが空いたら1にもどる
+    const y=new Date(); y.setDate(y.getDate()-1);
+    d.streak = d.date===todayStr(y) ? d.streak+1 : 1;
+    d.date=G.day; d.best=0; d.plays=0;
+  }
+  d.plays++;
+  const newDay = G.score>d.best;
+  if(newDay) d.best=G.score;
+  save.daily=d;
+  $('rDaily').textContent = `今日のベスト ${d.best}${newDay&&d.plays>1?'（こうしん！）':''}　🔥 ${d.streak}日連続`;
+}
+
+// =============================================================
+//  絵文字クイズ
+// =============================================================
+function nextEmoji(){
+  if(!G.deck || G.deck.length===0) G.deck=shuffle(EMOJI_QUIZ.slice());  // 全部出たらまた最初から
+  const q=G.deck.pop(); G.q=q; G.lock=false;
+  $('qCat').textContent = '【'+q.c+'】';
+  $('qEmoji').textContent = q.e;
+  // まちがいの選択肢：同じカテゴリから3つ（足りなければほかから）
+  let wrong = shuffle(EMOJI_QUIZ.filter(x=>x.c===q.c && x.a!==q.a).map(x=>x.a)).slice(0,3);
+  if(wrong.length<3) wrong = wrong.concat(shuffle(EMOJI_QUIZ.filter(x=>x.c!==q.c).map(x=>x.a)).slice(0,3-wrong.length));
+  const opts = shuffle([q.a, ...wrong]);
+  const box=$('choices'); box.innerHTML='';
+  opts.forEach(a=>{
+    const b=document.createElement('button'); b.className='choice'; b.textContent=a;
+    b.onclick=()=>answerEmoji(b,a);
+    box.appendChild(b);
+  });
+}
+function answerEmoji(btn,a){
+  if(!G.running || G.lock) return;
+  G.lock=true;
+  if(a===G.q.a){
+    btn.classList.add('ok'); onCorrect(100);
+    setTimeout(()=>{ if(G.running) nextQ(); }, 250);
+  }else{
+    btn.classList.add('ng');
+    // 正しい答えを緑で見せる
+    [...$('choices').children].forEach(b=>{ if(b.textContent===G.q.a) b.classList.add('ok'); });
+    G.misses.push(`${G.q.e} → ${G.q.a}`);
+    onMiss();
+    setTimeout(()=>{ if(G.running) nextQ(); }, 800);
+  }
+}
+
+// =============================================================
+//  10を作れ
+//  数字は「分数」で持つ（÷ でわり切れなくても正しく計算するため）
+// =============================================================
+function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){ [a,b]=[b,a%b]; } return a||1; }
+function frac(n,d){ if(d<0){n=-n; d=-d;} const g=gcd(n,d); return {n:n/g, d:d/g}; }
+function calc(x,op,y){
+  if(op==='+') return frac(x.n*y.d+y.n*x.d, x.d*y.d);
+  if(op==='-') return frac(x.n*y.d-y.n*x.d, x.d*y.d);
+  if(op==='*') return frac(x.n*y.n, x.d*y.d);
+  if(op==='/') return y.n===0 ? null : frac(x.n*y.d, x.d*y.n);
+}
+function fracText(f){ return f.d===1 ? String(f.n) : `${f.n}/${f.d}`; }
+
+// 4つの数字で10が作れるか、全部ためして調べる
+function canMake10(list){
+  if(list.length===1) return list[0].n===10 && list[0].d===1;
+  for(let i=0;i<list.length;i++) for(let j=0;j<list.length;j++){
+    if(i===j) continue;
+    const rest=list.filter((_,k)=>k!==i&&k!==j);
+    for(const op of ['+','-','*','/']){
+      if((op==='+'||op==='*') && j<i) continue; // 順番を入れかえても同じ計算はとばす
+      const r=calc(list[i],op,list[j]); if(!r) continue;
+      if(canMake10([...rest,r])) return true;
+    }
+  }
+  return false;
+}
+// 10が作れる4つの数字（1〜9）をランダムに作る
+function makePuzzle(){
+  while(true){
+    const nums=[0,0,0,0].map(()=>1+Math.floor(RNG()*9));
+    if(canMake10(nums.map(n=>frac(n,1)))) return nums;
+  }
+}
+
+function nextTen(){
+  G.puzzle=makePuzzle();
+  resetTen();
+}
+function resetTen(){
+  // tiles：いま画面にある数字。history：もどす用
+  G.tiles=G.puzzle.map((n,i)=>({id:i, v:frac(n,1)}));
+  G.nextId=4; G.history=[]; G.sel=null; G.op=null; G.lock=false;
+  $('tenMsg').textContent='';
+  drawTen();
+}
+function drawTen(){
+  const box=$('tiles'); box.innerHTML='';
+  G.tiles.forEach(t=>{
+    const b=document.createElement('button');
+    const txt=fracText(t.v);
+    b.className='tile'+(txt.length>3?' small':'')+(G.sel===t.id?' sel':'');
+    b.textContent=txt;
+    b.onclick=()=>tapTile(t.id);
+    box.appendChild(b);
+  });
+  document.querySelectorAll('.op').forEach(o=>o.classList.toggle('sel', o.dataset.op===G.op));
+}
+function tapTile(id){
+  if(!G.running || G.lock) return;
+  beep(500,.05);
+  if(G.sel===null){ G.sel=id; drawTen(); return; }
+  if(G.sel===id){ G.sel=null; G.op=null; drawTen(); return; }   // もう一度タップで取り消し
+  if(G.op===null){ G.sel=id; drawTen(); return; }               // 記号の前なら、えらびなおし
+  // 合体！
+  const a=G.tiles.find(t=>t.id===G.sel), b=G.tiles.find(t=>t.id===id);
+  const r=calc(a.v,G.op,b.v);
+  if(!r){ $('tenMsg').textContent='0 でわることはできないよ'; return; }
+  G.history.push(G.tiles.map(t=>({...t})));
+  const nt={id:G.nextId++, v:r};
+  // 合体した数字は、2つ目の数字があった場所に置く
+  G.tiles = G.tiles.filter(t=>t.id!==a.id).map(t=>t.id===b.id?nt:t);
+  G.sel=nt.id; G.op=null;
+  $('tenMsg').textContent='';
+  drawTen();
+  if(G.tiles.length===1) checkTen();
+}
+function checkTen(){
+  const v=G.tiles[0].v;
+  G.lock=true;
+  if(v.n===10 && v.d===1){
+    document.querySelector('.tile').classList.add('win');
+    onCorrect(300);
+    setTimeout(()=>{ if(G.running) nextQ(); }, 450);
+  }else{
+    $('tenMsg').textContent=`${fracText(v)} になった… もう一回！`;
+    onMiss();
+    setTimeout(()=>{ if(G.running) resetTen(); }, 700);
+  }
+}
+document.querySelectorAll('.op').forEach(o=>o.onclick=()=>{
+  if(!G || !G.running || G.lock) return;
+  if(G.sel===null){ $('tenMsg').textContent='先に数字をタップしてね'; return; }
+  G.op = G.op===o.dataset.op ? null : o.dataset.op; beep(700,.05); drawTen();
+});
+$('undoBtn').onclick=()=>{
+  if(!G.running || G.lock || !G.history.length) return;
+  G.tiles=G.history.pop(); G.sel=null; G.op=null; drawTen();
+};
+$('resetBtn').onclick=()=>{ if(G.running && !G.lock) resetTen(); };
+$('skipBtn').onclick=()=>{
+  if(!G.running || G.lock) return;
+  G.combo=0; G.timeLeft=Math.max(0,G.timeLeft-SKIP_PENALTY);
+  G.misses.push(`パス：${G.puzzle.join(' ')}`);
+  popText('−'+SKIP_PENALTY+'秒','#ff5a6a'); updateHud(); nextQ();
+};
+
+// =============================================================
+//  タイトル・結果画面のボタン
+// =============================================================
+function drawBest(){
+  $('bestEmoji').textContent = save.best.emoji ? '🏆 ベスト '+save.best.emoji : '';
+  $('bestTen').textContent   = save.best.ten   ? '🏆 ベスト '+save.best.ten   : '';
+  // 今日のチャレンジ：日付・今日のベスト・連続日数
+  const t=todayStr(), d=save.daily;
+  $('dailyDate').textContent = t.slice(5).replace('-','/');
+  if(d && d.date===t) $('bestDaily').textContent = `今日のベスト ${d.best}　🔥 ${d.streak}日連続`;
+  else if(d && d.streak){
+    const y=new Date(); y.setDate(y.getDate()-1);
+    $('bestDaily').textContent = d.date===todayStr(y) ? `🔥 ${d.streak}日連続中！今日もやって記録をのばそう` : 'まだ今日はやっていないよ';
+  } else $('bestDaily').textContent = 'まだ今日はやっていないよ';
+}
+document.querySelectorAll('.modeBtn').forEach(b=>b.onclick=()=>startGame(b.dataset.mode));
+$('againBtn').onclick=()=>startGame(G.mode);
+$('homeBtn').onclick=()=>{ drawBest(); showScreen('title'); };
+drawBest();
+
+// パソコン用：絵文字クイズは 1〜4 キーでも答えられる
+document.addEventListener('keydown',e=>{
+  if(!G || !G.running || G.qType!=='emoji') return;
+  const i='1234'.indexOf(e.key); if(i<0) return;
+  const b=$('choices').children[i]; if(b) b.click();
+});
+</script>
+</body>
+</html>
