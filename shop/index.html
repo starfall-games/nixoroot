@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#3b2a20">
+<title>どんぶりチェーン</title>
+<style>
+  /* ===== 色や大きさのきまり ===== */
+  :root{
+    --bg:#2b211b; --bg2:#3b2d24; --card:#4a382c; --card2:#5a4535; --text:#fff7ee; --sub:#d7c3ae;
+    --gold:#ffcf4a; --ok:#6be38f; --ng:#ff6b6b; --blue:#6cc6ff; --line:#ffffff1f;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; height:100%;}
+  body{
+    background:radial-gradient(circle at 50% 0%, #5a3f2c 0%, var(--bg) 60%);
+    color:var(--text);
+    font-family:"Hiragino Maru Gothic ProN","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
+    overflow:hidden; user-select:none; -webkit-user-select:none; touch-action:manipulation;
+  }
+  #app{display:flex; flex-direction:column; height:100%; max-width:520px; margin:0 auto;
+       padding:calc(env(safe-area-inset-top) + 6px) 12px calc(env(safe-area-inset-bottom) + 8px);}
+  button{font:inherit; color:inherit; border:none; cursor:pointer;}
+  .num{font-variant-numeric:tabular-nums;}
+
+  /* ===== 上：日付とお金 ===== */
+  #hdr{background:var(--bg2); border-radius:14px; padding:8px 12px;}
+  #hdr .r1{display:flex; justify-content:space-between; font-size:14px; color:var(--sub);}
+  #hdr .r2{display:flex; justify-content:space-between; align-items:baseline; margin-top:2px;}
+  #cash{font-size:24px; font-weight:900; color:var(--gold);}
+  #cash.minus{color:var(--ng);}
+  #loanTxt{font-size:13px; color:var(--sub);}
+  #goal{margin:6px 0; font-size:13px; background:#0003; padding:6px 10px; border-radius:10px;}
+
+  /* ===== タブ ===== */
+  #tabs{display:flex; gap:4px;}
+  #tabs button{flex:1; padding:8px 0; background:#0003; border-radius:10px 10px 0 0; font-size:14px; color:var(--sub);}
+  #tabs button.on{background:var(--card); color:var(--text); font-weight:700;}
+  #view{flex:1; overflow-y:auto; background:var(--card); border-radius:0 0 14px 14px; padding:10px; -webkit-overflow-scrolling:touch;}
+
+  /* ===== カード ===== */
+  .card{background:var(--card2); border-radius:12px; padding:10px; margin-bottom:10px;}
+  .card h3{margin:0 0 4px; font-size:17px;}
+  .row{display:flex; justify-content:space-between; align-items:center; gap:6px; font-size:14px; margin:3px 0;}
+  .sub{color:var(--sub); font-size:12px;}
+  .bar{height:8px; background:#0005; border-radius:4px; overflow:hidden; flex:1;}
+  .bar i{display:block; height:100%; background:var(--blue);}
+  .plus{color:var(--ok);} .minus{color:var(--ng);}
+  .btn{background:#ffffff22; padding:7px 10px; border-radius:9px; font-size:14px;}
+  .btn.main{background:var(--gold); color:#3a2500; font-weight:900;}
+  .btn.ok{background:#2f8f55;} .btn.ng{background:#a03838;}
+  .btn.sel{background:var(--blue); color:#06263a; font-weight:700;}
+  .btn:disabled{opacity:.35;}
+  .ctl{display:flex; align-items:center; gap:4px; flex-wrap:wrap; justify-content:flex-end;}
+  .ctl .v{min-width:64px; text-align:center; font-weight:700;}
+  .set{border-top:1px solid var(--line); margin-top:8px; padding-top:6px;}
+  .set .row{margin:7px 0;}
+  .tag{display:inline-block; font-size:11px; padding:1px 6px; border-radius:6px; background:#0004; margin-right:3px;}
+  .warn{background:#a0383855; border:1px solid var(--ng); border-radius:10px; padding:6px 8px; font-size:13px; margin-bottom:8px;}
+  .log{font-size:13px; border-bottom:1px solid var(--line); padding:4px 0;}
+
+  /* ===== 下のボタン ===== */
+  #foot{display:flex; gap:8px; margin-top:8px;}
+  #foot .btn{flex:1; padding:13px 0; font-size:17px;}
+  #foot .btn.main{flex:2;}
+
+  /* ===== 重ねる画面（モーダル） ===== */
+  .ov{position:fixed; inset:0; background:#000a; display:flex; align-items:center; justify-content:center; z-index:10; padding:16px;}
+  .ov .box{background:var(--bg2); border-radius:16px; padding:16px; width:100%; max-width:480px; max-height:92%; overflow-y:auto;}
+  .ov h2{margin:0 0 8px; font-size:20px; text-align:center;}
+  input[type=text]{font:inherit; width:100%; padding:10px; border-radius:10px; border:none; font-size:17px; background:#fff; color:#222;}
+
+  /* 営業中のアニメーション */
+  #clock{font-size:34px; font-weight:900; text-align:center;}
+  .live{display:flex; align-items:center; gap:8px; margin:6px 0; font-size:14px;}
+  .live .nm{width:96px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;}
+  .live .street{flex:1; height:26px; background:#0004; border-radius:8px; position:relative; overflow:hidden;}
+  .live .street span{position:absolute; top:3px; font-size:16px;}
+  .live .cnt{width:58px; text-align:right; font-weight:700;}
+  canvas{width:100%; display:block;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="hdr">
+    <div class="r1"><span id="dateTxt"></span><span id="wxTxt"></span></div>
+    <div class="r2"><span id="cash" class="num"></span><span id="loanTxt" class="num"></span></div>
+  </div>
+  <div id="goal"></div>
+  <div id="tabs">
+    <button data-tab="shop" class="on">🏪 お店</button>
+    <button data-tab="town">🗺 物件</button>
+    <button data-tab="bank">🏦 銀行</button>
+    <button data-tab="rec">📈 記録</button>
+  </div>
+  <div id="view"></div>
+  <div id="foot">
+    <button class="btn main" data-act="run1">▶ 1日営業する</button>
+    <button class="btn" data-act="run7">▶▶ 7日</button>
+  </div>
+</div>
+<div id="ovl"></div>
+
+<script>
+/* =========================================================
+   どんぶりチェーン
+   小さなラーメン屋 1店から、10店のチェーン店をめざす経営ゲーム。
+   ・1日ずつ「営業する」で進む（営業のようすは本当の時間でアニメーション）
+   ・場所（立地）ごとに 人通り・家賃・ライバル・お客さんの好み がちがう
+   ・値段、材料、店員の数、仕込み、広告、店長…を決める
+   ・お金がマイナスのまま3日たつと「倒産」
+   ========================================================= */
+
+const SAVE_KEY = 'donburi-chain-save-v1';
+
+/* ---------- 町のエリア（すべて架空の町） ----------
+   traffic : 平日に前を通る人の数（1日）
+   wk      : 土日の人通りの倍率
+   fair    : このあたりの「ふつうの値段」（相場）
+   sens    : 値段にどれだけうるさいか（大きいほど高いと来ない）
+   rain    : 雨の日の人通りの倍率
+   rivals  : 最初からあるライバル店の数
+   rps     : 席1つあたりの家賃（1日）
+   turn    : 席1つで1日に何人さばけるか（回転）           */
+const AREAS = {
+  jutaku:{name:'みどり台', kind:'住宅街',     emoji:'🏘', traffic:1500, wk:1.3, fair:750, sens:1.4, rain:0.8,  rivals:1, rps:600,  turn:8,  note:'土日に家族が来る。値段に少しきびしい'},
+  shoten:{name:'さくら商店街', kind:'商店街', emoji:'🏮', traffic:2400, wk:1.4, fair:800, sens:1.1, rain:0.75, rivals:2, rps:850,  turn:9,  note:'ときどきお祭りで大にぎわい'},
+  gakuen:{name:'学園通り', kind:'大学の前',   emoji:'🎓', traffic:3000, wk:0.5, fair:650, sens:2.0, rain:0.85, rivals:2, rps:700,  turn:10, note:'学生が多い。安くないと来ない。長い休みはガラガラ'},
+  eki:   {name:'ひばり駅前', kind:'駅前',     emoji:'🚉', traffic:6000, wk:1.0, fair:850, sens:0.9, rain:0.95, rivals:4, rps:1100, turn:12, note:'人は多いがライバルも家賃も多い'},
+  office:{name:'中央オフィス街', kind:'オフィス街', emoji:'🏢', traffic:5000, wk:0.3, fair:950, sens:0.7, rain:0.95, rivals:3, rps:1000, turn:12, note:'平日の昼はすごい。土日はほぼ人がいない'},
+  road:  {name:'国道ぞい', kind:'郊外',       emoji:'🚗', traffic:2000, wk:1.6, fair:850, sens:1.0, rain:0.9,  rivals:1, rps:400,  turn:7,  note:'家賃が安くて広い。雪に弱い'},
+  minato:{name:'みなと観光通り', kind:'観光地', emoji:'⛵', traffic:3300, wk:1.8, fair:1150, sens:0.5, rain:0.6, rivals:3, rps:1300, turn:10, note:'高くても売れる。夏と連休は大人気、冬はさびしい'},
+  newtown:{name:'にしき台', kind:'ニュータウン', emoji:'🌱', traffic:1100, wk:1.3, fair:750, sens:1.2, rain:0.8, rivals:0, rps:380, turn:8,  note:'まだ人が少ないが、毎日少しずつ人がふえる'},
+};
+
+/* ---------- いろいろな数字（バランス） ---------- */
+const WAGE = 9000;          // 店員1人の1日の給料
+const MGR_WAGE = 15000;     // 店長の1日の給料
+const PER_WORKER = 55;      // 1人が1日に作れる杯数
+const FOOD = [150, 210, 300];            // 材料のランクごとの1杯の原価
+const QNAME = ['ふつう', 'こだわり', '最高級'];
+const ADS = [                            // 広告
+  {name:'なし', cost:0, aw:0},
+  {name:'チラシ', cost:3000, aw:0.6},
+  {name:'SNS', cost:9000, aw:1.4},
+  {name:'テレビCM', cost:30000, aw:3.2},
+];
+const WX = {sun:'☀️ 晴れ', cloud:'☁️ くもり', rain:'☔ 雨', snow:'⛄ 雪'};
+const WDAY = ['月','火','水','木','金','土','日'];
+const MAX_STORES = 10;
+const CK_COST = 5000000, CK_DAILY = 12000;   // セントラルキッチン
+
+/* ---------- 目標 ---------- */
+const GOALS = [
+  {id:'black7',  txt:'7日続けて黒字にする'},
+  {id:'store2',  txt:'2店舗目を出す'},
+  {id:'month100',txt:'30日間の利益の合計を100万円にする'},
+  {id:'store3',  txt:'3店舗にする'},
+  {id:'store5',  txt:'5店舗にする'},
+  {id:'ck',      txt:'セントラルキッチンを作る'},
+  {id:'store10', txt:'10店舗のチェーン店にする（クリア！）'},
+  {id:'debtfree',txt:'10店舗で借金0円'},
+];
+
+let S = null;          // ゲームの状態（セーブするもの全部）
+let tab = 'shop';      // いま見ているタブ
+let openStore = null;  // 設定をひらいているお店
+let busy = false;      // 営業アニメ中は操作できない
+
+/* ===== 小さな道具 ===== */
+const $ = id => document.getElementById(id);
+const rnd = (a, b) => a + Math.random() * (b - a);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+// お金の表示：1万円以上は「〇〇万円」
+function yen(n){
+  const s = n < 0 ? '-' : '';
+  n = Math.abs(Math.round(n));
+  if (n >= 10000) return s + (n / 10000).toFixed(n >= 1e6 ? 0 : 1).replace(/\.0$/, '') + '万円';
+  return s + n.toLocaleString() + '円';
+}
+const sgn = n => (n >= 0 ? '+' : '') + yen(n);
+
+/* ===== 日付（ゲームは4月1日から。1か月=30日・1年=12か月） ===== */
+function dateOf(d){
+  const year = Math.floor(d / 360) + 1;
+  const month = (Math.floor(d / 30) % 12 + 3) % 12 + 1;   // 4月スタート
+  const dom = d % 30 + 1;
+  return {year, month, dom, wd: d % 7};
+}
+function dateStr(d){ const t = dateOf(d); return `${t.year}年目 ${t.month}月${t.dom}日（${WDAY[t.wd]}）`; }
+
+/* ===== 季節・天気 ===== */
+// 月ごとのラーメンの人気（夏はあつくて少し減る・冬はふえる）
+const SEASON = {1:1.15, 2:1.1, 3:1.0, 4:1.0, 5:1.0, 6:0.95, 7:0.85, 8:0.82, 9:0.95, 10:1.0, 11:1.05, 12:1.1};
+function rollWeather(d){
+  const m = dateOf(d).month;
+  const rainP = m === 6 ? 0.45 : m === 9 ? 0.33 : 0.2;
+  const snowP = (m === 12 || m === 1 || m === 2) ? 0.12 : 0;
+  const r = Math.random();
+  if (r < snowP) return 'snow';
+  if (r < snowP + rainP) return 'rain';
+  if (r < snowP + rainP + 0.25) return 'cloud';
+  return 'sun';
+}
+// あしたの出来事（天気とお祭り）を前の日に決めておく → 天気予報として見える
+function rollForecast(d){
+  return {wx: rollWeather(d), fest: Math.random() < 1 / 22};
+}
+
+/* ===== 物件（出店できる場所）を作る ===== */
+function makeListing(areaId, small){
+  const a = AREAS[areaId];
+  const seats = small ? pick([8, 10, 12]) : pick([10, 12, 16, 20, 24]);
+  const maxSeats = seats + pick([4, 8, 12]);
+  const rent = Math.round(a.rps * maxSeats * rnd(0.85, 1.15) / 100) * 100;
+  // 出店にかかるお金 = 内装（席×12万）＋ 保証金（家賃30日分）
+  const openCost = Math.round((seats * 120000 + rent * 30) / 10000) * 10000;
+  return {id: 'L' + (S.nextId++), area: areaId, seats, maxSeats, rent, openCost, born: S.day};
+}
+function refreshListings(force){
+  // 7日ごとに古い物件が1〜2件消えて、新しい物件が出る
+  if (!force && S.day % 7 !== 0) return;
+  const n = force ? 6 : (Math.random() < 0.5 ? 1 : 2);
+  for (let i = 0; i < n; i++){
+    if (S.listings.length >= 6) S.listings.shift();
+    S.listings.push(makeListing(pick(Object.keys(AREAS)), false));
+  }
+}
+
+/* ===== 新しいゲーム ===== */
+function newGame(){
+  S = {
+    day: 0, cash: 4000000, loan: 0, stores: [], listings: [], nextId: 1,
+    areas: {}, foodMult: 1, ownerAt: null, ck: false,
+    log: [], hist: [], goals: {}, negDays: 0, over: false, cleared: false,
+    shopName: 'まんぷく亭', fc: null, today: null, streak: 0,
+  };
+  for (const k in AREAS) S.areas[k] = {rivals: AREAS[k].rivals, tMult: 1};
+  S.fc = rollForecast(0);
+  // 最初に選べる、小さくて安い物件3つ
+  S.starters = ['jutaku', 'shoten', 'gakuen', 'newtown', 'road'].sort(() => Math.random() - 0.5).slice(0, 3)
+    .map(a => makeListing(a, true));
+  refreshListings(true);
+}
+
+/* ===== お店を開く ===== */
+function openShop(L){
+  if (S.cash < L.openCost) return false;
+  S.cash -= L.openCost;
+  const n = S.stores.length;
+  const st = {
+    id: 'S' + (S.nextId++), area: L.area, seats: L.seats, maxSeats: L.maxSeats, rent: L.rent,
+    invest: L.openCost, staff: 1, mgr: false, price: Math.round(AREAS[L.area].fair / 50) * 50,
+    q: 1, ads: 1, prepAuto: true, prep: 40,
+    aw: 10 + brandFloor(n + 1),  // 知名度（チェーンが大きいと最初から少し有名）
+    rep: 50,                     // 評判（星の数のもと）
+    clean: 100,                  // きれいさ
+    dem: [],                     // 最近の「来たかった人の数」
+    no: n + 1, opened: S.day, last: null,
+  };
+  st.prep = Math.round(Math.min(capOf(st), 30 + st.aw));
+  S.stores.push(st);
+  if (S.ownerAt === null) S.ownerAt = st.id;
+  addLog(`🎉 ${storeName(st)} がオープン！（${yen(L.openCost)}）`);
+  return true;
+}
+function storeName(st){ return `${S.shopName} ${AREAS[st.area].name}店`; }
+// お店が多いほど、新しいお店も最初から知られている（ブランド）
+function brandFloor(n){ return Math.min(35, (n - 1) * 6); }
+
+/* ===== お店の力 ===== */
+function workers(st){ return st.staff + (st.mgr ? 1 : 0) + (S.ownerAt === st.id ? 1 : 0); }
+function seatCap(st){ return st.seats * AREAS[st.area].turn; }
+function staffCap(st){
+  let c = workers(st) * PER_WORKER;
+  if (!st.mgr && S.ownerAt !== st.id) c *= 0.85;   // 店長もオーナーもいないと手ぎわが悪い
+  return Math.floor(c);
+}
+function capOf(st){ return Math.min(seatCap(st), staffCap(st)); }
+function unitCost(st){ return Math.round(FOOD[st.q] * S.foodMult * (S.ck ? 0.85 : 1)); }
+
+/* ===== その日の「来たい人の数」を計算（ここがゲームの心ぞう） ===== */
+function demandOf(st, ctx, noise){
+  const a = AREAS[st.area], as = S.areas[st.area];
+  const t = dateOf(ctx.day);
+  let traffic = a.traffic * as.tMult;
+  if (t.wd >= 5) traffic *= a.wk;                         // 土日
+  if (ctx.wx === 'rain') traffic *= a.rain;               // 雨
+  if (ctx.wx === 'snow') traffic *= a.rain * (st.area === 'road' ? 0.55 : 0.75);
+  if (ctx.wx === 'cloud') traffic *= 0.97;
+  let season = SEASON[t.month];
+  if (st.area === 'minato'){                              // 観光地は夏と連休が強い
+    season = t.month === 8 ? 1.5 : (t.month === 5 && t.dom <= 7) ? 1.6 : [12, 1, 2].includes(t.month) ? 0.65 : 1.05;
+  }
+  if (st.area === 'gakuen' && [2, 3, 8].includes(t.month)) season *= 0.35;   // 大学の長い休み
+  if (st.area === 'shoten' && ctx.fest) season *= 2;      // お祭り
+  traffic *= season;
+  // 同じエリアに自分の店が2つあると、お客さんを取り合う
+  const own = S.stores.filter(s => s.area === st.area && s !== st).length;
+  const rivals = as.rivals + own * 0.6;
+  const awF = 0.25 + 0.75 * st.aw / 100;                  // 知名度
+  const repF = 0.4 + 1.2 * st.rep / 100;                  // 評判
+  const priceF = clamp(Math.exp(-a.sens * 2.2 * (st.price - a.fair) / a.fair), 0.15, 2.2);
+  const qF = [0.92, 1.0, 1.08][st.q];
+  let d = traffic * 0.09 * awF * repF * priceF * qF / (1 + 0.22 * rivals);
+  if (noise) d *= rnd(0.88, 1.12);
+  return Math.max(0, Math.round(d));
+}
+
+/* ===== 仕込み（あしたの分の材料を何杯分用意するか） ===== */
+function autoPrep(st, ctx){
+  const cap = capOf(st);
+  // 店長かオーナーがいる店は、天気や曜日を見てうまく仕込む
+  if (st.mgr || S.ownerAt === st.id) return Math.min(cap, Math.round(demandOf(st, ctx, false) * 1.08));
+  // いない店は「最近の平均」だけで仕込む（雨や土日に弱い）
+  const avg = st.dem.length ? st.dem.reduce((a, b) => a + b, 0) / st.dem.length : 30 + st.aw;
+  return Math.min(cap, Math.round(avg * 1.1));
+}
+
+/* ===== 1日の営業を計算する（結果だけ。アニメは別） ===== */
+function simDay(){
+  const ctx = {day: S.day, wx: S.fc.wx, fest: S.fc.fest};
+  const msgs = [];
+  const res = {day: S.day, ctx, stores: [], sales: 0, profit: 0, msgs};
+  for (const st of S.stores){
+    const a = AREAS[st.area];
+    const prep = st.prepAuto ? autoPrep(st, ctx) : st.prep;
+    const demand = demandOf(st, ctx, true);
+    const cap = capOf(st);
+    const served = Math.min(demand, cap, prep);
+    const lostCap = demand - Math.min(demand, cap);           // 席や人手が足りず帰った人
+    const lostPrep = Math.min(demand, cap) - served;          // 売り切れで帰った人
+    const sales = served * st.price;
+    const food = prep * unitCost(st);                         // 仕込んだ分は全部お金がかかる（あまりはすてる）
+    const wages = st.staff * WAGE + (st.mgr ? MGR_WAGE : 0);
+    const util = 2500 + st.seats * 150;                       // 電気・ガス・水道
+    const ads = ADS[st.ads].cost;
+    const profit = sales - food - wages - st.rent - util - ads;
+    // 満足度：材料・お得さ・待ち時間・売り切れ・きれいさ・店をまとめる人
+    let sat = 55 + [-8, 4, 14][st.q]
+      + clamp((a.fair - st.price) / a.fair * 60, -35, 20)
+      - (demand ? lostCap / demand * 25 : 0)
+      - (demand ? lostPrep / demand * 15 : 0)
+      + (st.clean - 60) / 6
+      + (S.ownerAt === st.id ? 4 : st.mgr ? 2 : -8)
+      + rnd(-4, 4);
+    sat = clamp(sat, 0, 100);
+    if (served > 0) st.rep += (sat - st.rep) * 0.06;
+    st.rep = clamp(st.rep, 0, 100);
+    st.aw += ADS[st.ads].aw + served * 0.006 - st.aw * 0.012;
+    st.aw = clamp(Math.max(st.aw, brandFloor(S.stores.length)), 0, 100);
+    st.clean = Math.max(0, st.clean - 0.35);
+    st.dem.push(demand); if (st.dem.length > 3) st.dem.shift();
+    st.last = {demand, served, prep, cap, lostCap, lostPrep, sales, food, wages, rent: st.rent, util, ads, profit, sat: Math.round(sat)};
+    res.stores.push({st, ...st.last});
+    res.sales += sales; res.profit += profit;
+  }
+  // 本部のお金：3店目から、店がふえるほどかかる（事務・管理）
+  const hq = S.stores.length >= 3 ? 12000 * (S.stores.length - 2) : 0;
+  const ck = S.ck ? CK_DAILY : 0;
+  const interest = Math.round(S.loan * 0.0005);               // 借金の利子（1日0.05%）
+  const principal = Math.min(S.loan, Math.round(S.loan * 0.006)); // 毎日の返済（借金の0.6%）
+  res.hq = hq; res.ckCost = ck; res.interest = interest; res.principal = principal;
+  res.profit -= hq + ck + interest;
+  S.cash += res.profit - principal;
+  S.loan -= principal;
+
+  // ---- いろいろな出来事 ----
+  dailyEvents(msgs);
+  // ---- お金がマイナス？ ----
+  if (S.cash < 0){
+    S.negDays++;
+    msgs.push(`⚠️ お金がマイナス！あと${3 - S.negDays}日で戻さないと倒産します（銀行で借りるか、店を閉める）`);
+    if (S.negDays >= 3){ S.over = true; msgs.push('💥 倒産してしまった…'); }
+  } else S.negDays = 0;
+  S.streak = res.profit > 0 ? S.streak + 1 : 0;
+
+  S.hist.push({d: S.day, sales: res.sales, profit: res.profit, cash: S.cash});
+  if (S.hist.length > 120) S.hist.shift();
+  for (const m of msgs) addLog(m);
+
+  // ---- あしたへ ----
+  S.day++;
+  S.areas.newtown.tMult = Math.min(2.6, S.areas.newtown.tMult + 0.0015);   // ニュータウンは人がふえていく
+  S.fc = rollForecast(S.day);
+  refreshListings(false);
+  checkGoals(msgs);
+  S.today = res;
+  save();
+  return res;
+}
+
+/* ===== ランダムな出来事 ===== */
+function dailyEvents(msgs){
+  const ids = Object.keys(AREAS);
+  // 材料の値段は少しずつ動く
+  S.foodMult = clamp(S.foodMult + rnd(-0.012, 0.012) + (1 - S.foodMult) * 0.02, 0.85, 1.4);
+  if (Math.random() < 1 / 60){ S.foodMult = Math.min(1.4, S.foodMult + 0.12); msgs.push('📈 小麦やぶた肉が値上がり！材料が高くなった'); }
+  // ライバル店が出る・つぶれる
+  if (Math.random() < 1 / 30){
+    const k = pick(ids);
+    if (S.areas[k].rivals < 6){
+      S.areas[k].rivals++;
+      const mine = S.stores.some(s => s.area === k);
+      msgs.push(`🍜 ${AREAS[k].name}にライバル店が開店${mine ? '…うちの店の近くだ！' : ''}（ライバル${S.areas[k].rivals}店）`);
+    }
+  }
+  if (Math.random() < 1 / 45){
+    const k = pick(ids.filter(k => S.areas[k].rivals > 0));
+    if (k){ S.areas[k].rivals--; msgs.push(`🏚 ${AREAS[k].name}のライバル店が閉店した（ライバル${S.areas[k].rivals}店）`); }
+  }
+  for (const st of S.stores){
+    // 店員さんが急にやめる
+    if (st.staff > 0 && Math.random() < 1 / 70){ st.staff--; msgs.push(`😢 ${storeName(st)}の店員さんが1人やめた`); }
+    // 評判がいいとテレビにとりあげられる
+    if (st.rep >= 72 && Math.random() < 1 / 60){ st.aw = Math.min(100, st.aw + 25); msgs.push(`📺 ${storeName(st)}がテレビでしょうかいされた！知名度アップ`); }
+    // 評判が悪いと悪い口コミ
+    if (st.rep < 38 && Math.random() < 1 / 12){ st.rep -= 5; msgs.push(`👎 ${storeName(st)}にネットで悪い口コミ…`); }
+    // きたないと保健所の注意
+    if (st.clean < 30 && Math.random() < 1 / 10){ st.rep -= 8; msgs.push(`🧽 ${storeName(st)}が保健所に注意された（きれいさが低い）`); }
+  }
+}
+
+/* ===== 目標のチェック ===== */
+function checkGoals(msgs){
+  const n = S.stores.length;
+  const last30 = S.hist.slice(-30).reduce((a, h) => a + h.profit, 0);
+  const ok = {
+    black7: S.streak >= 7, store2: n >= 2, month100: last30 >= 1000000, store3: n >= 3,
+    store5: n >= 5, ck: S.ck, store10: n >= 10, debtfree: n >= 10 && S.loan <= 0,
+  };
+  for (const g of GOALS){
+    if (!S.goals[g.id] && ok[g.id]){
+      S.goals[g.id] = S.day;
+      const m = `🎯 目標たっせい：${g.txt}`;
+      msgs.push(m); addLog(m);
+      if (g.id === 'store10') S.cleared = true;
+    }
+  }
+}
+function addLog(m){ S.log.unshift({d: S.day, m}); if (S.log.length > 60) S.log.pop(); }
+
+/* ===== 銀行：借りられる上限 ===== */
+function creditLimit(){
+  const assets = S.stores.reduce((a, s) => a + s.seats * 60000, 0);
+  const h = S.hist.slice(-14);
+  const avg = h.length ? h.reduce((a, x) => a + x.profit, 0) / h.length : 0;
+  return Math.max(0, Math.round((3000000 + assets + Math.max(0, avg) * 30) / 100000) * 100000);
+}
+// 店を閉めたときに戻ってくるお金（内装の一部＋保証金）
+function sellValue(st){ return Math.round((st.invest * 0.3 + st.rent * 30) / 10000) * 10000; }
+
+/* =========================================================
+   画面を作る
+   ========================================================= */
+function render(){
+  if (!S) return;
+  $('dateTxt').textContent = dateStr(S.day);
+  $('wxTxt').textContent = 'きょう ' + WX[S.fc.wx] + (S.fc.fest ? ' 🏮祭り' : '');
+  const c = $('cash');
+  c.textContent = '💰 ' + yen(S.cash);
+  c.className = 'num' + (S.cash < 0 ? ' minus' : '');
+  $('loanTxt').textContent = `🏦 借金 ${yen(S.loan)}　🏪 ${S.stores.length}店`;
+  const g = GOALS.find(g => !S.goals[g.id]);
+  $('goal').textContent = g ? '🎯 目標：' + g.txt : '🏆 すべての目標をたっせい！';
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+  const v = $('view'), top = v.scrollTop;
+  v.innerHTML = tab === 'shop' ? viewShop() : tab === 'town' ? viewTown() : tab === 'bank' ? viewBank() : viewRec();
+  v.scrollTop = top;
+  if (tab === 'rec') drawChart();
+}
+
+function stars(r){ const n = Math.round(r / 20 * 2) / 2; return '★'.repeat(Math.floor(n)) + (n % 1 ? '☆' : '') + `<span class="sub"> ${Math.round(r)}</span>`; }
+function bar(v, col){ return `<div class="bar"><i style="width:${clamp(v, 0, 100)}%;${col ? 'background:' + col : ''}"></i></div>`; }
+
+function viewShop(){
+  let h = '';
+  if (S.cash < 0) h += `<div class="warn">⚠️ お金がマイナスです。あと${3 - S.negDays}日で倒産！🏦銀行で借りるか、赤字の店を見直そう</div>`;
+  if (S.fc.fest && S.stores.some(s => s.area === 'shoten')) h += `<div class="warn" style="background:#8a6a1f55;border-color:var(--gold)">🏮 きょうは さくら商店街のお祭り！お客さんが2倍くらい来るかも。仕込みを多めに</div>`;
+  for (const st of S.stores){
+    const a = AREAS[st.area], L = st.last;
+    const ctx = {day: S.day, wx: S.fc.wx, fest: S.fc.fest};
+    const est = demandOf(st, ctx, false);
+    const owner = S.ownerAt === st.id;
+    h += `<div class="card">
+      <h3>${a.emoji} ${storeName(st)}</h3>
+      <div class="sub">${a.kind}・${st.seats}席（最大${st.maxSeats}）・家賃 ${yen(st.rent)}/日・ライバル${S.areas[st.area].rivals}店
+        ${owner ? '<span class="tag">👤オーナーが働く</span>' : ''}${st.mgr ? '<span class="tag">🧑‍🍳店長</span>' : ''}</div>
+      <div class="row"><span>評判</span><span>${stars(st.rep)}</span></div>
+      <div class="row"><span style="width:56px">知名度</span>${bar(st.aw)}<span class="sub num" style="width:28px;text-align:right">${Math.round(st.aw)}</span></div>
+      <div class="row"><span style="width:56px">きれいさ</span>${bar(st.clean, st.clean < 40 ? 'var(--ng)' : 'var(--ok)')}<span class="sub num" style="width:28px;text-align:right">${Math.round(st.clean)}</span></div>
+      ${L ? `<div class="row"><span>きのう</span><span class="num">客 ${L.served}人 / 来たかった ${L.demand}人　<b class="${L.profit >= 0 ? 'plus' : 'minus'}">${sgn(L.profit)}</b></span></div>
+      <div class="sub">${L.lostCap ? `😣 席・人手が足りず${L.lostCap}人帰った　` : ''}${L.lostPrep ? `🍥 売り切れで${L.lostPrep}人帰った　` : ''}${L.prep > L.served ? `🗑 ${L.prep - L.served}杯分あまった　` : ''}満足度 ${L.sat}</div>` : '<div class="sub">まだ営業していません</div>'}
+      <div class="row"><span>きょうの予想</span><span class="num">${Math.round(est * 0.88)}〜${Math.round(est * 1.12)}人（さばける数 ${capOf(st)}杯）</span></div>
+      <div style="text-align:right"><button class="btn" data-act="toggle" data-id="${st.id}">${openStore === st.id ? '▲ とじる' : '⚙️ 設定する'}</button></div>
+      ${openStore === st.id ? setPanel(st) : ''}
+    </div>`;
+  }
+  if (S.stores.length < MAX_STORES) h += `<div class="sub" style="text-align:center">新しいお店は「🗺 物件」から出せます</div>`;
+  return h;
+}
+
+// お店の設定パネル
+function setPanel(st){
+  const a = AREAS[st.area], id = st.id;
+  const owner = S.ownerAt === st.id;
+  const ctx = {day: S.day, wx: S.fc.wx, fest: S.fc.fest};
+  return `<div class="set">
+    <div class="row"><span>💴 値段<br><span class="sub">相場 ${yen(a.fair)}</span></span><span class="ctl">
+      <button class="btn" data-act="price" data-id="${id}" data-v="-50">−50</button><span class="v num">${yen(st.price)}</span>
+      <button class="btn" data-act="price" data-id="${id}" data-v="50">+50</button></span></div>
+    <div class="row"><span>🍜 材料<br><span class="sub">1杯 ${yen(unitCost(st))}</span></span><span class="ctl">
+      ${QNAME.map((n, i) => `<button class="btn ${st.q === i ? 'sel' : ''}" data-act="q" data-id="${id}" data-v="${i}">${n}</button>`).join('')}</span></div>
+    <div class="row"><span>🧑 店員<br><span class="sub">1人 ${yen(WAGE)}/日</span></span><span class="ctl">
+      <button class="btn" data-act="staff" data-id="${id}" data-v="-1">−</button><span class="v">${st.staff}人</span>
+      <button class="btn" data-act="staff" data-id="${id}" data-v="1">＋</button></span></div>
+    <div class="sub" style="text-align:right">人手で作れる ${staffCap(st)}杯 ／ 席でさばける ${seatCap(st)}杯</div>
+    <div class="row"><span>🧑‍🍳 店長<br><span class="sub">${yen(MGR_WAGE)}/日</span></span><span class="ctl">
+      <button class="btn ${st.mgr ? 'sel' : ''}" data-act="mgr" data-id="${id}">${st.mgr ? 'いる（やめてもらう）' : '雇う'}</button></span></div>
+    <div class="row"><span>👤 オーナー<br><span class="sub">給料なしで働ける（1店だけ）</span></span><span class="ctl">
+      ${owner ? '<span class="tag">この店で働いている</span>' : `<button class="btn" data-act="owner" data-id="${id}">この店で働く</button>`}</span></div>
+    <div class="row"><span>🥣 仕込み<br><span class="sub">あまりはすてる</span></span><span class="ctl">
+      <button class="btn ${st.prepAuto ? 'sel' : ''}" data-act="prepAuto" data-id="${id}">おまかせ</button>
+      <button class="btn" data-act="prep" data-id="${id}" data-v="-10">−10</button><span class="v num">${st.prepAuto ? autoPrep(st, ctx) : st.prep}杯</span>
+      <button class="btn" data-act="prep" data-id="${id}" data-v="10">+10</button></span></div>
+    <div class="sub" style="text-align:right">${st.prepAuto ? (st.mgr || owner ? 'おまかせ：店長/オーナーが天気や曜日を見て決める' : 'おまかせ：最近の平均だけで決める（店長がいると上手になる）') : '手動で決めた数'}</div>
+    <div class="row"><span>📣 広告</span><span class="ctl">
+      ${ADS.map((x, i) => `<button class="btn ${st.ads === i ? 'sel' : ''}" data-act="ads" data-id="${id}" data-v="${i}">${x.name}${x.cost ? '<br><span class="sub">' + yen(x.cost) + '/日</span>' : ''}</button>`).join('')}</span></div>
+    <div class="row"><span>🪑 席を4つふやす</span><span class="ctl">
+      <button class="btn" data-act="expand" data-id="${id}" ${st.seats + 4 > st.maxSeats ? 'disabled' : ''}>${st.seats + 4 > st.maxSeats ? 'もう広げられない' : yen(480000)}</button></span></div>
+    <div class="row"><span>🧽 改装してきれいに</span><span class="ctl">
+      <button class="btn" data-act="reno" data-id="${id}">${yen(st.seats * 40000)}</button></span></div>
+    <div class="row"><span>🚪 閉店する<br><span class="sub">もどるお金 ${yen(sellValue(st))}</span></span><span class="ctl">
+      <button class="btn ng" data-act="close" data-id="${id}">閉店</button></span></div>
+  </div>`;
+}
+
+function viewTown(){
+  let h = `<div class="sub" style="margin-bottom:6px">出店できる物件です。7日ごとに入れかわります。人通り・家賃・ライバル・お客さんの好みをよく見て選ぼう。</div>`;
+  if (S.stores.length >= MAX_STORES) h += `<div class="warn">もう${MAX_STORES}店あります（いまのところ最大）</div>`;
+  for (const L of S.listings){
+    const a = AREAS[L.area], as = S.areas[L.area];
+    const mine = S.stores.filter(s => s.area === L.area).length;
+    h += `<div class="card">
+      <h3>${a.emoji} ${a.name}<span class="sub">（${a.kind}）</span></h3>
+      <div class="sub">${a.note}</div>
+      <div class="row"><span>人通り</span><span class="num">${Math.round(a.traffic * as.tMult).toLocaleString()}人/日（土日×${a.wk}）</span></div>
+      <div class="row"><span>相場の値段</span><span>${yen(a.fair)}・値段に${a.sens >= 1.5 ? 'とてもきびしい' : a.sens >= 1 ? 'ふつう' : 'あまり気にしない'}</span></div>
+      <div class="row"><span>ライバル店</span><span>${as.rivals}店${mine ? `（うちの店も${mine}店ある→お客さんを取り合う）` : ''}</span></div>
+      <div class="row"><span>席</span><span>${L.seats}席（最大${L.maxSeats}席まで広げられる）</span></div>
+      <div class="row"><span>家賃</span><span>${yen(L.rent)}/日（月 ${yen(L.rent * 30)}）</span></div>
+      <div class="row"><span><b>出店のお金</b></span><span><b>${yen(L.openCost)}</b> <button class="btn main" data-act="buy" data-id="${L.id}" ${S.cash < L.openCost || S.stores.length >= MAX_STORES ? 'disabled' : ''}>出店する</button></span></div>
+    </div>`;
+  }
+  return h;
+}
+
+function viewBank(){
+  const lim = creditLimit(), room = Math.max(0, lim - S.loan);
+  const day = Math.round(S.loan * 0.0005) + Math.round(S.loan * 0.006);
+  const n = S.stores.length;
+  return `<div class="card">
+    <h3>🏦 ひばり信用金庫</h3>
+    <div class="row"><span>いまの借金</span><b class="num">${yen(S.loan)}</b></div>
+    <div class="row"><span>借りられる上限</span><span class="num">${yen(lim)}（あと ${yen(room)}）</span></div>
+    <div class="sub">上限は「お店の数と広さ」と「最近の利益」で決まる。利子は1日0.05%（1年で約18%）、毎日 借金の0.6%を自動で返す。いまは1日 ${yen(day)} はらっている。</div>
+    <div class="row" style="margin-top:8px"><span>借りる</span><span class="ctl">
+      ${[500000, 1000000, 3000000].map(v => `<button class="btn" data-act="borrow" data-v="${v}" ${room < v ? 'disabled' : ''}>${yen(v)}</button>`).join('')}</span></div>
+    <div class="row"><span>返す</span><span class="ctl">
+      <button class="btn" data-act="repay" data-v="500000" ${S.loan <= 0 ? 'disabled' : ''}>${yen(500000)}</button>
+      <button class="btn" data-act="repay" data-v="all" ${S.loan <= 0 ? 'disabled' : ''}>ぜんぶ</button></span></div>
+  </div>
+  <div class="card">
+    <h3>🏭 セントラルキッチン</h3>
+    <div class="sub">チェーン店のための大きな工場。全部の店の材料が15%安くなる。ただし毎日 ${yen(CK_DAILY)} かかる。3店舗以上で作れる。</div>
+    <div class="row"><span>${S.ck ? '✅ 作った' : yen(CK_COST)}</span>
+      ${S.ck ? '' : `<button class="btn main" data-act="ck" ${n < 3 || S.cash < CK_COST ? 'disabled' : ''}>作る</button>`}</div>
+  </div>
+  <div class="card">
+    <h3>🏢 本部のお金</h3>
+    <div class="sub">3店舗目から、事務や管理のお金が1日 12,000円×（店の数−2）かかる。いまは1日 ${yen(n >= 3 ? 12000 * (n - 2) : 0)}。</div>
+    <div class="row"><span>材料の値段（ふつう=100）</span><span class="num">${Math.round(S.foodMult * 100)}</span></div>
+  </div>`;
+}
+
+function viewRec(){
+  const h30 = S.hist.slice(-30);
+  const sum = k => h30.reduce((a, h) => a + h[k], 0);
+  let h = `<div class="card"><h3>📈 毎日の利益（最近60日）</h3><canvas id="chart" height="150"></canvas>
+    <div class="row"><span>最近30日の売り上げ</span><span class="num">${yen(sum('sales'))}</span></div>
+    <div class="row"><span>最近30日の利益</span><b class="num ${sum('profit') >= 0 ? 'plus' : 'minus'}">${sgn(sum('profit'))}</b></div></div>`;
+  if (S.today){
+    const t = S.today;
+    h += `<div class="card"><h3>🧾 きのうのお金の内わけ</h3>`;
+    const row = (k, v) => `<div class="row"><span>${k}</span><span class="num ${v >= 0 ? 'plus' : 'minus'}">${sgn(v)}</span></div>`;
+    const sumk = k => t.stores.reduce((a, s) => a + s[k], 0);
+    h += row('売り上げ', sumk('sales')) + row('材料（仕込み）', -sumk('food')) + row('人件費（給料）', -sumk('wages'))
+      + row('家賃', -sumk('rent')) + row('電気・ガス・水道', -sumk('util')) + row('広告', -sumk('ads'));
+    if (t.hq) h += row('本部のお金', -t.hq);
+    if (t.ckCost) h += row('セントラルキッチン', -t.ckCost);
+    if (t.interest) h += row('借金の利子', -t.interest);
+    h += `<div class="row" style="border-top:1px solid var(--line);padding-top:4px"><b>利益</b><b class="num ${t.profit >= 0 ? 'plus' : 'minus'}">${sgn(t.profit)}</b></div>`;
+    if (t.principal) h += `<div class="sub">ほかに借金の返済 ${yen(t.principal)}（借金がへる）</div>`;
+    h += `</div>`;
+  }
+  h += `<div class="card"><h3>🎯 目標</h3>${GOALS.map(g => `<div class="log">${S.goals[g.id] !== undefined ? '✅' : '⬜'} ${g.txt}${S.goals[g.id] !== undefined ? `<span class="sub">（${S.goals[g.id]}日目）</span>` : ''}</div>`).join('')}</div>`;
+  h += `<div class="card"><h3>📰 できごと</h3>${S.log.slice(0, 30).map(l => `<div class="log"><span class="sub">${l.d + 1}日目</span> ${l.m}</div>`).join('') || '<div class="sub">まだなし</div>'}</div>`;
+  h += `<div style="text-align:center"><button class="btn ng" data-act="reset">はじめからやり直す</button></div>`;
+  return h;
+}
+
+// 利益のグラフ（棒グラフ：緑=黒字、赤=赤字）
+function drawChart(){
+  const cv = $('chart'); if (!cv) return;
+  const W = cv.clientWidth, H = 150, dpr = window.devicePixelRatio || 1;
+  cv.width = W * dpr; cv.height = H * dpr;
+  const g = cv.getContext('2d'); g.scale(dpr, dpr);
+  const data = S.hist.slice(-60);
+  if (!data.length){ g.fillStyle = '#d7c3ae'; g.font = '13px sans-serif'; g.fillText('まだデータがありません', 10, 75); return; }
+  const mx = Math.max(10000, ...data.map(d => Math.abs(d.profit)));
+  const mid = H / 2, bw = W / 60;
+  g.strokeStyle = '#ffffff40'; g.beginPath(); g.moveTo(0, mid); g.lineTo(W, mid); g.stroke();
+  data.forEach((d, i) => {
+    const hh = d.profit / mx * (H / 2 - 6);
+    g.fillStyle = d.profit >= 0 ? '#6be38f' : '#ff6b6b';
+    g.fillRect(i * bw + 1, hh >= 0 ? mid - hh : mid, Math.max(1, bw - 2), Math.abs(hh));
+  });
+  g.fillStyle = '#d7c3ae'; g.font = '11px sans-serif';
+  g.fillText('+' + yen(mx), 4, 12); g.fillText('-' + yen(mx), 4, H - 3);
+}
+
+/* =========================================================
+   ボタンを押したとき
+   ========================================================= */
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-tab],[data-act]');
+  if (!t || busy) return;
+  if (t.dataset.tab){ tab = t.dataset.tab; render(); return; }
+  act(t.dataset.act, t.dataset.id, t.dataset.v);
+});
+
+function act(a, id, v){
+  const st = S && S.stores.find(s => s.id === id);
+  switch (a){
+    case 'toggle': openStore = openStore === id ? null : id; break;
+    case 'price': st.price = clamp(st.price + +v, 300, 2500); break;
+    case 'q': st.q = +v; break;
+    case 'staff': st.staff = clamp(st.staff + +v, 0, 12); break;
+    case 'mgr': st.mgr = !st.mgr; break;
+    case 'owner': S.ownerAt = st.id; break;
+    case 'prepAuto':
+      st.prepAuto = !st.prepAuto;
+      if (!st.prepAuto) st.prep = autoPrep(st, {day: S.day, wx: S.fc.wx, fest: S.fc.fest});
+      break;
+    case 'prep':
+      if (st.prepAuto){ st.prep = autoPrep(st, {day: S.day, wx: S.fc.wx, fest: S.fc.fest}); st.prepAuto = false; }
+      st.prep = clamp(st.prep + +v, 0, 600); break;
+    case 'ads': st.ads = +v; break;
+    case 'expand':
+      if (S.cash < 480000) return toast('お金が足りません');
+      if (st.seats + 4 > st.maxSeats) return;
+      S.cash -= 480000; st.seats += 4; st.invest += 480000; addLog(`🪑 ${storeName(st)}の席を${st.seats}席にした`); break;
+    case 'reno': {
+      const c = st.seats * 40000;
+      if (S.cash < c) return toast('お金が足りません');
+      S.cash -= c; st.clean = 100; st.rep = Math.min(100, st.rep + 3); addLog(`🧽 ${storeName(st)}を改装した`); break;
+    }
+    case 'close':
+      if (!confirm(`${storeName(st)}を閉店しますか？\n${yen(sellValue(st))} がもどってきます。`)) return;
+      S.cash += sellValue(st); S.stores = S.stores.filter(s => s !== st);
+      if (S.ownerAt === st.id) S.ownerAt = S.stores.length ? S.stores[0].id : null;
+      addLog(`🚪 ${storeName(st)}を閉店した`);
+      if (!S.stores.length) return gameOver('お店がなくなってしまった');
+      break;
+    case 'buy': {
+      const L = S.listings.find(l => l.id === id);
+      if (!L || S.cash < L.openCost) return toast('お金が足りません');
+      if (!confirm(`${AREAS[L.area].name}に出店しますか？\n出店のお金 ${yen(L.openCost)}\n家賃 ${yen(L.rent)}/日`)) return;
+      openShop(L); S.listings = S.listings.filter(l => l !== L);
+      tab = 'shop'; openStore = S.stores[S.stores.length - 1].id;
+      toast('新しいお店ができた！店員の数や値段を決めよう');
+      break;
+    }
+    case 'borrow': {
+      const room = creditLimit() - S.loan;
+      if (+v > room) return;
+      S.loan += +v; S.cash += +v; addLog(`🏦 ${yen(+v)} 借りた`); break;
+    }
+    case 'repay': {
+      const amt = v === 'all' ? S.loan : Math.min(+v, S.loan);
+      if (S.cash < amt) return toast('お金が足りません');
+      S.loan -= amt; S.cash -= amt; addLog(`🏦 ${yen(amt)} 返した`); break;
+    }
+    case 'ck':
+      if (S.cash < CK_COST || S.stores.length < 3) return;
+      S.cash -= CK_COST; S.ck = true; addLog('🏭 セントラルキッチンを作った！');
+      checkGoals([]); break;
+    case 'reset':
+      if (!confirm('本当に、はじめからやり直しますか？（いまのデータは消えます）')) return;
+      localStorage.removeItem(SAVE_KEY); S = null; showStart(); return;
+    case 'run1': runDays(1); return;
+    case 'run7': runDays(7); return;
+  }
+  save(); render();
+}
+
+function toast(m){
+  const d = document.createElement('div');
+  d.textContent = m;
+  d.style.cssText = 'position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#000d;padding:10px 16px;border-radius:12px;z-index:20;font-size:14px;max-width:90%;text-align:center';
+  document.body.appendChild(d); setTimeout(() => d.remove(), 2200);
+}
+
+/* =========================================================
+   営業のアニメーション（本当の時間で 11:00 → 22:00）
+   ========================================================= */
+// お客さんが来る時間のかたより（お昼と夜にピーク）
+function rush(h){ return 0.3 + Math.exp(-((h - 12.3) ** 2) / 1.2) * 1.6 + Math.exp(-((h - 19) ** 2) / 2) * 1.2; }
+function rushCum(p){   // 0〜1：その時刻までに来た人の割合
+  let a = 0, b = 0;
+  for (let i = 0; i < 110; i++){ const h = 11 + i / 10, r = rush(h); b += r; if (i / 110 < p) a += r; }
+  return a / b;
+}
+
+function runDays(n){
+  if (busy || S.over) return;
+  if (!S.stores.length) return;
+  busy = true;
+  const results = [];
+  const step = () => {
+    const r = simDay();
+    results.push(r);
+    const stop = S.over || r.msgs.some(m => m.startsWith('⚠️'));
+    animDay(r, n === 1 ? 2600 : 900, () => {
+      if (results.length < n && !stop) return step();
+      busy = false;
+      if (S.over){ render(); return gameOver('お金がマイナスのまま3日たった'); }
+      showResult(results);
+    });
+  };
+  step();
+}
+
+function animDay(r, ms, done){
+  const people = ['🧑', '👩', '👨', '🧒', '👵', '👴', '🧑‍💼', '👩‍🎓'];
+  $('ovl').innerHTML = `<div class="ov"><div class="box">
+    <div class="sub" style="text-align:center">${dateStr(r.day)}　${WX[r.ctx.wx]}${r.ctx.fest ? ' 🏮祭り' : ''}</div>
+    <div id="clock" class="num">11:00</div>
+    ${r.stores.map((s, i) => `<div class="live"><span class="nm">${AREAS[s.st.area].emoji} ${AREAS[s.st.area].name}</span>
+      <div class="street" id="street${i}"></div><span class="cnt num" id="cnt${i}">0杯</span></div>`).join('')}
+    <div class="sub" style="text-align:center;margin-top:6px">タップで早送り</div>
+  </div></div>`;
+  let t0 = performance.now(), last = t0, skip = false;
+  $('ovl').firstChild.onclick = () => { skip = true; };
+  const walkers = r.stores.map(() => []);
+  const shown = r.stores.map(() => 0);
+  const frame = now => {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    let p = skip ? 1 : clamp((now - t0) / ms, 0, 1);
+    const hour = 11 + p * 11;
+    $('clock').textContent = `${Math.floor(hour)}:${String(Math.floor((hour % 1) * 60)).padStart(2, '0')}`;
+    const cum = rushCum(p);
+    r.stores.forEach((s, i) => {
+      const now_n = Math.round(s.served * cum);
+      // 新しく来たお客さんを歩かせる（多すぎると見えないので少しだけ）
+      if (now_n > shown[i] && walkers[i].length < 8 && Math.random() < 0.6){
+        const el = document.createElement('span'); el.textContent = pick(people);
+        $('street' + i).appendChild(el); walkers[i].push({el, x: 0});
+      }
+      shown[i] = now_n;
+      $('cnt' + i).textContent = now_n + '杯';
+      const w = $('street' + i).clientWidth;
+      walkers[i] = walkers[i].filter(o => {
+        o.x += dt * w * (ms < 1500 ? 2.2 : 1.1);   // 1秒あたりに歩く量（本当の時間で動く）
+        o.el.style.left = (o.x - 20) + 'px';
+        if (o.x > w + 10){ o.el.remove(); return false; }
+        return true;
+      });
+    });
+    if (p < 1) requestAnimationFrame(frame);
+    else setTimeout(done, skip ? 0 : 250);
+  };
+  requestAnimationFrame(frame);
+}
+
+// 営業が終わったあとの結果
+function showResult(rs){
+  const sales = rs.reduce((a, r) => a + r.sales, 0), profit = rs.reduce((a, r) => a + r.profit, 0);
+  const msgs = rs.flatMap(r => r.msgs);
+  const last = rs[rs.length - 1];
+  let h = `<h2>${rs.length === 1 ? '🧾 きょうの結果' : `🧾 ${rs.length}日間の結果`}</h2>`;
+  if (rs.length === 1){
+    for (const s of last.stores){
+      h += `<div class="card"><b>${AREAS[s.st.area].emoji} ${AREAS[s.st.area].name}店</b>
+        <div class="row"><span>お客さん</span><span class="num">${s.served}人（来たかった ${s.demand}人）</span></div>
+        <div class="row"><span>売り上げ</span><span class="num">${yen(s.sales)}</span></div>
+        <div class="row"><span>この店の利益</span><b class="num ${s.profit >= 0 ? 'plus' : 'minus'}">${sgn(s.profit)}</b></div>
+        <div class="sub">${s.lostCap ? `😣 ${s.lostCap}人が待ちきれず帰った　` : ''}${s.lostPrep ? `🍥 売り切れで${s.lostPrep}人帰った　` : ''}${s.prep > s.served ? `🗑 ${s.prep - s.served}杯分すてた　` : ''}満足度 ${s.sat}</div></div>`;
+    }
+    if (last.hq || last.ckCost || last.interest) h += `<div class="sub">本部 ${yen(last.hq)}・キッチン ${yen(last.ckCost)}・利子 ${yen(last.interest)} もひいています</div>`;
+  }
+  h += `<div class="row" style="font-size:16px;margin-top:6px"><span>売り上げ</span><b class="num">${yen(sales)}</b></div>
+    <div class="row" style="font-size:18px"><span>利益</span><b class="num ${profit >= 0 ? 'plus' : 'minus'}">${sgn(profit)}</b></div>`;
+  if (msgs.length) h += `<div class="card" style="margin-top:8px">${msgs.map(m => `<div class="log">${m}</div>`).join('')}</div>`;
+  if (S.cleared && !S.clearShown){ S.clearShown = true; save(); h += `<div class="warn" style="background:#8a6a1f88;border-color:var(--gold);font-size:16px;text-align:center">🏆 10店舗のチェーン店になった！クリア！<br><span class="sub">${S.day}日かかった。このまま続けて「借金0円」もめざせる</span></div>`; }
+  h += `<div style="text-align:center;margin-top:10px"><button class="btn main" style="padding:12px 40px" id="okBtn">OK</button></div>`;
+  $('ovl').innerHTML = `<div class="ov"><div class="box">${h}</div></div>`;
+  $('okBtn').onclick = () => { $('ovl').innerHTML = ''; render(); };
+}
+
+function gameOver(why){
+  S.over = true; save();
+  const best = S.stores.length;
+  $('ovl').innerHTML = `<div class="ov"><div class="box" style="text-align:center">
+    <h2>💥 倒産…</h2><div>${why}</div>
+    <div class="card" style="margin-top:10px;text-align:left">
+      <div class="row"><span>つづいた日数</span><b>${S.day}日</b></div>
+      <div class="row"><span>さいごのお店の数</span><b>${best}店</b></div>
+      <div class="row"><span>のこった借金</span><b>${yen(S.loan)}</b></div>
+      <div class="row"><span>たっせいした目標</span><b>${Object.keys(S.goals).length} / ${GOALS.length}</b></div>
+    </div>
+    <div class="sub">ヒント：家賃と人件費は、お客さんが来なくても毎日かかる。出店は「人通り・ライバル・相場」をよく見て、借金はむりのない分だけ。</div>
+    <button class="btn main" style="padding:12px 30px;margin-top:12px" id="againBtn">もう一度はじめる</button></div></div>`;
+  $('againBtn').onclick = () => { localStorage.removeItem(SAVE_KEY); S = null; showStart(); };
+}
+
+/* =========================================================
+   スタート画面（店の名前と、最初の物件を選ぶ）
+   ========================================================= */
+function showStart(){
+  const saved = load();
+  if (saved && !saved.over){
+    $('ovl').innerHTML = `<div class="ov"><div class="box" style="text-align:center">
+      <h2>🍜 どんぶりチェーン</h2>
+      <div class="sub">1店のラーメン屋から、10店のチェーン店へ</div>
+      <div class="card" style="margin-top:10px">${saved.shopName}・${saved.stores.length}店・${dateStr(saved.day)}</div>
+      <button class="btn main" style="padding:12px 30px" id="contBtn">つづきから</button>
+      <div style="margin-top:12px"><button class="btn" id="newBtn">はじめから</button></div></div></div>`;
+    $('contBtn').onclick = () => { S = saved; $('ovl').innerHTML = ''; render(); };
+    $('newBtn').onclick = () => { if (confirm('いまのデータは消えます。はじめからにしますか？')){ localStorage.removeItem(SAVE_KEY); startPick(); } };
+    return;
+  }
+  startPick();
+}
+function startPick(){
+  newGame();
+  const card = L => { const a = AREAS[L.area]; return `<div class="card">
+    <h3>${a.emoji} ${a.name}<span class="sub">（${a.kind}）</span></h3><div class="sub">${a.note}</div>
+    <div class="row"><span>人通り ${a.traffic.toLocaleString()}人/日・ライバル${a.rivals}店・相場 ${yen(a.fair)}</span></div>
+    <div class="row"><span>${L.seats}席・家賃 ${yen(L.rent)}/日</span><span>出店 <b>${yen(L.openCost)}</b></span></div>
+    <div style="text-align:right"><button class="btn main" data-pick="${L.id}">ここにする</button></div></div>`; };
+  $('ovl').innerHTML = `<div class="ov"><div class="box">
+    <h2>🍜 どんぶりチェーン</h2>
+    <div class="sub" style="margin-bottom:8px">あなたは ${yen(S.cash)} を持って、ラーメン屋を始めることにした。
+      小さな1店から、<b>10店のチェーン店</b>をめざそう。家賃・給料・材料は毎日かかる。お金がマイナスのまま3日たつと倒産！</div>
+    <div class="sub">お店の名前（10文字まで）</div>
+    <input type="text" id="nameIn" maxlength="10" value="${S.shopName}">
+    <div class="sub" style="margin:10px 0 4px">最初のお店の場所を選ぼう</div>
+    ${S.starters.map(card).join('')}</div></div>`;
+  $('ovl').querySelectorAll('[data-pick]').forEach(b => b.onclick = () => {
+    const nm = $('nameIn').value.trim().slice(0, 10);
+    if (nm) S.shopName = nm;
+    openShop(S.starters.find(l => l.id === b.dataset.pick));
+    delete S.starters;
+    openStore = S.stores[0].id; tab = 'shop';
+    save(); $('ovl').innerHTML = ''; render();
+    toast('まずは店員の数・値段・仕込みを決めて「1日営業する」！');
+  });
+}
+
+/* ===== セーブ・ロード（localStorage） ===== */
+function save(){ try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
+function load(){ try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); return s && s.stores ? s : null; } catch (e) { return null; } }
+
+/* テスト用：G.sim(日数) で アニメなしで進める */
+window.G = {get S(){ return S; }, set S(v){ S = v; }, simDay, newGame, openShop, demandOf, capOf, autoPrep, AREAS, render};
+
+showStart();
+</script>
+</body>
+</html>
