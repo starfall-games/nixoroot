@@ -34,7 +34,16 @@
   .modeBtn .best{font-size:13px; color:var(--gold); margin-top:4px;}
   .modeBtn.daily{background:linear-gradient(135deg,#3b2f7a,#6a2f6e); border:2px solid var(--gold);}
   .modeBtn .date{font-size:13px; color:var(--gold); font-weight:700;}
-  .howto{margin-top:auto; background:#232852; border-radius:14px; padding:12px 14px; font-size:13px; line-height:1.7; color:var(--sub);}
+  #title{overflow-y:auto;}
+  .logo{margin:2vh 0 1vh !important;}
+  .subTtl{font-size:13px; color:var(--sub); margin:10px 0 0;}
+  .miniRow{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .modeBtn.mini{padding:12px; gap:8px; margin:6px 0;}
+  .modeBtn.mini .ic{font-size:28px;}
+  .modeBtn.mini .t{font-size:15px;}
+  .modeBtn.mini .best{font-size:11px;}
+  .qemoji.text{font-size:min(5.6vw,24px); font-weight:800; line-height:1.6; white-space:pre-line; word-break:normal;}
+  .howto{margin-top:14px !important;margin-top:auto; background:#232852; border-radius:14px; padding:12px 14px; font-size:13px; line-height:1.7; color:var(--sub);}
   .howto b{color:#fff;}
 
   /* ===== ゲーム画面の上の部分（時間・点・コンボ） ===== */
@@ -104,21 +113,32 @@
     </div>
     <button class="modeBtn daily" data-mode="daily">
       <div class="ic">📅</div>
-      <div><div class="t">今日のチャレンジ <span id="dailyDate" class="date"></span></div><div class="d">毎日かわる問題（みんな同じ問題）・絵文字と10がまざって出る</div><div class="best" id="bestDaily"></div></div>
+      <div><div class="t">今日のチャレンジ <span id="dailyDate" class="date"></span></div><div class="d">毎日かわる問題（みんな同じ問題）・全部のモードがまざって出る</div><div class="best" id="bestDaily"></div></div>
     </button>
-    <button class="modeBtn" data-mode="emoji">
-      <div class="ic">🤔</div>
-      <div><div class="t">絵文字クイズ</div><div class="d">絵文字が表すことば・ことわざを当てよう</div><div class="best" id="bestEmoji"></div></div>
+    <button class="modeBtn" data-mode="know">
+      <div class="ic">📚</div>
+      <div><div class="t">知識クイズ</div><div class="d">社会・理科・スポーツ・ことば・算数の早押し4択</div><div class="best" id="bestKnow"></div></div>
     </button>
-    <button class="modeBtn" data-mode="ten">
-      <div class="ic">🔟</div>
-      <div><div class="t">10を作れ！</div><div class="d">4つの数字と ＋−×÷ で 10 を作ろう</div><div class="best" id="bestTen"></div></div>
+    <button class="modeBtn" data-mode="nazo">
+      <div class="ic">🧩</div>
+      <div><div class="t">ひらめき謎解き</div><div class="d">なぞなぞ・暗号・数の法則。知識がなくても解ける！</div><div class="best" id="bestNazo"></div></div>
     </button>
+    <div class="subTtl">ミニゲーム</div>
+    <div class="miniRow">
+      <button class="modeBtn mini" data-mode="emoji">
+        <div class="ic">🤔</div>
+        <div><div class="t">絵文字クイズ</div><div class="best" id="bestEmoji"></div></div>
+      </button>
+      <button class="modeBtn mini" data-mode="ten">
+        <div class="ic">🔟</div>
+        <div><div class="t">10を作れ！</div><div class="best" id="bestTen"></div></div>
+      </button>
+    </div>
     <div class="howto">
       <b>あそびかた</b><br>
       ・時間は <b>60秒</b>。正解するほど点が入る<br>
       ・<b>連続正解（コンボ）</b>で点が どんどん増える<br>
-      ・まちがえると <b>時間が5秒へる</b>＆コンボが切れる<br>・10を作れの「パス」は 3秒へる
+      ・まちがえると <b>時間が5秒へる</b>＆コンボが切れる<br>・10を作れの「パス」は 3秒へる<br>・点数：知識・絵文字 100点、謎解き 200点、10を作れ 300点
     </div>
   </div>
 
@@ -310,9 +330,142 @@ const EMOJI_QUIZ = [
   {c:'スポーツ', e:'🏓🔴⚪', a:'卓球'},
 ];
 
+// ---------- 📚 知識クイズ（自作・中学生向け。答えがはっきり決まる問題だけ） ----------
+// c: ジャンル, q: 問題, a: 正しい答え, w: まちがいの選択肢3つ
+const KNOW_QUIZ = [
+  // 社会（地理）
+  {c:'社会', q:'日本でいちばん面積が大きい都道府県は？', a:'北海道', w:['岩手県','長野県','新潟県']},
+  {c:'社会', q:'日本でいちばん高い山は？', a:'富士山', w:['北岳','槍ヶ岳','浅間山']},
+  {c:'社会', q:'日本でいちばん長い川は？', a:'信濃川', w:['利根川','石狩川','北上川']},
+  {c:'社会', q:'日本でいちばん大きい湖は？', a:'琵琶湖', w:['霞ヶ浦','猪苗代湖','浜名湖']},
+  {c:'社会', q:'日本でいちばん人口が多い都道府県は？', a:'東京都', w:['神奈川県','大阪府','愛知県']},
+  {c:'社会', q:'47都道府県のうち「府」はいくつ？', a:'2つ', w:['1つ','3つ','4つ']},
+  {c:'社会', q:'世界でいちばん面積が大きい国は？', a:'ロシア', w:['カナダ','アメリカ','中国']},
+  {c:'社会', q:'世界でいちばん高い山は？', a:'エベレスト', w:['K2','キリマンジャロ','モンブラン']},
+  {c:'社会', q:'オーストラリアの首都は？', a:'キャンベラ', w:['シドニー','メルボルン','パース']},
+  {c:'社会', q:'カナダの首都は？', a:'オタワ', w:['トロント','バンクーバー','モントリオール']},
+  {c:'社会', q:'国際連合（国連）の本部がある都市は？', a:'ニューヨーク', w:['ジュネーブ','パリ','ワシントン']},
+  // 社会（歴史・しくみ）
+  {c:'社会', q:'江戸幕府を開いた人物は？', a:'徳川家康', w:['織田信長','豊臣秀吉','源頼朝']},
+  {c:'社会', q:'鎌倉幕府を開いた人物は？', a:'源頼朝', w:['足利尊氏','平清盛','徳川家康']},
+  {c:'社会', q:'室町幕府を開いた人物は？', a:'足利尊氏', w:['足利義満','源頼朝','北条時宗']},
+  {c:'社会', q:'「本能寺の変」でたおれた武将は？', a:'織田信長', w:['明智光秀','武田信玄','今川義元']},
+  {c:'社会', q:'奈良の大仏をつくらせた天皇は？', a:'聖武天皇', w:['天武天皇','桓武天皇','推古天皇']},
+  {c:'社会', q:'794年、平安京に都を移した天皇は？', a:'桓武天皇', w:['聖武天皇','天智天皇','後醍醐天皇']},
+  {c:'社会', q:'2024年からの新しい一万円札の人物は？', a:'渋沢栄一', w:['福沢諭吉','北里柴三郎','津田梅子']},
+  {c:'社会', q:'2024年からの新しい千円札の人物は？', a:'北里柴三郎', w:['野口英世','夏目漱石','渋沢栄一']},
+  {c:'社会', q:'2024年からの新しい五千円札の人物は？', a:'津田梅子', w:['樋口一葉','新渡戸稲造','与謝野晶子']},
+  {c:'社会', q:'「憲法記念日」は何月何日？', a:'5月3日', w:['11月3日','2月11日','5月5日']},
+  {c:'社会', q:'日本の国会は、衆議院ともう1つは？', a:'参議院', w:['貴族院','内閣','最高裁判所']},
+  // 理科
+  {c:'理科', q:'水がこおる温度は？（ふつうの気圧で）', a:'0℃', w:['4℃','−10℃','10℃']},
+  {c:'理科', q:'太陽系でいちばん大きい惑星は？', a:'木星', w:['土星','地球','海王星']},
+  {c:'理科', q:'太陽にいちばん近い惑星は？', a:'水星', w:['金星','火星','地球']},
+  {c:'理科', q:'「赤い惑星」とよばれるのは？', a:'火星', w:['金星','木星','水星']},
+  {c:'理科', q:'植物が光合成で取り入れる気体は？', a:'二酸化炭素', w:['酸素','窒素','水素']},
+  {c:'理科', q:'空気の中にいちばん多くふくまれる気体は？', a:'窒素', w:['酸素','二酸化炭素','アルゴン']},
+  {c:'理科', q:'水を化学式で書くと？', a:'H₂O', w:['CO₂','O₂','NaCl']},
+  {c:'理科', q:'食塩の主な成分は？', a:'塩化ナトリウム', w:['炭酸カルシウム','水酸化ナトリウム','二酸化ケイ素']},
+  {c:'理科', q:'こん虫の足は何本？', a:'6本', w:['8本','4本','10本']},
+  {c:'理科', q:'クモの足は何本？', a:'8本', w:['6本','10本','4本']},
+  {c:'理科', q:'ヒトの心臓の部屋はいくつ？', a:'4つ', w:['2つ','3つ','5つ']},
+  {c:'理科', q:'月の満ち欠けは、およそ何日でひとめぐり？', a:'約29.5日', w:['約7日','約15日','約365日']},
+  {c:'理科', q:'音が空気の中を進む速さは、1秒におよそ？', a:'約340m', w:['約30m','約3400m','約30万km']},
+  {c:'理科', q:'光が進む速さは、1秒におよそ？', a:'約30万km', w:['約340m','約3万km','約300km']},
+  {c:'理科', q:'青色リトマス紙を赤くするのは何性の液？', a:'酸性', w:['アルカリ性','中性','どれでも赤くなる']},
+  {c:'理科', q:'磁石に引きつけられる金属は？', a:'鉄', w:['アルミニウム','銅','金']},
+  {c:'理科', q:'クジラは何のなかま？', a:'ほ乳類', w:['魚類','両生類','は虫類']},
+  {c:'理科', q:'カエルは何のなかま？', a:'両生類', w:['は虫類','ほ乳類','魚類']},
+  {c:'理科', q:'植物の葉から水が水蒸気になって出ていくことを何という？', a:'蒸散', w:['光合成','呼吸','消化']},
+  // スポーツ
+  {c:'スポーツ', q:'サッカーで、試合に出る1チームの人数は？', a:'11人', w:['9人','10人','12人']},
+  {c:'スポーツ', q:'フットサルで、試合に出る1チームの人数は？', a:'5人', w:['6人','7人','11人']},
+  {c:'スポーツ', q:'バスケットボールで、試合に出る1チームの人数は？', a:'5人', w:['6人','9人','11人']},
+  {c:'スポーツ', q:'野球で、守備につく1チームの人数は？', a:'9人', w:['8人','10人','11人']},
+  {c:'スポーツ', q:'ラグビー（15人制）で、試合に出る1チームの人数は？', a:'15人', w:['11人','13人','7人']},
+  {c:'スポーツ', q:'バレーボールで、自分のチームがボールにさわれるのは何回まで？（ブロックはのぞく）', a:'3回', w:['2回','4回','5回']},
+  {c:'スポーツ', q:'夏のオリンピックは、ふつう何年ごとに開かれる？', a:'4年', w:['2年','3年','5年']},
+  {c:'スポーツ', q:'マラソンの距離は？', a:'42.195km', w:['40km','42.5km','41.195km']},
+  {c:'スポーツ', q:'卓球の1ゲームは何点先取？（デュースがないとき）', a:'11点', w:['21点','15点','10点']},
+  {c:'スポーツ', q:'テニスで0点のことを何という？', a:'ラブ', w:['ゼロ','デュース','アド']},
+  {c:'スポーツ', q:'大相撲で、いちばん上の地位は？', a:'横綱', w:['大関','関脇','小結']},
+  // ことば・国語・英語
+  {c:'ことば', q:'「一石二鳥」とにた意味の四字熟語は？', a:'一挙両得', w:['一期一会','一進一退','一長一短']},
+  {c:'ことば', q:'「原因」の反対の意味のことばは？', a:'結果', w:['理由','目的','成果']},
+  {c:'ことば', q:'「主観」の反対の意味のことばは？', a:'客観', w:['主体','直観','楽観']},
+  {c:'ことば', q:'「海」の部首は？', a:'さんずい', w:['にんべん','きへん','ごんべん']},
+  {c:'ことば', q:'「話」の部首は？', a:'ごんべん', w:['さんずい','いとへん','くちへん']},
+  {c:'ことば', q:'「月曜日」は英語で？', a:'Monday', w:['Sunday','Tuesday','Friday']},
+  {c:'ことば', q:'「水曜日」は英語で？', a:'Wednesday', w:['Thursday','Tuesday','Saturday']},
+  {c:'ことば', q:'「1月」は英語で？', a:'January', w:['June','July','February']},
+  {c:'ことば', q:'「図書館」は英語で？', a:'library', w:['museum','hospital','station']},
+  {c:'ことば', q:'『枕草子』を書いた人は？', a:'清少納言', w:['紫式部','小野小町','松尾芭蕉']},
+  {c:'ことば', q:'『源氏物語』を書いた人は？', a:'紫式部', w:['清少納言','紀貫之','和泉式部']},
+  {c:'ことば', q:'「古池や 蛙飛びこむ 水の音」をよんだ人は？', a:'松尾芭蕉', w:['小林一茶','与謝蕪村','正岡子規']},
+  {c:'ことば', q:'俳句の音の数は？', a:'五・七・五', w:['五・七・五・七・七','七・五','五・五・七']},
+  {c:'ことば', q:'『吾輩は猫である』を書いた人は？', a:'夏目漱石', w:['森鷗外','芥川龍之介','太宰治']},
+  {c:'ことば', q:'『走れメロス』を書いた人は？', a:'太宰治', w:['夏目漱石','宮沢賢治','芥川龍之介']},
+  {c:'ことば', q:'『銀河鉄道の夜』を書いた人は？', a:'宮沢賢治', w:['太宰治','新美南吉','夏目漱石']},
+  {c:'ことば', q:'『ごんぎつね』を書いた人は？', a:'新美南吉', w:['宮沢賢治','芥川龍之介','小川未明']},
+  // 算数・数学
+  {c:'算数', q:'円周率はおよそいくつ？', a:'3.14', w:['3.41','2.71','1.41']},
+  {c:'算数', q:'三角形の3つの角を全部たすと？', a:'180°', w:['360°','90°','270°']},
+  {c:'算数', q:'1時間は何秒？', a:'3600秒', w:['360秒','6000秒','600秒']},
+  {c:'算数', q:'1kmは何cm？', a:'10万cm', w:['1万cm','1000cm','100万cm']},
+  {c:'算数', q:'この中で「素数」はどれ？', a:'7', w:['9','15','21']},
+];
+
+// ---------- 🧩 ひらめき謎解き（知識がなくても考えれば解ける。自作） ----------
+// h: 答えの説明（まちがえたとき、結果画面で見られる）
+const NAZO_QUIZ = [
+  // なぞなぞ・言葉あそび
+  {c:'なぞなぞ', q:'パンはパンでも、食べられないパンは？', a:'フライパン', w:['メロンパン','あんパン','食パン'], h:'料理に使う道具'},
+  {c:'なぞなぞ', q:'雨の日に ひらいて、晴れたら とじるものは？', a:'かさ', w:['かばん','まど','本'], h:'雨をよけるもの'},
+  {c:'言葉あそび', q:'「トマト」のように、逆から読んでも同じなのは？', a:'やおや', w:['やさい','みかん','いちご'], h:'や・お・や → や・お・や'},
+  {c:'言葉あそび', q:'逆から読んでも同じことばは？', a:'しんぶんし', w:['しんぶん','けいさん','ことば'], h:'し・ん・ぶ・ん・し'},
+  {c:'言葉あそび', q:'「かもめ」の中にかくれている鳥は？', a:'かも', w:['はと','つる','すずめ'], h:'「かも」め'},
+  {c:'言葉あそび', q:'「くるま」から1文字とると、なんの動物？', a:'くま', w:['うま','さる','いぬ'], h:'く「る」ま → くま'},
+  {c:'言葉あそび', q:'「すいか」から1文字とると、海の生き物になる。なに？', a:'いか', w:['たこ','かに','えび'], h:'「す」いか → いか'},
+  // 数字の法則
+  {c:'数の法則', q:'1, 3, 5, 7, □\n□に入る数は？', a:'9', w:['8','10','11'], h:'2ずつふえる'},
+  {c:'数の法則', q:'2, 4, 8, 16, □\n□に入る数は？', a:'32', w:['24','20','18'], h:'2倍ずつ'},
+  {c:'数の法則', q:'1, 1, 2, 3, 5, 8, □\n□に入る数は？', a:'13', w:['11','12','16'], h:'前の2つをたす（5+8）'},
+  {c:'数の法則', q:'1, 4, 9, 16, □\n□に入る数は？', a:'25', w:['20','24','36'], h:'1×1, 2×2, 3×3 … 5×5'},
+  {c:'数の法則', q:'100, 90, 81, 73, □\n□に入る数は？', a:'66', w:['65','64','63'], h:'10, 9, 8, 7 とへる'},
+  {c:'数の法則', q:'1, 2, 4, 7, 11, □\n□に入る数は？', a:'16', w:['15','14','18'], h:'1, 2, 3, 4, 5 とふえる'},
+  {c:'数の法則', q:'3, 6, 12, 24, □\n□に入る数は？', a:'48', w:['36','30','42'], h:'2倍ずつ'},
+  {c:'文字の法則', q:'月, 火, 水, 木, □\n□に入る字は？', a:'金', w:['土','日','月'], h:'曜日の順番'},
+  {c:'文字の法則', q:'A, C, E, G, □\n□に入る文字は？', a:'I', w:['H','J','K'], h:'1つとばし'},
+  {c:'文字の法則', q:'あ, か, さ, た, □\n□に入る字は？', a:'な', w:['は','ま','に'], h:'五十音の行のはじめ'},
+  // 暗号
+  {c:'暗号', q:'「た」をぬいて読もう\n「たいたちたごた」', a:'いちご', w:['いたち','ちごい','たいご'], h:'た・い・た・ち・た・ご・た → いちご'},
+  {c:'暗号', q:'「た」をぬいて読もう\n「りたんたご」', a:'りんご', w:['りんた','たんご','りたご'], h:'り・た・ん・た・ご → りんご'},
+  {c:'暗号', q:'逆から読もう\n「すまいざごうとがりあ」', a:'ありがとうございます', w:['おはようございます','ごちそうさまでした','いただきます'], h:'うしろから読む'},
+  {c:'暗号', q:'1文字ずつ、五十音で1つ前の字にしよう\n「のさ」', a:'ねこ', w:['いぬ','のこ','ぬけ'], h:'の→ね、さ→こ'},
+  {c:'暗号', q:'1文字ずつ、五十音で1つ前の字にしよう\n「えす」', a:'うし', w:['いす','えさ','うま'], h:'え→う、す→し'},
+  {c:'暗号', q:'A=1, B=2, C=3 … Z=26 のとき\n「3・1・20」は？', a:'CAT', w:['DOG','BAT','CAR'], h:'3=C, 1=A, 20=T'},
+  {c:'暗号', q:'アルファベットで、A の3つうしろの文字は？', a:'D', w:['C','E','F'], h:'A→B→C→D'},
+  // 図形・ひらめき算数
+  {c:'図形', q:'「田」という字の中に、四角形はいくつある？', a:'5つ', w:['4つ','6つ','9つ'], h:'小さい四角4つ ＋ 大きい四角1つ'},
+  {c:'図形', q:'ぼう4本で正方形が1つ。正方形を横に3つつなげて並べると、ぼうは何本？', a:'10本', w:['12本','9本','11本'], h:'4 ＋ 3 ＋ 3 ＝ 10（となりとぼうを共有する）'},
+  {c:'図形', q:'時計が3時ちょうどのとき、長い針と短い針の間の角度は？', a:'90度', w:['30度','45度','180度'], h:'1時間ぶんは30度。3つで90度'},
+  {c:'ひらめき', q:'まっすぐなひもを、3か所で切ると何本になる？', a:'4本', w:['3本','6本','8本'], h:'切ったところ＋1'},
+  {c:'ひらめき', q:'3人で3個のりんごを3分で食べる。100人で100個を食べるには何分？', a:'3分', w:['100分','33分','300分'], h:'1人が1個を3分で食べる'},
+  {c:'ひらめき', q:'1階から3階まで歩いて20秒。同じ速さで1階から6階までは何秒？', a:'50秒', w:['40秒','60秒','45秒'], h:'1→3階は2階ぶんで20秒。1→6階は5階ぶん'},
+  {c:'ひらめき', q:'8チームで、負けたら終わりのトーナメント。優勝が決まるまで何試合？', a:'7試合', w:['8試合','4試合','16試合'], h:'1試合で1チームが負けて消える。7チーム消えたら終わり'},
+  {c:'ひらめき', q:'5人が1列に並ぶ。Aさんは前から2番目。うしろから何番目？', a:'4番目', w:['3番目','2番目','5番目'], h:'5 − 2 ＋ 1 ＝ 4'},
+  {c:'ひらめき', q:'月曜日の3日後の、さらに5日後は何曜日？', a:'火曜日', w:['月曜日','水曜日','日曜日'], h:'8日後＝1週間と1日後'},
+  {c:'ひらめき', q:'1円玉2まい・5円玉1まい・10円玉1まい。ちょうど払えないのは？', a:'8円', w:['7円','12円','16円'], h:'1円玉は2まいしかない'},
+  {c:'ひらめき', q:'100 を 1/2 でわって、10 をたすと？', a:'210', w:['60','110','70'], h:'1/2でわる＝2倍。200＋10'},
+  {c:'ひらめき', q:'ある数に5をかけて、3をたすと23。ある数は？', a:'4', w:['5','3','20'], h:'23−3=20、20÷5=4'},
+  {c:'ひらめき', q:'1から10まで、全部たすといくつ？', a:'55', w:['50','45','100'], h:'1+10、2+9 … 11が5組'},
+  {c:'ひらめき', q:'数字の「6」を上下さかさまにすると？', a:'9', w:['6','8','0'], h:'くるっと回すと9'},
+  {c:'ひらめき', q:'サイコロの向かい合う面の数をたすと、いつもいくつ？', a:'7', w:['6','8','10'], h:'1と6、2と5、3と4'},
+];
+
 // ---------- セーブ（ベスト記録） ----------
 const SAVE_KEY = 'hirameki60-v1';
-let save = {best:{emoji:0, ten:0, daily:0}, daily:null};
+let save = {best:{emoji:0, ten:0, daily:0, know:0, nazo:0}, daily:null};
 try{ const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if(s && s.best) save = s; }catch(e){}
 function writeSave(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }catch(e){} }
 
@@ -365,35 +518,40 @@ function startGame(mode){
   G.qNo = 0;
   showScreen('game');
   updateHud();
-  if(mode!=='ten') G.deck = shuffle(EMOJI_QUIZ.slice());
+  // 問題の山（デッキ）をモードごとに用意してシャッフル
+  G.decks = {emoji:shuffle(EMOJI_QUIZ.slice()), know:shuffle(KNOW_QUIZ.slice()), nazo:shuffle(NAZO_QUIZ.slice())};
   nextQ();
   // 3・2・1 のカウントダウン（これも本当の時間）
   const cnt=$('count'); cnt.style.display='flex'; let n=3; cnt.textContent=n; beep(600,.1);
+  const myG=G;   // ボタンを2回おしたときなどに、古いカウントダウンが動かないように
   const iv=setInterval(()=>{
+    if(myG!==G){ clearInterval(iv); return; }
     n--; if(n>0){ cnt.textContent=n; beep(600,.1); return; }
     clearInterval(iv); cnt.style.display='none'; beep(1000,.2);
-    G.running=true; G.last=performance.now(); requestAnimationFrame(loop);
+    G.running=true; G.last=performance.now(); const g=G; requestAnimationFrame(t=>loop(t,g));
   },700);
 }
 
 // 毎コマ（1秒に約60回）時間をへらす
-function loop(now){
-  if(!G || !G.running) return;
+// g：このループが動かしているゲーム（新しいゲームが始まったら古いループは止まる）
+function loop(now,g){
+  if(!G || g!==G || !G.running) return;
   const dt=(now-G.last)/1000; G.last=now;
   G.timeLeft -= dt;
   if(G.timeLeft<=0){ G.timeLeft=0; updateHud(); endGame(); return; }
   updateHud();
-  requestAnimationFrame(loop);
+  requestAnimationFrame(t=>loop(t,g));
 }
 
-// 次の問題を出す。今日のチャレンジは 4問に1問が「10を作れ」
+// 次の問題を出す。今日のチャレンジは 知識→絵文字→謎解き→10を作れ の順にくり返す
+const DAILY_ORDER = ['know','emoji','nazo','ten'];
 function nextQ(){
   G.qNo++;
-  const type = G.mode==='daily' ? (G.qNo%4===0 ? 'ten' : 'emoji') : G.mode;
+  const type = G.mode==='daily' ? DAILY_ORDER[(G.qNo-1)%4] : G.mode;
   G.qType = type;
-  $('emojiArea').style.display = type==='emoji' ? 'flex':'none';
-  $('tenArea').style.display   = type==='ten'   ? 'flex':'none';
-  if(type==='emoji') nextEmoji(); else nextTen();
+  $('emojiArea').style.display = type!=='ten' ? 'flex':'none';   // 4択の画面（絵文字・知識・謎解き）
+  $('tenArea').style.display   = type==='ten' ? 'flex':'none';
+  if(type==='ten') nextTen(); else nextChoice(type);
 }
 
 function updateHud(){
@@ -425,12 +583,12 @@ function endGame(){
   $('rDaily').textContent='';
   if(G.mode==='daily') finishDaily();
   writeSave();
-  $('rMode').textContent = G.mode==='emoji' ? '🤔 絵文字クイズ' : G.mode==='ten' ? '🔟 10を作れ！' : '📅 今日のチャレンジ（'+G.day+'）';
+  $('rMode').textContent = G.mode==='daily' ? '📅 今日のチャレンジ（'+G.day+'）' : MODE_NAME[G.mode];
   $('rScore').textContent = G.score;
   $('rNew').innerHTML = isNew && G.score>0 ? '<span class="newbest">🎉 ベスト記録こうしん！</span>' : '';
   $('rOk').textContent=G.ok; $('rCombo').textContent=G.maxCombo; $('rBest').textContent=save.best[G.mode];
   // まちがえた問題の答えを見せる（覚えられるように）
-  $('rMiss').innerHTML = G.misses.length ? '<div class="missList">'+G.misses.slice(0,20).map(m=>`<div>${m}</div>`).join('')+'</div>' : '';
+  $('rMiss').innerHTML = G.misses.length ? '<div class="missList">'+G.misses.slice(0,20).map(m=>`<div>${escapeHtml(m)}</div>`).join('')+'</div>' : '';
   setTimeout(()=>showScreen('result'), 400);
 }
 
@@ -454,35 +612,51 @@ function finishDaily(){
 // =============================================================
 //  絵文字クイズ
 // =============================================================
-function nextEmoji(){
-  if(!G.deck || G.deck.length===0) G.deck=shuffle(EMOJI_QUIZ.slice());  // 全部出たらまた最初から
-  const q=G.deck.pop(); G.q=q; G.lock=false;
+const MODE_NAME = {emoji:'🤔 絵文字クイズ', ten:'🔟 10を作れ！', know:'📚 知識クイズ', nazo:'🧩 ひらめき謎解き'};
+const CHOICE_POINT = {emoji:100, know:100, nazo:200};   // 1問の点（謎解きは考える時間がかかるので多め）
+function escapeHtml(t){ return String(t).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+// 4択の問題を出す（type：emoji／know／nazo）
+function nextChoice(type){
+  if(G.decks[type].length===0){   // 全部出たらまた最初から
+    G.decks[type] = shuffle((type==='emoji'?EMOJI_QUIZ:type==='know'?KNOW_QUIZ:NAZO_QUIZ).slice());
+  }
+  const q=G.decks[type].pop(); G.q=q; G.lock=false;
   $('qCat').textContent = '【'+q.c+'】';
-  $('qEmoji').textContent = q.e;
-  // まちがいの選択肢：同じカテゴリから3つ（足りなければほかから）
-  let wrong = shuffle(EMOJI_QUIZ.filter(x=>x.c===q.c && x.a!==q.a).map(x=>x.a)).slice(0,3);
-  if(wrong.length<3) wrong = wrong.concat(shuffle(EMOJI_QUIZ.filter(x=>x.c!==q.c).map(x=>x.a)).slice(0,3-wrong.length));
+  const qe=$('qEmoji');
+  qe.textContent = type==='emoji' ? q.e : q.q;
+  qe.classList.toggle('text', type!=='emoji');   // 文の問題は字を小さく
+  let wrong;
+  if(type==='emoji'){
+    // 絵文字：まちがいの選択肢は同じカテゴリから3つ（足りなければほかから）
+    wrong = shuffle(EMOJI_QUIZ.filter(x=>x.c===q.c && x.a!==q.a).map(x=>x.a)).slice(0,3);
+    if(wrong.length<3) wrong = wrong.concat(shuffle(EMOJI_QUIZ.filter(x=>x.c!==q.c).map(x=>x.a)).slice(0,3-wrong.length));
+  }else{
+    wrong = q.w.slice();   // 知識・謎解き：まちがいの選択肢は問題といっしょに書いてある
+  }
   const opts = shuffle([q.a, ...wrong]);
   const box=$('choices'); box.innerHTML='';
   opts.forEach(a=>{
     const b=document.createElement('button'); b.className='choice'; b.textContent=a;
-    b.onclick=()=>answerEmoji(b,a);
+    b.onclick=()=>answerChoice(b,a);
     box.appendChild(b);
   });
 }
-function answerEmoji(btn,a){
+function answerChoice(btn,a){
   if(!G.running || G.lock) return;
   G.lock=true;
   if(a===G.q.a){
-    btn.classList.add('ok'); onCorrect(100);
+    btn.classList.add('ok'); onCorrect(CHOICE_POINT[G.qType]);
     setTimeout(()=>{ if(G.running) nextQ(); }, 250);
   }else{
     btn.classList.add('ng');
     // 正しい答えを緑で見せる
     [...$('choices').children].forEach(b=>{ if(b.textContent===G.q.a) b.classList.add('ok'); });
-    G.misses.push(`${G.q.e} → ${G.q.a}`);
+    // 結果画面で見られるように記録（謎解きは説明つき）
+    const qtext = G.qType==='emoji' ? G.q.e : G.q.q.replace(/\n/g,' ');
+    G.misses.push(`${qtext} → ${G.q.a}${G.q.h?'（'+G.q.h+'）':''}`);
     onMiss();
-    setTimeout(()=>{ if(G.running) nextQ(); }, 800);
+    setTimeout(()=>{ if(G.running) nextQ(); }, G.qType==='emoji'?800:1100);
   }
 }
 
@@ -600,6 +774,8 @@ $('skipBtn').onclick=()=>{
 function drawBest(){
   $('bestEmoji').textContent = save.best.emoji ? '🏆 ベスト '+save.best.emoji : '';
   $('bestTen').textContent   = save.best.ten   ? '🏆 ベスト '+save.best.ten   : '';
+  $('bestKnow').textContent  = save.best.know  ? '🏆 ベスト '+save.best.know  : '';
+  $('bestNazo').textContent  = save.best.nazo  ? '🏆 ベスト '+save.best.nazo  : '';
   // 今日のチャレンジ：日付・今日のベスト・連続日数
   const t=todayStr(), d=save.daily;
   $('dailyDate').textContent = t.slice(5).replace('-','/');
@@ -616,7 +792,7 @@ drawBest();
 
 // パソコン用：絵文字クイズは 1〜4 キーでも答えられる
 document.addEventListener('keydown',e=>{
-  if(!G || !G.running || G.qType!=='emoji') return;
+  if(!G || !G.running || G.qType==='ten') return;
   const i='1234'.indexOf(e.key); if(i<0) return;
   const b=$('choices').children[i]; if(b) b.click();
 });
