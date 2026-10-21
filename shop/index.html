@@ -3,115 +3,136 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#3b2a20">
+<meta name="theme-color" content="#2a1d16">
 <title>どんぶりチェーン</title>
 <style>
   /* ===== 色や大きさのきまり ===== */
   :root{
-    --bg:#2b211b; --bg2:#3b2d24; --card:#4a382c; --card2:#5a4535; --text:#fff7ee; --sub:#d7c3ae;
-    --gold:#ffcf4a; --ok:#6be38f; --ng:#ff6b6b; --blue:#6cc6ff; --line:#ffffff1f;
+    --bg:#241913; --bg2:#33241b; --card:#3f2d22; --card2:#4d3829; --text:#fff8ef; --sub:#e0ccb6;
+    --gold:#ffcf4a; --ok:#74e89a; --ng:#ff7474; --blue:#72ccff; --line:#ffffff1f; --red:#d8473a;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{margin:0; height:100%;}
   body{
-    background:radial-gradient(circle at 50% 0%, #5a3f2c 0%, var(--bg) 60%);
+    background:#1a120d;
     color:var(--text);
     font-family:"Hiragino Maru Gothic ProN","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
     overflow:hidden; user-select:none; -webkit-user-select:none; touch-action:manipulation;
   }
-  #app{display:flex; flex-direction:column; height:100%; max-width:520px; margin:0 auto;
-       padding:calc(env(safe-area-inset-top) + 6px) 12px calc(env(safe-area-inset-bottom) + 8px);}
+  #app{display:flex; flex-direction:column; height:100%; max-width:520px; margin:0 auto; background:var(--bg);
+       padding:calc(env(safe-area-inset-top) + 6px) 10px calc(env(safe-area-inset-bottom) + 6px);}
   button{font:inherit; color:inherit; border:none; cursor:pointer;}
   .num{font-variant-numeric:tabular-nums;}
 
   /* ===== 上：日付とお金 ===== */
-  #hdr{background:var(--bg2); border-radius:14px; padding:8px 12px;}
-  #hdr .r1{display:flex; justify-content:space-between; font-size:14px; color:var(--sub);}
-  #hdr .r2{display:flex; justify-content:space-between; align-items:baseline; margin-top:2px;}
-  #cash{font-size:24px; font-weight:900; color:var(--gold);}
+  #hud{display:flex; align-items:center; gap:8px; background:linear-gradient(#3d2b20,#2e2018); border-radius:14px; padding:6px 10px; border:1px solid #ffffff14;}
+  #hud .l{flex:1; min-width:0;}
+  #dateTxt{font-size:12px; color:var(--sub); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  #cash{font-size:23px; font-weight:900; color:var(--gold); line-height:1.15; text-shadow:0 2px 0 #0006;}
   #cash.minus{color:var(--ng);}
-  #loanTxt{font-size:13px; color:var(--sub);}
-  #goal{margin:6px 0; font-size:13px; background:#0003; padding:6px 10px; border-radius:10px;}
+  #hud .r{text-align:right; font-size:12px; color:var(--sub); line-height:1.5;}
+  #sndBtn{background:#0004; width:36px; height:36px; border-radius:50%; font-size:17px;}
+  #goal{margin:5px 0; font-size:12.5px; background:#0003; padding:5px 10px; border-radius:10px; color:#ffe7a8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 
-  /* ===== タブ ===== */
-  #tabs{display:flex; gap:4px;}
-  #tabs button{flex:1; padding:8px 0; background:#0003; border-radius:10px 10px 0 0; font-size:14px; color:var(--sub);}
-  #tabs button.on{background:var(--card); color:var(--text); font-weight:700;}
-  #view{flex:1; overflow-y:auto; background:var(--card); border-radius:0 0 14px 14px; padding:10px; -webkit-overflow-scrolling:touch;}
+  /* ===== まん中：絵の画面（ステージ） ===== */
+  #stageWrap{position:relative; border-radius:14px; overflow:hidden; background:#000; flex:none; box-shadow:0 4px 14px #0008; margin:0 auto; width:100%;}
+  #stage{display:block; width:100%; touch-action:manipulation;}
+  .stageBtn{display:none; position:absolute; top:50%; transform:translateY(-50%); background:#0008; width:34px; height:44px; border-radius:10px; font-size:18px; color:#fff;}
+  #prevSt{left:4px;} #nextSt{right:4px;}
 
-  /* ===== カード ===== */
-  .card{background:var(--card2); border-radius:12px; padding:10px; margin-bottom:10px;}
-  .card h3{margin:0 0 4px; font-size:17px;}
+  /* ===== 下の説明エリア ===== */
+  #panel{flex:1; overflow-y:auto; margin-top:8px; -webkit-overflow-scrolling:touch; min-height:60px;}
+  .card{background:var(--card); border-radius:12px; padding:10px; margin-bottom:8px; border:1px solid #ffffff10;}
+  .card h3{margin:0 0 4px; font-size:16px;}
   .row{display:flex; justify-content:space-between; align-items:center; gap:6px; font-size:14px; margin:3px 0;}
   .sub{color:var(--sub); font-size:12px;}
-  .bar{height:8px; background:#0005; border-radius:4px; overflow:hidden; flex:1;}
+  .bar{height:8px; background:#0006; border-radius:4px; overflow:hidden; flex:1;}
   .bar i{display:block; height:100%; background:var(--blue);}
   .plus{color:var(--ok);} .minus{color:var(--ng);}
-  .btn{background:#ffffff22; padding:7px 10px; border-radius:9px; font-size:14px;}
-  .btn.main{background:var(--gold); color:#3a2500; font-weight:900;}
+  .btn{background:#ffffff20; padding:8px 11px; border-radius:10px; font-size:14px; transition:transform .08s;}
+  .btn:active{transform:scale(.94);}
+  .btn.main{background:linear-gradient(#ffdc6a,#f2b532); color:#3a2500; font-weight:900; box-shadow:0 3px 0 #a8741a;}
   .btn.ok{background:#2f8f55;} .btn.ng{background:#a03838;}
   .btn.sel{background:var(--blue); color:#06263a; font-weight:700;}
   .btn:disabled{opacity:.35;}
   .ctl{display:flex; align-items:center; gap:4px; flex-wrap:wrap; justify-content:flex-end;}
-  .ctl .v{min-width:64px; text-align:center; font-weight:700;}
-  .set{border-top:1px solid var(--line); margin-top:8px; padding-top:6px;}
-  .set .row{margin:7px 0;}
-  .tag{display:inline-block; font-size:11px; padding:1px 6px; border-radius:6px; background:#0004; margin-right:3px;}
+  .ctl .v{min-width:62px; text-align:center; font-weight:700;}
+  .set .row{margin:8px 0;}
+  .set .row > span:first-child{flex-shrink:0; white-space:nowrap;}
+  .tag{display:inline-block; font-size:11px; padding:1px 6px; border-radius:6px; background:#0005; margin-right:3px;}
   .warn{background:#a0383855; border:1px solid var(--ng); border-radius:10px; padding:6px 8px; font-size:13px; margin-bottom:8px;}
   .log{font-size:13px; border-bottom:1px solid var(--line); padding:4px 0;}
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:6px;}
+  .grid .btn{padding:11px 4px; font-size:14px;}
 
-  /* ===== 下のボタン ===== */
-  #foot{display:flex; gap:8px; margin-top:8px;}
-  #foot .btn{flex:1; padding:13px 0; font-size:17px;}
-  #foot .btn.main{flex:2;}
+  /* 相談のカード */
+  .talk{display:flex; gap:8px; align-items:flex-start;}
+  .talk img{width:52px; height:52px; border-radius:12px; background:#0004; flex:none;}
+  .talk .who{font-size:12px; color:var(--gold); font-weight:700;}
+  .talk .say{font-size:14px; line-height:1.5; background:#fff; color:#2b1c12; border-radius:4px 12px 12px 12px; padding:7px 9px; margin-top:2px;}
+  .talk .ch{display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; justify-content:flex-end;}
 
-  /* ===== 重ねる画面（モーダル） ===== */
-  .ov{position:fixed; inset:0; background:#000a; display:flex; align-items:center; justify-content:center; z-index:10; padding:16px;}
-  .ov .box{background:var(--bg2); border-radius:16px; padding:16px; width:100%; max-width:480px; max-height:92%; overflow-y:auto;}
+  /* ===== いちばん下：画面の切りかえと営業ボタン ===== */
+  #nav{display:flex; gap:5px; margin-top:6px;}
+  #nav .sc{flex:1; background:#ffffff14; border-radius:12px; padding:5px 0 4px; font-size:11px; color:var(--sub); position:relative; line-height:1.25;}
+  #nav .sc b{display:block; font-size:20px;}
+  #nav .sc.on{background:#ffffff30; color:#fff; font-weight:700;}
+  #nav .badge{position:absolute; top:-4px; right:4px; background:var(--red); color:#fff; font-size:11px; border-radius:9px; padding:0 6px; font-weight:900;}
+  #nav .run{flex:1.5; font-size:15px; padding:6px 0;}
+  #nav .run7{flex:1.05; font-size:13px; padding:6px 0;}
+
+  /* ===== 重ねる画面（モーダル・下から出るシート） ===== */
+  .ov{position:fixed; inset:0; background:#000a; display:flex; align-items:center; justify-content:center; z-index:10; padding:14px; animation:fade .2s;}
+  .ov .box{background:var(--bg2); border-radius:18px; padding:16px; width:100%; max-width:480px; max-height:92%; overflow-y:auto; border:1px solid #ffffff1a; animation:pop .22s;}
   .ov h2{margin:0 0 8px; font-size:20px; text-align:center;}
+  #sheet .ov{align-items:flex-end; padding:0;}
+  #sheet .box{border-radius:18px 18px 0 0; max-height:82%; animation:up .22s; padding-bottom:calc(env(safe-area-inset-bottom) + 16px);}
+  .sheetHead{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;}
+  .sheetHead b{font-size:18px;}
+  @keyframes fade{from{opacity:0}} @keyframes pop{from{transform:scale(.92); opacity:0}} @keyframes up{from{transform:translateY(40%)}}
   input[type=text]{font:inherit; width:100%; padding:10px; border-radius:10px; border:none; font-size:17px; background:#fff; color:#222;}
-
-  /* 営業中のアニメーション */
-  #clock{font-size:34px; font-weight:900; text-align:center;}
-  .live{display:flex; align-items:center; gap:8px; margin:6px 0; font-size:14px;}
-  .live .nm{width:96px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;}
-  .live .street{flex:1; height:26px; background:#0004; border-radius:8px; position:relative; overflow:hidden;}
-  .live .street span{position:absolute; top:3px; font-size:16px;}
-  .live .cnt{width:58px; text-align:right; font-weight:700;}
-  canvas{width:100%; display:block;}
+  .big{font-size:30px; font-weight:900; text-align:center;}
+  .title{font-size:30px; font-weight:900; text-align:center; letter-spacing:2px; color:var(--gold); text-shadow:0 3px 0 #7a3c12, 0 0 18px #ff9a3c66;}
+  canvas.chart{width:100%; display:block;}
 </style>
 </head>
 <body>
 <div id="app">
-  <div id="hdr">
-    <div class="r1"><span id="dateTxt"></span><span id="wxTxt"></span></div>
-    <div class="r2"><span id="cash" class="num"></span><span id="loanTxt" class="num"></span></div>
+  <div id="hud">
+    <div class="l"><div id="dateTxt"></div><div id="cash" class="num"></div></div>
+    <div class="r"><div id="wxTxt"></div><div id="loanTxt" class="num"></div></div>
+    <button id="sndBtn" data-act="snd">🔊</button>
   </div>
   <div id="goal"></div>
-  <div id="tabs">
-    <button data-tab="shop" class="on">🏪 お店</button>
-    <button data-tab="town">🗺 物件</button>
-    <button data-tab="bank">🏦 銀行</button>
-    <button data-tab="rec">📈 記録</button>
+  <div id="stageWrap">
+    <canvas id="stage"></canvas>
+    <button class="stageBtn" id="prevSt" data-act="viewPrev">◀</button>
+    <button class="stageBtn" id="nextSt" data-act="viewNext">▶</button>
   </div>
-  <div id="view"></div>
-  <div id="foot">
-    <button class="btn main" data-act="run1">▶ 1日営業する</button>
-    <button class="btn" data-act="run7">▶▶ 7日</button>
+  <div id="panel"></div>
+  <div id="nav">
+    <button class="sc" data-scene="shop"><b>🏪</b>お店</button>
+    <button class="sc" data-scene="office"><b>🏢</b>社長室<span class="badge" id="badge" style="display:none"></span></button>
+    <button class="sc" data-scene="map"><b>🗺</b>町</button>
+    <button class="btn main run" data-act="run1">▶ 営業</button>
+    <button class="btn run7" data-act="run7">▶▶<br>7日</button>
   </div>
 </div>
+<div id="sheet"></div>
 <div id="ovl"></div>
 
 <script>
 /* =========================================================
    どんぶりチェーン
    小さなラーメン屋 1店から、10店のチェーン店をめざす経営ゲーム。
-   ・1日ずつ「営業する」で進む（営業のようすは本当の時間でアニメーション）
-   ・場所（立地）ごとに 人通り・家賃・ライバル・お客さんの好み がちがう
-   ・値段、材料、店員の数、仕込み、広告、店長…を決める
+   ・「お店」の画面：店の中のようすが見える（お客さん・店員・行列）
+   ・「社長室」の画面：秘書や店長が相談に来る → 選ぶ。電話=銀行、モニター=記録…
+   ・「町」の画面：地図で場所を見て、出店する
+   ・1日ずつ「営業」で進む（営業のようすは本当の時間でアニメーション）
    ・お金がマイナスのまま3日たつと「倒産」
    ========================================================= */
 
+/* ===== ここから「計算（ゲームのしくみ）」の部分。バランスはここで決まる ===== */
 const SAVE_KEY = 'donburi-chain-save-v1';
 
 /* ---------- 町のエリア（すべて架空の町） ----------
@@ -452,57 +473,863 @@ function creditLimit(){
 // 店を閉めたときに戻ってくるお金（内装の一部＋保証金）
 function sellValue(st){ return Math.round((st.invest * 0.3 + st.rent * 30) / 10000) * 10000; }
 
+
 /* =========================================================
-   画面を作る
+   ここから「見た目と操作」の部分
    ========================================================= */
+let scene = 'shop';     // いまの画面：shop（お店）/ office（社長室）/ map（町）
+let viewId = null;      // お店の画面で見ているお店
+let mapSel = null;      // 地図で選んでいるエリア
+let sheetKind = null, sheetId = null;   // 下から出るシート
+let live = null;        // 営業中のアニメのじょうたい
+let T = 0;              // アニメ用の時計（秒）
+
+const MGR_NAMES = ['たけし', 'ゆうた', 'さくら', 'けんじ', 'あおい', 'りく', 'はるか', 'そうた', 'まい', 'だいち', 'ひなた', 'こうき'];
+function shortName(st){ return AREAS[st.area].name + '店'; }
+function viewed(){ return S.stores.find(s => s.id === viewId) || S.stores[0]; }
+
+/* =========================================================
+   音（Web Audio で音を作る。音のファイルはつかわない）
+   ========================================================= */
+const Snd = {
+  on: (() => { try { return localStorage.getItem('donburi-sound-v1') !== 'off'; } catch (e) { return true; } })(),
+  ctx: null, bgmT: 0, bgmStep: 0,
+  init(){
+    if (this.ctx) return;
+    try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
+  },
+  // ひとつの音：周波数・長さ・音色・音量・はじまり
+  tone(f, dur, type = 'sine', vol = 0.08, delay = 0, f2 = null){
+    if (!this.on || !this.ctx) return;
+    const c = this.ctx, t = c.currentTime + delay;
+    const o = c.createOscillator(), gn = c.createGain();
+    o.type = type; o.frequency.setValueAtTime(f, t);
+    if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+    gn.gain.setValueAtTime(0.0001, t);
+    gn.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+    gn.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(gn); gn.connect(c.destination);
+    o.start(t); o.stop(t + dur + 0.05);
+  },
+  click(){ this.tone(900, 0.06, 'triangle', 0.05); },
+  chime(){ this.tone(1320, 0.35, 'sine', 0.04); this.tone(1047, 0.5, 'sine', 0.04, 0.16); },   // お店のドアのチャイム
+  cash(){ [1568, 2093, 2637].forEach((f, i) => this.tone(f, 0.25, 'triangle', 0.06, i * 0.07)); },  // レジの音
+  bad(){ this.tone(220, 0.5, 'sawtooth', 0.04, 0, 110); },
+  ring(){ for (let i = 0; i < 6; i++) this.tone(i % 2 ? 1300 : 1600, 0.06, 'square', 0.025, i * 0.07); },   // 電話
+  good(){ [784, 988, 1175, 1568].forEach((f, i) => this.tone(f, 0.22, 'triangle', 0.06, i * 0.09)); },
+  // BGM：のんびりした五音音階のメロディー（とても小さい音）
+  bgm(dt){
+    if (!this.on || !this.ctx || document.hidden) return;
+    this.bgmT -= dt;
+    if (this.bgmT > 0) return;
+    const step = live ? 0.2 : 0.32;
+    this.bgmT = step;
+    const mel = [0, 2, 4, 7, 9, 7, 4, 2, 0, -3, 0, 2, 4, 2, 0, null];
+    const n = mel[this.bgmStep % mel.length];
+    if (n !== null){
+      const f = 392 * Math.pow(2, n / 12);
+      this.tone(f, step * 1.6, 'triangle', 0.018);
+      if (this.bgmStep % 4 === 0) this.tone(f / 2, step * 3, 'sine', 0.02);
+    }
+    this.bgmStep++;
+  },
+};
+
+/* =========================================================
+   ステージ（canvas）の準備
+   ========================================================= */
+const LW = 360, LH = 280;      // 絵の中の大きさ（これを画面の大きさにのばして描く）
+const cv = document.getElementById('stage'), g = cv.getContext('2d');
+let K = 1;                     // 拡大率
+function fitStage(){
+  const wrap = document.getElementById('stageWrap');
+  const par = wrap.parentElement, cs = getComputedStyle(par);
+  const inner = par.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);   // すき間をのぞいた幅
+  const maxW = Math.min(inner, (window.innerHeight * 0.44) * LW / LH);
+  wrap.style.width = maxW + 'px';
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = Math.round(maxW * dpr); cv.height = Math.round(maxW * LH / LW * dpr);
+  cv.style.height = (maxW * LH / LW) + 'px';
+  K = cv.width / LW;
+}
+window.addEventListener('resize', fitStage);
+
+/* 絵を描く道具 */
+function rr(x, y, w, h, r, col){ g.fillStyle = col; g.beginPath(); g.roundRect ? g.roundRect(x, y, w, h, r) : g.rect(x, y, w, h); g.fill(); }
+function circ(x, y, r, col){ g.fillStyle = col; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); }
+function txt(s, x, y, size, col, align = 'center', bold = true){
+  g.font = `${bold ? 'bold ' : ''}${size}px "Hiragino Maru Gothic ProN","Hiragino Sans",sans-serif`;
+  g.textAlign = align; g.textBaseline = 'middle'; g.fillStyle = col; g.fillText(s, x, y);
+}
+function mix(a, b, t){   // 2つの色をまぜる（#rrggbb）
+  const pa = [1, 3, 5].map(i => parseInt(a.substr(i, 2), 16)), pb = [1, 3, 5].map(i => parseInt(b.substr(i, 2), 16));
+  return 'rgb(' + pa.map((v, i) => Math.round(v + (pb[i] - v) * t)).join(',') + ')';
+}
+
+/* ---------- 人を描く（ちびキャラ）。y は足もと ---------- */
+const SKIN = ['#ffd9b8', '#f5c49c', '#e8b088', '#ffe2c8'];
+const HAIR = ['#2b1d14', '#4a2e1c', '#1b1b1b', '#7a4a2a', '#c98b3c', '#3a3a52'];
+const SHIRT = ['#e85d5d', '#4f8fe8', '#5cc48a', '#f0b43c', '#9b6be0', '#ef8fb7', '#3fb6c2', '#7a8796', '#f07a3c', '#2f4a7a'];
+function randLook(){
+  const kid = Math.random() < 0.12, biz = !kid && Math.random() < 0.25;
+  return {skin: pick(SKIN), hair: pick(HAIR), shirt: biz ? pick(['#30394a', '#4a4f5c', '#24324d']) : pick(SHIRT),
+    pants: biz ? '#22262e' : pick(['#2f3b55', '#3b3b3b', '#5a4632', '#24324d']), kid, biz, long: Math.random() < 0.4};
+}
+function person(x, y, L, pose, ph, flip, s = 1){
+  g.save(); g.translate(x, y); g.scale(s * (L.kid ? 0.78 : 1) * (flip ? -1 : 1), s * (L.kid ? 0.78 : 1));
+  // 影
+  g.fillStyle = '#0003'; g.beginPath(); g.ellipse(0, 0, 9, 2.5, 0, 0, Math.PI * 2); g.fill();
+  // 足
+  g.fillStyle = L.pants;
+  if (pose === 'walk'){ const a = Math.sin(ph) * 3.5; g.fillRect(-5 + a, -12, 4, 12); g.fillRect(1 - a, -12, 4, 12); }
+  else { g.fillRect(-5, -12, 4, 12); g.fillRect(1, -12, 4, 12); }
+  // 体
+  rr(-8, -29, 16, 19, 5, L.shirt);
+  if (L.biz){ g.fillStyle = '#fff'; g.fillRect(-2, -29, 4, 6); g.fillStyle = '#c0392b'; g.fillRect(-1, -27, 2, 9); }
+  // うで
+  g.fillStyle = L.shirt; const sw = pose === 'walk' ? Math.sin(ph) * 3 : 0;
+  rr(-10, -27 + sw, 4, 12, 2, L.shirt); rr(6, -27 - sw, 4, 12, 2, L.shirt);
+  // 頭
+  circ(0, -37, 8.5, L.skin);
+  g.fillStyle = L.hair; g.beginPath(); g.arc(0, -38.5, 8.8, Math.PI * 1.05, Math.PI * 1.95); g.fill();
+  if (L.long) g.fillRect(-8.8, -39, 3.2, 9);
+  // 目（進む方向を見る）
+  g.fillStyle = '#2b1d14'; g.fillRect(2.5, -38, 1.8, 2.4); g.fillRect(-1.5, -38, 1.8, 2.4);
+  g.restore();
+}
+// すわっているお客さん（うしろ向き）
+function seatedBack(x, y, L, bob){
+  g.save(); g.translate(x, y + bob);
+  rr(-9, -22, 18, 21, 6, L.shirt);
+  circ(0, -29, 9, L.skin);
+  g.fillStyle = L.hair; g.beginPath(); g.arc(0, -30, 9.4, Math.PI * 0.95, Math.PI * 2.05); g.fill();
+  g.fillRect(-9.2, -31, 18.4, L.long ? 10 : 5);
+  g.restore();
+}
+// カウンターのうしろの店員さん（上半身）
+function staffUpper(x, y, role, ph, armUp){
+  g.save(); g.translate(x, y);
+  const shirt = role === 'mgr' ? '#2a2a2a' : role === 'owner' ? '#2f5fa8' : '#f4f4f0';
+  rr(-9, -18, 18, 24, 6, shirt);
+  g.fillStyle = '#7a4a2a'; g.fillRect(-9, -6, 18, 12);              // 前かけ（エプロン）
+  const a = armUp ? Math.sin(ph * 6) * 3 : 0;
+  rr(-12, -16 + a, 4, 12, 2, shirt); rr(8, -16 - a, 4, 12, 2, shirt);
+  circ(0, -26, 8.5, '#ffd9b8');
+  g.fillStyle = '#2b1d14'; g.beginPath(); g.arc(0, -27.5, 8.8, Math.PI * 1.05, Math.PI * 1.95); g.fill();
+  g.fillStyle = role === 'mgr' ? '#d8473a' : '#ffffff'; g.fillRect(-9, -31, 18, 3.5);   // はちまき（タオル）
+  g.fillStyle = '#2b1d14'; g.fillRect(-3.5, -26, 1.8, 2.2); g.fillRect(1.7, -26, 1.8, 2.2);
+  g.fillStyle = '#c0574a'; g.fillRect(-2, -21.5, 4, 1.2);
+  if (role === 'owner') txt('社長', 0, -40, 8, '#ffe17a');
+  g.restore();
+}
+// どんぶり
+function bowl(x, y, s = 1){
+  g.save(); g.translate(x, y); g.scale(s, s);
+  g.fillStyle = '#c0392b'; g.beginPath(); g.moveTo(-9, -4); g.quadraticCurveTo(0, 9, 9, -4); g.fill();
+  g.fillStyle = '#f2d39a'; g.beginPath(); g.ellipse(0, -4, 9, 2.6, 0, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#fff'; g.fillRect(-7, -1, 14, 1.2);
+  g.restore();
+}
+
+/* =========================================================
+   お店の画面の「動き」（お客さん・店員・湯気）
+   ========================================================= */
+const SH = {sid: null, cust: [], staff: [], steam: [], far: [], spawn: 0, farT: 0};
+const DOOR_X = 98, FLOOR_Y = 268, SEAT_Y = 232;
+function visSeats(st){ return Math.min(st.seats, 12); }
+function seatX(st, i){ const n = visSeats(st); return 130 + (i + 0.5) * (218 / n); }
+
+function resetShop(st){
+  SH.sid = st.id; SH.cust = []; SH.steam = []; SH.spawn = 0;
+  SH.staff = [];
+  const roles = [];
+  if (S.ownerAt === st.id) roles.push('owner');
+  if (st.mgr) roles.push('mgr');
+  for (let i = 0; i < st.staff; i++) roles.push('staff');
+  roles.slice(0, 5).forEach((r, i) => SH.staff.push({role: r, x: 150 + i * 40, tx: 150 + i * 40, job: null, t: 0, ph: Math.random() * 9}));
+  SH.extraStaff = Math.max(0, roles.length - 5);
+}
+// お店の設定が変わったら、店員の人数を合わせる
+function syncStaff(st){
+  const want = Math.min(5, workers(st));
+  if (SH.staff.length !== want || SH.sid !== st.id) resetShop(st);
+}
+
+function shopUpdate(dt, st){
+  if (SH.sid !== st.id) resetShop(st);
+  syncStaff(st);
+  const r = live ? live.res.stores.find(x => x.st.id === st.id) : null;
+  const p = live ? clamp(live.t / live.dur, 0, 1) : 0;
+  const ts = live ? live.ts * (live.fast ? 5 : 1) : 1;     // 早送りの倍率
+  const step = dt * ts;
+  const n = visSeats(st);
+  const EAT = 2.6;          // 食べる時間（秒・早送りなし）
+  const SPEED = 62;         // 歩く速さ（1秒に何ドット）
+  const open = live && p < 1;
+  const soldOut = r && live.soldP[st.id] !== undefined && p >= live.soldP[st.id];
+
+  // --- 新しいお客さんが来る ---
+  if (open && r && r.demand > 0){
+    const h = 11 + p * 11;
+    const lam = (r.demand / Math.max(1, r.cap)) * (n / (EAT + 1.6)) * rush(h) / 1.05 * 0.9;
+    SH.spawn += lam * step;
+    while (SH.spawn >= 1){
+      SH.spawn -= 1;
+      if (SH.cust.length < 34) SH.cust.push({x: -14 - Math.random() * 20, y: FLOOR_Y, st: 'come', L: randLook(), ph: Math.random() * 6, seat: -1, t: 0, mood: null});
+    }
+  }
+  // --- 遠くを通る人（窓の外） ---
+  SH.farT -= dt;
+  if (SH.farT <= 0){ SH.farT = rnd(0.8, 2.5); SH.far.push({x: Math.random() < 0.5 ? -6 : 90, d: 0, L: randLook()}); }
+  SH.far.forEach(f => { if (!f.d) f.d = f.x < 0 ? 1 : -1; f.x += f.d * 18 * dt; f.ph = (f.ph || 0) + dt * 8; });
+  SH.far = SH.far.filter(f => f.x > -10 && f.x < 94);
+
+  const used = new Set(SH.cust.filter(c => c.seat >= 0).map(c => c.seat));
+  const queue = SH.cust.filter(c => c.st === 'queue');
+  for (const c of SH.cust){
+    c.ph += step * 9;
+    if (c.st === 'come'){
+      c.x += SPEED * step;
+      const qx = 78 - queue.length * 12;
+      if (c.x >= Math.min(84, qx)){
+        if (!open || soldOut){ c.st = 'leave'; c.mood = soldOut ? '💧' : null; continue; }
+        const free = [...Array(n).keys()].filter(i => !used.has(i));
+        if (free.length && queue.length === 0){ c.seat = pick(free); used.add(c.seat); c.st = 'enter'; if (Math.random() < 0.35) Snd.chime(); }
+        else if (queue.length < 6){ c.st = 'queue'; queue.push(c); }
+        else { c.st = 'leave'; c.mood = '💢'; }
+      }
+    } else if (c.st === 'queue'){
+      const i = queue.indexOf(c);
+      const tx = 78 - i * 12;
+      if (c.x < tx) c.x = Math.min(tx, c.x + SPEED * step);
+      c.t += step;
+      if (i === 0){
+        const free = [...Array(n).keys()].filter(k => !used.has(k));
+        if (free.length && open && !soldOut){ c.seat = free[0]; used.add(c.seat); c.st = 'enter'; queue.shift(); }
+      }
+      if (!open || soldOut || c.t > 7 + i){ c.st = 'leave'; c.mood = soldOut ? '💧' : '💢'; queue.splice(queue.indexOf(c), 1); }
+    } else if (c.st === 'enter'){
+      const tx = seatX(st, c.seat);
+      c.x += SPEED * step;
+      if (c.x >= tx){ c.x = tx; c.st = 'wait'; c.t = 0; }
+    } else if (c.st === 'wait'){
+      c.t += step;    // 店員さんが運んでくるのを待つ
+    } else if (c.st === 'eat'){
+      c.t -= step;
+      if (c.t <= 0){ c.st = 'out'; c.seat = -1; c.mood = Math.random() < 0.3 ? '😋' : null; c.moodT = 1.2; }
+    } else if (c.st === 'out' || c.st === 'leave'){
+      c.x -= SPEED * step;
+    }
+    if (c.moodT !== undefined) c.moodT -= step;
+  }
+  SH.cust = SH.cust.filter(c => c.x > -30);
+
+  // --- 店員さんの動き ---
+  const waiting = SH.cust.filter(c => c.st === 'wait' && !c.taken).sort((a, b) => b.t - a.t);
+  const COOK = 0.9;
+  for (const s of SH.staff){
+    s.ph += dt;
+    if (!s.job && waiting.length){
+      const c = waiting.shift(); c.taken = true;
+      s.job = {c, phase: 'pot'}; s.tx = 150 + Math.random() * 50;
+    }
+    if (s.job){
+      const c = s.job.c;
+      if (!SH.cust.includes(c) || c.st !== 'wait'){ s.job = null; continue; }
+      if (s.job.phase === 'pot' && Math.abs(s.x - s.tx) < 2){ s.job.phase = 'cook'; s.t = COOK; }
+      else if (s.job.phase === 'cook'){ s.t -= step; if (s.t <= 0){ s.job.phase = 'carry'; s.tx = c.x; } }
+      else if (s.job.phase === 'carry' && Math.abs(s.x - s.tx) < 2){ c.st = 'eat'; c.t = EAT * rnd(0.8, 1.2); s.job = null; s.tx = s.x; }
+    } else if (Math.random() < dt * 0.4){ s.tx = 140 + Math.random() * 200; }
+    const sp = 75 * (s.job ? ts : 1) * dt;
+    if (Math.abs(s.tx - s.x) > 1) s.x += Math.sign(s.tx - s.x) * Math.min(sp, Math.abs(s.tx - s.x));
+  }
+  // --- 湯気 ---
+  if (Math.random() < dt * 9) SH.steam.push({x: rnd(140, 205), y: 112, a: 1, r: rnd(3, 6)});
+  for (const c of SH.cust) if (c.st === 'eat' && Math.random() < dt * 2) SH.steam.push({x: c.x + rnd(-3, 3), y: 158, a: 0.7, r: 2.5});
+  SH.steam.forEach(s => { s.y -= dt * 16; s.a -= dt * 0.6; s.r += dt * 3; });
+  SH.steam = SH.steam.filter(s => s.a > 0);
+}
+
+/* ---------- 時刻で空の色を変える ---------- */
+function skyCols(h){
+  if (h < 16) return ['#7cc3f0', '#cfeaff', 0];
+  if (h < 18) { const t = (h - 16) / 2; return [mix('#7cc3f0', '#f08a4b', t), mix('#cfeaff', '#ffd08a', t), t * 0.3]; }
+  if (h < 19.5) { const t = (h - 18) / 1.5; return [mix('#f08a4b', '#1d2350', t), mix('#ffd08a', '#4a3a6a', t), 0.3 + t * 0.4]; }
+  return ['#141a3a', '#2a2850', 0.7];
+}
+
+/* ---------- お店の絵 ---------- */
+function drawShop(st){
+  const a = AREAS[st.area];
+  const r = live ? live.res.stores.find(x => x.st.id === st.id) : null;
+  const p = live ? clamp(live.t / live.dur, 0, 1) : 0;
+  const h = live ? 11 + p * 11 : 9.5;
+  const [sk1, sk2, night] = skyCols(h);
+  const soldOut = r && live.soldP[st.id] !== undefined && p >= live.soldP[st.id];
+
+  // ===== 外（左の道） =====
+  let gr = g.createLinearGradient(0, 0, 0, 240); gr.addColorStop(0, sk1); gr.addColorStop(1, sk2);
+  g.fillStyle = gr; g.fillRect(0, 0, DOOR_X, 240);
+  drawAreaProp(st.area, night);
+  SH.far.forEach(f => person(f.x, 196, f.L, 'walk', f.ph, f.d < 0, 0.5));
+  const wxNow = live ? live.res.ctx.wx : S.fc.wx;
+  if (wxNow === 'rain' || wxNow === 'snow' || wxNow === 'cloud'){   // 雨・雪・くもり
+    g.fillStyle = wxNow === 'cloud' ? '#55607022' : '#3a465a44'; g.fillRect(0, 0, DOOR_X, 240);
+    if (wxNow !== 'cloud') for (let i = 0; i < 26; i++){
+      const rx = (i * 29 + T * (wxNow === 'rain' ? 20 : 6)) % DOOR_X, ry = (i * 41 + T * (wxNow === 'rain' ? 170 : 26)) % 240;
+      if (wxNow === 'rain'){ g.fillStyle = '#dde8f5aa'; g.fillRect(rx, ry, 1.2, 8); } else circ(rx, ry, 1.8, '#fff');
+    }
+  }
+  g.fillStyle = '#9a9aa2'; g.fillRect(0, 238, DOOR_X, 42);        // 歩道
+  g.fillStyle = '#b4b4bc'; for (let x = 0; x < DOOR_X; x += 16) g.fillRect(x, 238, 1, 42);
+
+  // ===== 中の壁 =====
+  g.fillStyle = '#c99a62'; g.fillRect(DOOR_X, 0, LW - DOOR_X, 210);
+  g.fillStyle = '#b88a55'; for (let x = DOOR_X; x < LW; x += 18) g.fillRect(x, 0, 2, 210);
+  // メニューの木の札
+  const menus = [[QNAME[st.q] === '最高級' ? '特製らーめん' : 'らーめん', yen(st.price)], ['チャーシュー', '+200円'], ['ぎょうざ', '300円'], ['ライス', '150円']];
+  menus.forEach((m, i) => {
+    const x = 152 + i * 51;
+    rr(x, 14, 46, 44, 3, '#f3e2bf'); g.strokeStyle = '#6b4a2a'; g.lineWidth = 2; g.strokeRect(x + 1, 15, 44, 42);
+    txt(m[0], x + 23, 29, m[0].length > 5 ? 7.5 : 9, '#3a2210'); txt(m[1], x + 23, 46, 9.5, '#b23a2a');
+  });
+  // ちょうちん
+  [148, 352].forEach(x => {
+    g.strokeStyle = '#3a2210'; g.lineWidth = 1; g.beginPath(); g.moveTo(x, 0); g.lineTo(x, 8); g.stroke();
+    rr(x - 7, 8, 14, 22, 7, '#d8473a'); g.fillStyle = '#2b1d14'; g.fillRect(x - 6, 8, 12, 2); g.fillRect(x - 6, 28, 12, 2);
+  });
+  // 評判が高いと「名店」の額
+  if (st.rep >= 70){ rr(300, 64, 44, 26, 2, '#3a2210'); rr(303, 67, 38, 20, 1, '#f7e7b0'); txt('名店', 322, 77, 10, '#b23a2a'); }
+  // 台所（コンロと大きななべ）
+  rr(130, 118, 92, 44, 3, '#5a5f66');
+  [150, 182, 208].forEach((x, i) => { rr(x - 13, 94 + (i === 2 ? 6 : 0), 26, 26 - (i === 2 ? 6 : 0), 4, '#9aa3ad'); g.fillStyle = '#6f7880'; g.fillRect(x - 13, 94 + (i === 2 ? 6 : 0), 26, 3); });
+  // 食器だな
+  rr(244, 96, 100, 8, 1, '#7a5432');
+  for (let i = 0; i < 6; i++) bowl(256 + i * 16, 96, 0.8);
+  // 湯気
+  SH.steam.forEach(s => { g.globalAlpha = s.a * 0.5; circ(s.x, s.y, s.r, '#ffffff'); }); g.globalAlpha = 1;
+  // 店員さん（上半身。カウンターでおなかから下がかくれる）
+  SH.staff.forEach(s => staffUpper(s.x, 164, s.role, s.ph, s.job && s.job.phase === 'cook'));
+  // 店員さんが運んでいるどんぶり
+  SH.staff.forEach(s => { if (s.job && s.job.phase === 'carry') bowl(s.x + 10, 146, 0.9); });
+  if (SH.extraStaff) txt(`ほか店員${SH.extraStaff}人`, 300, 112, 9, '#3a2210');
+  // カウンター
+  rr(118, 160, 236, 10, 2, '#8a5a32'); g.fillStyle = '#a8703f'; g.fillRect(118, 160, 236, 3);
+  g.fillStyle = '#5a3a20'; g.fillRect(118, 170, 236, 40);
+  g.fillStyle = '#4c311b'; for (let x = 118; x < 354; x += 26) g.fillRect(x, 170, 2, 40);
+  // ゆか
+  g.fillStyle = '#e4dccd'; g.fillRect(DOOR_X, 210, LW - DOOR_X, 70);
+  g.fillStyle = '#d0c6b4'; for (let x = DOOR_X; x < LW; x += 20) for (let y = 210; y < 280; y += 20) if ((x / 20 + y / 20) % 2 < 1) g.fillRect(x, y, 20, 20);
+  // きたなさ（きれいさが低いとよごれが出る）
+  const dirt = Math.floor((60 - st.clean) / 8);
+  for (let i = 0; i < dirt; i++){ g.fillStyle = '#6b553a55'; g.beginPath(); g.ellipse(120 + (i * 53) % 220, 230 + (i * 17) % 40, 9, 3, 0, 0, Math.PI * 2); g.fill(); }
+  // いす
+  const n = visSeats(st);
+  for (let i = 0; i < n; i++){ const x = seatX(st, i); g.fillStyle = '#3a3a3a'; g.fillRect(x - 1.5, SEAT_Y, 3, 22); rr(x - 9, SEAT_Y - 4, 18, 6, 3, '#c0392b'); }
+  // すわっているお客さん・どんぶり
+  for (const c of SH.cust){
+    if (c.st === 'wait' || c.st === 'eat'){
+      if (c.st === 'eat') bowl(c.x, 163, 0.95);
+      seatedBack(c.x, SEAT_Y - 3, c.L, c.st === 'eat' ? Math.abs(Math.sin(c.ph * 0.8)) * -1.5 : 0);
+    }
+  }
+  if (st.seats > n) txt(`ほかにも${st.seats - n}席`, 300, 274, 9, '#7a6650');
+
+  // ===== 入り口（はしら・のれん・かんばん） =====
+  g.fillStyle = '#3a2210'; g.fillRect(DOOR_X - 6, 0, 8, 280);
+  rr(-4, 0, DOOR_X + 4, 16, 0, '#2e2a33'); g.fillStyle = '#3e3a44'; for (let x = 0; x < DOOR_X; x += 10) g.fillRect(x, 12, 8, 4);
+  // 外のちょうちん
+  g.strokeStyle = '#2b1d14'; g.beginPath(); g.moveTo(72, 16); g.lineTo(72, 92); g.stroke();
+  rr(63, 92, 18, 28, 9, '#e0503f'); g.fillStyle = '#2b1d14'; g.fillRect(64, 92, 16, 2); g.fillRect(64, 118, 16, 2); txt('ら', 72, 106, 11, '#fff');
+  // のれん（店の名前）
+  const noren = live && p < 1 ? (soldOut ? '#7a7a7a' : '#22336b') : '#22336b';
+  for (let i = 0; i < 3; i++){
+    const sway = Math.sin(T * 1.6 + i) * 1.2;
+    g.fillStyle = noren; g.beginPath(); g.moveTo(DOOR_X + 2 + i * 14, 16); g.lineTo(DOOR_X + 15 + i * 14, 16); g.lineTo(DOOR_X + 15 + i * 14 + sway, 66); g.lineTo(DOOR_X + 2 + i * 14 + sway, 66); g.fill();
+  }
+  const nm = S.shopName.slice(0, 3);
+  [...nm].forEach((ch, i) => txt(ch, DOOR_X + 9 + i * 14, 40, 10, '#fff'));
+  // 営業中のふだ
+  const sign = !live ? '準備中' : p >= 1 ? '閉店' : soldOut ? '売切れ' : '営業中';
+  g.fillStyle = '#6b4a2a'; g.fillRect(40, 228, 3, 12); g.fillRect(63, 228, 3, 12);
+  rr(30, 206, 46, 24, 3, '#f3e2bf'); g.strokeStyle = '#6b4a2a'; g.lineWidth = 2; g.strokeRect(31, 207, 44, 22);
+  txt(sign, 53, 218, 10.5, sign === '営業中' ? '#b23a2a' : '#3a2210');
+
+  // ===== お客さん（歩いている・ならんでいる） =====
+  for (const c of SH.cust){
+    if (c.st === 'come' || c.st === 'queue' || c.st === 'enter' || c.st === 'out' || c.st === 'leave'){
+      person(c.x, c.y, c.L, c.st === 'queue' ? 'stand' : 'walk', c.ph, c.st === 'out' || c.st === 'leave');
+      if (c.mood) txt(c.mood, c.x + 6, c.y - 52, 12, '#fff');
+    }
+  }
+  const qn = SH.cust.filter(c => c.st === 'queue').length;
+  if (qn >= 3){ rr(6, 186, 66, 18, 9, '#000a'); txt(`行列 ${qn}人`, 39, 195, 10, '#ffd34a'); }
+
+  // ===== 夜の明るさ =====
+  if (night > 0){
+    g.fillStyle = `rgba(10,10,40,${night * 0.55})`; g.fillRect(0, 0, DOOR_X, 280);
+    g.fillStyle = `rgba(20,10,0,${night * 0.12})`; g.fillRect(DOOR_X, 0, LW, 280);
+    g.globalCompositeOperation = 'lighter';
+    [[72, 106, 38], [148, 20, 30], [352, 20, 30]].forEach(([x, y, rad]) => {
+      const lg = g.createRadialGradient(x, y, 2, x, y, rad); lg.addColorStop(0, `rgba(255,140,60,${0.5 * night})`); lg.addColorStop(1, 'rgba(255,140,60,0)');
+      g.fillStyle = lg; g.fillRect(x - rad, y - rad, rad * 2, rad * 2);
+    });
+    g.globalCompositeOperation = 'source-over';
+  }
+
+  // ===== 上の文字（店の名前・時計・数） =====
+  rr(DOOR_X + 50, 64, 156, 22, 11, '#000a');
+  txt(`${a.emoji} ${shortName(st)}（${st.no}号店）`, DOOR_X + 128, 75, 11, '#fff');
+  const hh = Math.floor(h), mm = Math.floor((h % 1) * 60);
+  rr(6, 20, 78, 26, 8, '#000b');
+  txt(live ? `${hh}:${String(mm).padStart(2, '0')}` : '朝 9:30', 45, 33, 15, live && p >= 1 ? '#ffd34a' : '#fff');
+  if (r){
+    const cum = rushCum(p);
+    rr(6, 50, 78, 22, 8, '#000b');
+    txt(`${Math.round(r.served * cum)}杯`, 45, 61, 12, '#7ef0a4');
+  } else if (!live){
+    rr(6, 50, 78, 34, 8, '#000b');
+    txt('タップで', 45, 60, 9, '#ddd', 'center', false); txt('お店の設定', 45, 73, 10, '#ffd34a');
+  }
+  if (live && live.fast){ rr(180, 264, 70, 16, 8, '#000a'); txt('▶▶ 早送り', 215, 272, 10, '#ffd34a'); }
+}
+
+// 外の景色（エリアごとにちがう）
+function drawAreaProp(area, night){
+  const dk = night > 0.4;
+  const bld = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); g.fillStyle = dk ? '#ffe27a' : '#cfe8ff';
+    for (let yy = y + 5; yy < y + h - 4; yy += 9) for (let xx = x + 3; xx < x + w - 4; xx += 7) g.fillRect(xx, yy, 3, 4); };
+  if (area === 'eki' || area === 'office'){ bld(4, 90, 26, 150, '#6a7488'); bld(34, 120, 24, 120, '#58617a'); bld(60, 70, 30, 170, '#4f586e'); }
+  else if (area === 'minato'){ g.fillStyle = '#3a8fd0'; g.fillRect(0, 170, DOOR_X, 70); g.fillStyle = '#fff'; g.beginPath(); g.moveTo(30, 168); g.lineTo(48, 168); g.lineTo(39, 140); g.fill(); g.fillStyle = '#8a5a32'; g.fillRect(26, 168, 26, 6); }
+  else if (area === 'gakuen'){ circ(30, 150, 26, '#4f9a54'); g.fillStyle = '#6b4a2a'; g.fillRect(27, 170, 6, 70); bld(54, 130, 36, 110, '#b9a48a'); }
+  else if (area === 'road'){ g.fillStyle = '#55555d'; g.fillRect(0, 200, DOOR_X, 38); g.fillStyle = '#fff'; for (let x = (T * 40) % 20 - 20; x < DOOR_X; x += 20) g.fillRect(x, 218, 10, 2);
+    const cx = ((T * 70) % 200) - 60; rr(cx, 204, 34, 14, 5, '#e85d5d'); circ(cx + 8, 218, 4, '#222'); circ(cx + 26, 218, 4, '#222'); }
+  else if (area === 'shoten'){ g.fillStyle = '#c86a3a'; g.fillRect(0, 100, DOOR_X, 8); bld(0, 108, 44, 132, '#a37a5a'); bld(46, 108, 44, 132, '#8f6a4c'); }
+  else { // 住宅街・ニュータウン：家
+    [[6, 160], [48, 150]].forEach(([x, y]) => { g.fillStyle = '#efe2cf'; g.fillRect(x, y, 34, 80); g.fillStyle = '#b84a3a'; g.beginPath(); g.moveTo(x - 4, y); g.lineTo(x + 17, y - 20); g.lineTo(x + 38, y); g.fill();
+      g.fillStyle = dk ? '#ffe27a' : '#9fd0f0'; g.fillRect(x + 6, y + 12, 9, 9); g.fillRect(x + 20, y + 12, 9, 9); });
+    if (area === 'newtown'){ g.fillStyle = '#f0b43c'; g.fillRect(60, 110, 3, 40); g.fillRect(40, 108, 40, 3); }   // 工事のクレーン
+  }
+}
+
+/* ---------- 社長室の絵 ---------- */
+const OFFICE_HOT = {   // さわれる場所
+  window: [24, 14, 210, 130], board: [248, 22, 96, 92], phone: [28, 172, 64, 32], docs: [100, 158, 62, 44],
+  monitor: [160, 110, 112, 90], sec: [290, 110, 70, 140],
+};
+function drawOffice(){
+  // かべ・ゆか
+  g.fillStyle = '#e9dcc6'; g.fillRect(0, 0, LW, 200);
+  g.fillStyle = '#dccdb3'; for (let x = 0; x < LW; x += 24) g.fillRect(x, 0, 1, 200);
+  g.fillStyle = '#7a5432'; g.fillRect(0, 196, LW, 84);
+  // 窓（町が見える。お店の数だけ赤いかんばんが光る）
+  const [x, y, w, h] = OFFICE_HOT.window;
+  rr(x - 4, y - 4, w + 8, h + 8, 4, '#5a4632');
+  let gr = g.createLinearGradient(0, y, 0, y + h); gr.addColorStop(0, '#8ccaf2'); gr.addColorStop(1, '#e2f3ff');
+  g.fillStyle = gr; g.fillRect(x, y, w, h);
+  const wx = S.fc.wx;
+  if (wx !== 'sun'){ g.fillStyle = wx === 'cloud' ? '#c9d3dc' : '#8f9aa6'; g.fillRect(x, y, w, h); }
+  else circ(x + 30, y + 26, 11, '#fff3b0');
+  for (let i = 0; i < 3; i++){ const cx = (x + ((T * 6 + i * 80) % (w + 40))) - 20; g.globalAlpha = 0.8; circ(cx, y + 20 + i * 10, 9, '#fff'); circ(cx + 10, y + 18 + i * 10, 11, '#fff'); g.globalAlpha = 1; }
+  const bs = [[0, 60, 26], [24, 40, 30], [52, 70, 22], [72, 30, 34], [104, 55, 26], [128, 45, 30], [156, 66, 24], [178, 38, 32]];
+  g.save(); g.beginPath(); g.rect(x, y, w, h); g.clip();
+  bs.forEach(([bx, bh, bw], i) => {
+    g.fillStyle = i % 2 ? '#7c879c' : '#6a7488'; g.fillRect(x + bx, y + h - bh, bw, bh);
+    g.fillStyle = '#cfe8ff'; for (let yy = y + h - bh + 5; yy < y + h - 4; yy += 8) for (let xx = x + bx + 3; xx < x + bx + bw - 4; xx += 7) g.fillRect(xx, yy, 3, 4);
+  });
+  S.stores.forEach((st, i) => { const b = bs[(i * 3) % bs.length]; const sx = x + b[0] + 4 + (i > 7 ? 8 : 0), sy = y + h - 14 - (i % 2) * 6;
+    rr(sx, sy, 16, 9, 2, '#d8473a'); txt('丼', sx + 8, sy + 4.5, 7, '#fff'); });
+  if (wx === 'rain' || wx === 'snow'){   // 雨や雪がふる
+    g.fillStyle = wx === 'rain' ? '#dde8f5aa' : '#ffffff';
+    for (let i = 0; i < 40; i++){ const rx = x + (i * 53 + T * (wx === 'rain' ? 30 : 8)) % w, ry = y + (i * 37 + T * (wx === 'rain' ? 160 : 25)) % h;
+      if (wx === 'rain') g.fillRect(rx, ry, 1.2, 7); else circ(rx, ry, 1.8, '#fff'); }
+  }
+  g.restore();
+  g.fillStyle = '#5a4632'; g.fillRect(x + w / 2 - 2, y, 4, h); g.fillRect(x, y + h / 2 - 2, w, 4);
+  hotLabel(x + w / 2, y + h - 10, '🗺 町を見る');
+  // 目標のボード
+  const [bx, by, bw, bh] = OFFICE_HOT.board;
+  rr(bx, by, bw, bh, 3, '#3d6b4a'); g.strokeStyle = '#8a5a32'; g.lineWidth = 4; g.strokeRect(bx, by, bw, bh);
+  txt('目標', bx + bw / 2, by + 13, 11, '#fff');
+  const gl = GOALS.find(q => !S.goals[q.id]);
+  wrapText(gl ? gl.txt : 'ぜんぶ達成！', bx + bw / 2, by + 32, bw - 12, 13, 9, '#fff6c8');
+  txt(`${Object.keys(S.goals).length}/${GOALS.length} 達成`, bx + bw / 2, by + bh - 10, 9, '#cfe');
+  // 観葉植物
+  rr(334, 168, 26, 30, 4, '#a0522d'); circ(348, 150, 16, '#3f8f4a'); circ(338, 138, 11, '#4fa85a'); circ(358, 136, 11, '#4fa85a');
+  // つくえ
+  rr(10, 196, 274, 16, 3, '#8a5a32'); g.fillStyle = '#6b4424'; g.fillRect(16, 212, 262, 68);
+  g.fillStyle = '#5a381c'; g.fillRect(146, 222, 2, 58);
+  // モニター（グラフ）
+  const [mx, my, mw, mh] = OFFICE_HOT.monitor;
+  rr(mx, my, mw, mh - 14, 5, '#222'); rr(mx + 5, my + 5, mw - 10, mh - 26, 3, '#0e1f2e');
+  g.fillStyle = '#333'; g.fillRect(mx + mw / 2 - 5, my + mh - 14, 10, 10); rr(mx + mw / 2 - 22, my + mh - 6, 44, 6, 2, '#333');
+  const hd = S.hist.slice(-14), mxv = Math.max(10000, ...hd.map(d => Math.abs(d.profit)));
+  const mid = my + 5 + (mh - 26) / 2;
+  hd.forEach((d, i) => { const bh2 = d.profit / mxv * ((mh - 26) / 2 - 4); g.fillStyle = d.profit >= 0 ? '#5be08a' : '#ff6b6b'; g.fillRect(mx + 9 + i * 7.3, bh2 >= 0 ? mid - bh2 : mid, 5, Math.abs(bh2)); });
+  g.fillStyle = '#ffffff30'; g.fillRect(mx + 6, mid, mw - 12, 1);
+  txt('利益', mx + 22, my + 13, 8, '#9fd');
+  // 書類の山（店がふえると高くなる）
+  const [dx, dy] = OFFICE_HOT.docs;
+  const nDoc = Math.min(8, 2 + S.stores.length);
+  for (let i = 0; i < nDoc; i++) rr(dx + 6 + (i % 2) * 2, dy + 34 - i * 4, 46, 6, 1, i % 2 ? '#f8f8f2' : '#ecece4');
+  hotLabel(dx + 31, dy + 44, '📋 お店');
+  // 電話（相談があると鳴ってゆれる）
+  const [px, py] = OFFICE_HOT.phone;
+  const ringing = S.consults.length > 0;
+  const shake = ringing ? Math.sin(T * 40) * (Math.sin(T * 3) > 0 ? 1.5 : 0) : 0;
+  g.save(); g.translate(px + 32 + shake, py + 18);
+  rr(-24, -6, 48, 18, 5, '#c0392b'); rr(-28, -14, 56, 10, 5, '#a52d22');
+  g.fillStyle = '#fff'; for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) g.fillRect(-10 + i * 8, -2 + j * 6, 4, 3);
+  g.restore();
+  hotLabel(px + 32, py + 40, '📞 銀行');
+  if (ringing && Math.sin(T * 3) > 0) txt('プルル', px + 32, py - 8, 10, '#c0392b');
+  // 秘書さん（相談があるときに立っている）
+  if (ringing){
+    const sx = 318, sy = 262;
+    person(sx, sy, {skin: '#ffd9b8', hair: '#2b1d14', shirt: '#3c4f7a', pants: '#2a2f45', long: true}, 'stand', 0, true, 1.35);
+    const bob = Math.abs(Math.sin(T * 4)) * 3;
+    circ(sx, 182 - bob, 11, '#ffd34a'); txt('!', sx, 183 - bob, 15, '#7a3c00');
+    hotLabel(sx - 4, 272, '💬 相談');
+  }
+  // 社長のいす（手前）
+  rr(120, 236, 80, 44, 14, '#30303a'); rr(126, 226, 68, 20, 10, '#3d3d48');
+}
+function hotLabel(x, y, s){ rr(x - 30, y - 8, 60, 16, 8, '#000a'); txt(s, x, y, 9, '#fff'); }
+function wrapText(s, cx, y, maxW, lh, size, col){
+  g.font = `bold ${size}px sans-serif`;
+  let line = '', yy = y;
+  for (const ch of s){ if (g.measureText(line + ch).width > maxW){ txt(line, cx, yy, size, col); line = ch; yy += lh; } else line += ch; }
+  if (line) txt(line, cx, yy, size, col);
+}
+
+/* ---------- 町の地図の絵 ---------- */
+const MAP_POS = {gakuen:[62, 58], office:[262, 52], eki:[168, 104], shoten:[90, 160], jutaku:[206, 182], newtown:[52, 238], road:[312, 148], minato:[262, 250]};
+function drawMap(){
+  g.fillStyle = '#9fd38a'; g.fillRect(0, 0, LW, LH);
+  g.fillStyle = '#8cc47a'; for (let i = 0; i < 40; i++){ const x = (i * 97) % LW, y = (i * 61) % LH; circ(x, y, 6, '#8cc47a'); }
+  // 海
+  g.fillStyle = '#4aa3df'; g.beginPath(); g.moveTo(200, 280); g.quadraticCurveTo(300, 220, 360, 200); g.lineTo(360, 280); g.fill();
+  g.strokeStyle = '#ffffff66'; g.lineWidth = 1.5; for (let i = 0; i < 4; i++){ const ox = (T * 8 + i * 40) % 120; g.beginPath(); g.moveTo(250 + ox, 266 - i * 4); g.lineTo(262 + ox, 266 - i * 4); g.stroke(); }
+  // 川
+  g.strokeStyle = '#5bb3e8'; g.lineWidth = 9; g.beginPath(); g.moveTo(120, 0); g.bezierCurveTo(140, 80, 110, 130, 150, 200); g.quadraticCurveTo(180, 250, 230, 270); g.stroke();
+  // 道路
+  g.strokeStyle = '#f1ead8'; g.lineWidth = 6;
+  [[[62, 58], [168, 104]], [[262, 52], [168, 104]], [[168, 104], [90, 160]], [[168, 104], [206, 182]], [[90, 160], [52, 238]], [[206, 182], [262, 250]], [[312, 0], [312, 280]], [[206, 182], [312, 148]]].forEach(([a, b]) => { g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.stroke(); });
+  // 線路
+  g.strokeStyle = '#555'; g.lineWidth = 3; g.beginPath(); g.moveTo(0, 112); g.lineTo(LW, 96); g.stroke();
+  g.strokeStyle = '#fff'; g.lineWidth = 1.5; g.setLineDash([5, 5]); g.beginPath(); g.moveTo(0, 112); g.lineTo(LW, 96); g.stroke(); g.setLineDash([]);
+  const tx = (T * 50) % (LW + 80) - 40; rr(tx, 104 - tx * 16 / LW - 6, 40, 9, 3, '#e8f0f8'); g.fillStyle = '#3a8fd0'; g.fillRect(tx, 104 - tx * 16 / LW - 3, 40, 2);
+  // エリア
+  for (const k in MAP_POS){
+    const [x, y] = MAP_POS[k], a = AREAS[k];
+    const sel = mapSel === k;
+    if (sel){ g.strokeStyle = '#ffd34a'; g.lineWidth = 3; g.beginPath(); g.arc(x, y, 30 + Math.sin(T * 5) * 2, 0, Math.PI * 2); g.stroke(); }
+    circ(x, y + 2, 24, '#00000022'); circ(x, y, 24, sel ? '#fff7d6' : '#f6f1e4');
+    txt(a.emoji, x, y - 3, 20, '#000', 'center', false);
+    rr(x - 34, y + 17, 68, 15, 7, '#000b'); txt(a.name, x, y + 24.5, 9, '#fff');
+    // ライバル店（灰色の点）
+    for (let i = 0; i < S.areas[k].rivals; i++) circ(x - 18 + i * 7, y - 22, 3, '#555');
+    // 自分の店（赤い旗）
+    const mine = S.stores.filter(s => s.area === k).length;
+    if (mine){ g.fillStyle = '#3a2210'; g.fillRect(x + 16, y - 30, 2, 22); g.fillStyle = '#d8473a'; g.beginPath(); g.moveTo(x + 18, y - 30); g.lineTo(x + 34, y - 25); g.lineTo(x + 18, y - 20); g.fill(); txt(String(mine), x + 24, y - 25, 8, '#fff'); }
+    // 空き物件
+    const nl = S.listings.filter(l => l.area === k).length;
+    if (nl){ const b = Math.abs(Math.sin(T * 3 + x)) * 3; rr(x - 32, y - 30 - b, 22, 14, 3, '#ffd34a'); txt('空' + (nl > 1 ? nl : ''), x - 21, y - 23 - b, 8.5, '#5a3a00'); }
+  }
+  rr(6, 6, 150, 20, 10, '#000a'); txt('🚩自分の店 🟨空き物件 ⚫ライバル', 81, 16, 8.5, '#fff');
+}
+
+/* ---------- ステージを描く（毎フレーム） ---------- */
+function drawStage(){
+  g.setTransform(K, 0, 0, K, 0, 0);
+  g.clearRect(0, 0, LW, LH);
+  if (!S || !S.stores.length) { g.fillStyle = '#241913'; g.fillRect(0, 0, LW, LH); return; }
+  if (scene === 'shop') drawShop(viewed());
+  else if (scene === 'office') drawOffice();
+  else drawMap();
+}
+
+/* ---------- ステージをタップしたとき ---------- */
+cv.addEventListener('click', e => {
+  if (!S) return;
+  Snd.init();
+  const rc = cv.getBoundingClientRect();
+  const x = (e.clientX - rc.left) / rc.width * LW, y = (e.clientY - rc.top) / rc.height * LH;
+  if (live){ live.fast = true; return; }           // 営業中は早送り
+  const inR = ([rx, ry, rw, rh]) => x >= rx && x <= rx + rw && y >= ry && y <= ry + rh;
+  if (scene === 'shop'){ Snd.click(); openSheet('store', viewed().id); }
+  else if (scene === 'office'){
+    const H = OFFICE_HOT;
+    if (S.consults.length && inR(H.sec)) { Snd.click(); showConsult(S.consults[0]); }
+    else if (inR(H.phone)) { Snd.click(); openSheet('bank'); }
+    else if (inR(H.window)) { Snd.click(); setScene('map'); }
+    else if (inR(H.monitor)) { Snd.click(); openSheet('rec'); }
+    else if (inR(H.docs)) { Snd.click(); openSheet('stores'); }
+    else if (inR(H.board)) { Snd.click(); openSheet('goals'); }
+  } else {
+    for (const k in MAP_POS){ const [mx, my] = MAP_POS[k]; if ((x - mx) ** 2 + (y - my) ** 2 < 32 * 32){ Snd.click(); mapSel = k; renderPanel(); return; } }
+  }
+});
+
+/* =========================================================
+   相談（秘書や店長が相談に来る → 選ぶ）
+   ========================================================= */
+// 顔の絵（小さい canvas に描いて画像にする）
+const faceCache = {};
+function faceImg(kind){
+  if (faceCache[kind]) return faceCache[kind];
+  const c = document.createElement('canvas'); c.width = c.height = 104;
+  const x = c.getContext('2d'); x.scale(2, 2);
+  const bg = {sec: '#3c4f7a', mgr: '#5a2a2a', staff: '#3f6a4a', bank: '#2f4a5a'}[kind];
+  x.fillStyle = bg; x.fillRect(0, 0, 52, 52);
+  const hair = {sec: '#2b1d14', mgr: '#1b1b1b', staff: '#4a2e1c', bank: '#555'}[kind];
+  const shirt = {sec: '#e9eef8', mgr: '#2a2a2a', staff: '#f4f4f0', bank: '#30394a'}[kind];
+  x.fillStyle = shirt; x.beginPath(); x.ellipse(26, 54, 20, 14, 0, 0, Math.PI * 2); x.fill();
+  x.fillStyle = '#ffd9b8'; x.beginPath(); x.arc(26, 26, 14, 0, Math.PI * 2); x.fill();
+  x.fillStyle = hair; x.beginPath(); x.arc(26, 23, 14.5, Math.PI * 1.02, Math.PI * 1.98); x.fill();
+  if (kind === 'sec'){ x.beginPath(); x.arc(26, 9, 6, 0, Math.PI * 2); x.fill(); x.fillRect(11, 22, 4, 12); x.fillRect(37, 22, 4, 12); }
+  if (kind === 'mgr' || kind === 'staff'){ x.fillStyle = kind === 'mgr' ? '#d8473a' : '#fff'; x.fillRect(12, 15, 28, 5); }
+  if (kind === 'bank'){ x.strokeStyle = '#222'; x.lineWidth = 1.2; x.strokeRect(17, 24, 7, 5); x.strokeRect(28, 24, 7, 5); x.fillStyle = '#c0392b'; x.fillRect(25, 42, 3, 10); }
+  x.fillStyle = '#2b1d14'; x.fillRect(19.5, 25, 2.5, 3); x.fillRect(30, 25, 2.5, 3);
+  x.fillStyle = '#e07a6a'; x.beginPath(); x.arc(26, 33, 3, 0, Math.PI); x.fill();
+  return faceCache[kind] = c.toDataURL();
+}
+function advisorOf(st){
+  if (!st) return {face: 'sec', name: '秘書 みなみ'};
+  if (st.mgr) return {face: 'mgr', name: `${shortName(st)} 店長 ${st.mgrName || 'たけし'}`};
+  return {face: 'staff', name: `${shortName(st)} 店員`};
+}
+
+// 1日の終わりに、相談をつくる
+function genConsults(res){
+  S.consults = (S.consults || []).filter(c => S.day - c.day < 3);
+  S.cd = S.cd || {};
+  const cand = [];
+  for (const s of res.stores){
+    const st = S.stores.find(x => x.id === s.st.id); if (!st) continue;
+    const sid = st.id, fair = AREAS[st.area].fair;
+    if (s.lostCap >= 8 && staffCap(st) < seatCap(st)) cand.push({k: 'hire', sid, n: s.lostCap});
+    else if (s.lostCap >= 8 && st.seats + 4 <= st.maxSeats) cand.push({k: 'expand', sid, n: s.lostCap});
+    if (st.staff > 0 && staffCap(st) - Math.max(s.demand, s.served) >= PER_WORKER + 8) cand.push({k: 'fire', sid});
+    if (s.lostPrep >= 8 && !st.prepAuto) cand.push({k: 'prepUp', sid, n: s.lostPrep});
+    const waste = s.prep - s.served;
+    if (waste > Math.max(12, s.prep * 0.25)) cand.push({k: st.prepAuto && !st.mgr && S.ownerAt !== st.id ? 'mgrHire' : 'prepDown', sid, n: waste});
+    if (st.rep >= 65 && s.lostCap >= 5 && st.price < fair * 1.25) cand.push({k: 'priceUp', sid});
+    if (s.served < s.cap * 0.45 && st.price > fair) cand.push({k: 'priceDown', sid});
+    if (st.clean < 45) cand.push({k: 'reno', sid});
+    if (st.rep >= 55 && Math.random() < 0.06) cand.push({k: 'deliver', sid});
+    if (Math.random() < 0.03) cand.push({k: 'magazine', sid});
+  }
+  if (S.cash < 300000 && creditLimit() - S.loan >= 1000000) cand.push({k: 'loan'});
+  const fresh = S.listings.filter(l => l.born === S.day && S.cash >= l.openCost * 0.8);
+  if (fresh.length && S.stores.length < MAX_STORES) cand.push({k: 'listing', lid: fresh[0].id});
+  // 同じ相談が続かないように（5日あける）
+  const ok = cand.filter(c => { const key = c.k + (c.sid || ''); return S.cd[key] === undefined || S.day - S.cd[key] >= 5; })
+    .filter(c => !S.consults.some(o => o.k === c.k && o.sid === c.sid));
+  ok.sort(() => Math.random() - 0.5);
+  const room = Math.max(0, 3 - S.consults.length);
+  ok.slice(0, Math.min(2, room)).forEach(c => {
+    S.cd[c.k + (c.sid || '')] = S.day;
+    S.consults.push({...c, id: 'C' + (S.nextId++), day: S.day});
+  });
+}
+
+// 相談の中身（セリフと選択肢）
+function consultDef(c){
+  const st = c.sid ? S.stores.find(s => s.id === c.sid) : null;
+  if (c.sid && !st) return null;
+  const who = advisorOf(st), sec = {face: 'sec', name: '秘書 みなみ'};
+  const nm = st ? shortName(st) : '';
+  switch (c.k){
+    case 'hire': return {who, say: `社長、きのうは席があいているのに作るのが追いつかなくて、${c.n}人もお客さんを帰してしまいました…。店員をもう1人ふやしませんか？（1日 ${yen(WAGE)}）`,
+      ch: [['ふやす', () => { st.staff++; return `${nm}の店員を${st.staff}人にした`; }], ['このまま', null]]};
+    case 'expand': return {who, say: `お店がいっぱいで、${c.n}人が待ちきれずに帰りました。席を4つふやしませんか？（${yen(480000)}）`,
+      ch: [['ふやす', () => { if (S.cash < 480000) return '!お金が足りません'; S.cash -= 480000; st.seats += 4; st.invest += 480000; return `${nm}を${st.seats}席にした`; }], ['まだいい', null]]};
+    case 'fire': return {who, say: `きのうは店員がちょっとひまそうでした…。1人へらしますか？給料が1日 ${yen(WAGE)} へります。`,
+      ch: [['へらす', () => { st.staff = Math.max(0, st.staff - 1); return `${nm}の店員を${st.staff}人にした`; }], ['このまま', null]]};
+    case 'prepUp': return {who, say: `きのうはスープが売り切れて、${c.n}人に「ごめんなさい」しました。仕込みを10杯ふやしますか？`,
+      ch: [['+10杯', () => { st.prep += 10; return `${nm}の仕込みを${st.prep}杯にした`; }], ['おまかせにする', () => { st.prepAuto = true; return `${nm}の仕込みをおまかせにした`; }], ['このまま', null]]};
+    case 'prepDown': return {who, say: `きのうは${c.n}杯分の材料をすててしまいました…もったいないです。仕込みを少しへらしますか？`,
+      ch: st.prepAuto ? [['手動で−10杯', () => { st.prepAuto = false; st.prep = Math.max(0, (st.last ? st.last.prep : 40) - 10); return `${nm}の仕込みを${st.prep}杯にした`; }], ['このまま', null]]
+        : [['−10杯', () => { st.prep = Math.max(0, st.prep - 10); return `${nm}の仕込みを${st.prep}杯にした`; }], ['おまかせにする', () => { st.prepAuto = true; return `${nm}の仕込みをおまかせにした`; }], ['このまま', null]]};
+    case 'mgrHire': return {who: sec, say: `${nm}は店長がいないので、天気や曜日に合わせた仕込みができず、${c.n}杯分すててしまいました。店長を雇いませんか？（1日 ${yen(MGR_WAGE)}）`,
+      ch: [['店長を雇う', () => { hireMgr(st); return `${nm}に店長の${st.mgrName}さんが来た`; }], ['まだいい', null]]};
+    case 'priceUp': return {who, say: `うちの店、評判がいいみたいで行列ができています！${yen(50)}だけ値上げしてみませんか？（いま ${yen(st.price)}）`,
+      ch: [['値上げ', () => { st.price += 50; return `${nm}を${yen(st.price)}にした`; }], ['このまま', null]]};
+    case 'priceDown': return {who, say: `お客さんが少なくて、席がガラガラです…。このあたりの相場は ${yen(AREAS[st.area].fair)}。少し値下げしませんか？（いま ${yen(st.price)}）`,
+      ch: [['−50円', () => { st.price -= 50; return `${nm}を${yen(st.price)}にした`; }], ['このまま', null]]};
+    case 'reno': return {who, say: `お店がだいぶよごれてきました（きれいさ ${Math.round(st.clean)}）。このままだと保健所に注意されるかも…。改装しますか？（${yen(st.seats * 40000)}）`,
+      ch: [['改装する', () => { const cst = st.seats * 40000; if (S.cash < cst) return '!お金が足りません'; S.cash -= cst; st.clean = 100; st.rep = Math.min(100, st.rep + 3); return `${nm}を改装した`; }], ['あとで', null]]};
+    case 'deliver': { const gain = 30 * (st.price - unitCost(st)); return {who, say: `近くの会社から「30杯 出前してほしい」と電話です！もうけは ${yen(gain)}。でも店がバタバタして、評判が少し下がるかもしれません。`,
+      ch: [['受ける', () => { S.cash += gain; st.rep = Math.max(0, st.rep - 2); return `出前で ${yen(gain)} もうけた`; }], ['ことわる', null]]}; }
+    case 'magazine': return {who: sec, say: `タウン誌の記者さんから「15万円で ${nm} の特集ページをつくりませんか？」とのことです。知名度が上がります。`,
+      ch: [['のせる', () => { if (S.cash < 150000) return '!お金が足りません'; S.cash -= 150000; st.aw = Math.min(100, st.aw + 15); return `${nm}が雑誌にのった（知名度アップ）`; }], ['ことわる', null]]};
+    case 'loan': return {who: {face: 'bank', name: 'ひばり信用金庫 やまださん'}, say: `社長、お金が少なくなっていますね。100万円までなら、すぐにお貸しできますよ。（利子は1日0.05%・毎日少しずつ返す）`,
+      ch: [['100万円かりる', () => { if (creditLimit() - S.loan < 1000000) return '!もう借りられません'; S.loan += 1000000; S.cash += 1000000; addLog('🏦 100万円 借りた'); return '100万円 借りた'; }], ['けっこうです', null]]};
+    case 'listing': { const L = S.listings.find(l => l.id === c.lid); if (!L) return null; const a = AREAS[L.area];
+      return {who: sec, say: `社長、${a.name}（${a.kind}）に新しい物件が出ました！${L.seats}席・家賃 ${yen(L.rent)}/日・出店に ${yen(L.openCost)}。見に行きますか？`,
+        ch: [['地図で見る', () => { mapSel = L.area; setScene('map'); return null; }], ['あとで', null]]}; }
+  }
+  return null;
+}
+function hireMgr(st){ st.mgr = true; if (!st.mgrName) st.mgrName = pick(MGR_NAMES); }
+
+function consultHTML(c, inModal){
+  const d = consultDef(c); if (!d) return '';
+  return `<div class="card talk"><img src="${faceImg(d.who.face)}" alt="">
+    <div style="flex:1"><div class="who">${d.who.name}</div><div class="say">${d.say}</div>
+    <div class="ch">${d.ch.map((x, i) => `<button class="btn ${i === 0 ? 'main' : ''}" data-act="answer" data-id="${c.id}" data-v="${i}">${x[0]}</button>`).join('')}</div></div></div>`;
+}
+function showConsult(c){
+  const d = consultDef(c);
+  if (!d){ S.consults = S.consults.filter(o => o !== c); return render(); }
+  $('ovl').innerHTML = `<div class="ov"><div class="box"><h2>📞 相談です</h2>${consultHTML(c, true)}</div></div>`;
+}
+function answer(id, i){
+  const c = S.consults.find(o => o.id === id); if (!c) return;
+  const d = consultDef(c);
+  S.consults = S.consults.filter(o => o !== c);
+  const fn = d && d.ch[+i] && d.ch[+i][1];
+  if (fn){
+    const m = fn();
+    if (m && m[0] === '!'){ Snd.bad(); toast(m.slice(1)); }
+    else if (m){ Snd.good(); toast('✅ ' + m); addLog('📞 ' + m); }
+  } else Snd.click();
+  $('ovl').innerHTML = '';
+  save(); render();
+}
+
+/* =========================================================
+   画面（HTML の部分）
+   ========================================================= */
+function setScene(s){ scene = s; render(); }
 function render(){
   if (!S) return;
-  $('dateTxt').textContent = dateStr(S.day);
-  $('wxTxt').textContent = 'きょう ' + WX[S.fc.wx] + (S.fc.fest ? ' 🏮祭り' : '');
+  $('dateTxt').textContent = dateStr(live ? live.res.day : S.day) + (live ? ' 営業中' : '');
+  $('wxTxt').textContent = (live ? '' : 'きょう ') + WX[live ? live.res.ctx.wx : S.fc.wx] + (S.fc.fest && !live ? ' 🏮' : '');
   const c = $('cash');
-  c.textContent = '💰 ' + yen(S.cash);
-  c.className = 'num' + (S.cash < 0 ? ' minus' : '');
-  $('loanTxt').textContent = `🏦 借金 ${yen(S.loan)}　🏪 ${S.stores.length}店`;
-  const g = GOALS.find(g => !S.goals[g.id]);
-  $('goal').textContent = g ? '🎯 目標：' + g.txt : '🏆 すべての目標をたっせい！';
-  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
-  const v = $('view'), top = v.scrollTop;
-  v.innerHTML = tab === 'shop' ? viewShop() : tab === 'town' ? viewTown() : tab === 'bank' ? viewBank() : viewRec();
+  const cash = live ? live.cash0 : S.cash;     // 営業中は、営業前のお金を見せる（結果はあとで）
+  c.textContent = '💰 ' + yen(cash);
+  c.className = 'num' + (cash < 0 ? ' minus' : '');
+  $('loanTxt').textContent = `借金 ${yen(S.loan)}・${S.stores.length}店`;
+  const gl = GOALS.find(q => !S.goals[q.id]);
+  $('goal').textContent = gl ? '🎯 ' + gl.txt : '🏆 すべての目標をたっせい！';
+  $('sndBtn').textContent = Snd.on ? '🔊' : '🔇';
+  document.querySelectorAll('#nav .sc').forEach(b => b.classList.toggle('on', b.dataset.scene === scene));
+  const bd = $('badge'); bd.style.display = S.consults.length ? '' : 'none'; bd.textContent = S.consults.length;
+  const multi = scene === 'shop' && S.stores.length > 1;
+  $('prevSt').style.display = $('nextSt').style.display = multi ? 'block' : 'none';
+  renderPanel();
+  if (sheetKind) renderSheet();
+}
+
+function renderPanel(){
+  const v = $('panel'), top = v.scrollTop;
+  v.innerHTML = scene === 'shop' ? panelShop() : scene === 'office' ? panelOffice() : panelMap();
   v.scrollTop = top;
-  if (tab === 'rec') drawChart();
 }
 
 function stars(r){ const n = Math.round(r / 20 * 2) / 2; return '★'.repeat(Math.floor(n)) + (n % 1 ? '☆' : '') + `<span class="sub"> ${Math.round(r)}</span>`; }
 function bar(v, col){ return `<div class="bar"><i style="width:${clamp(v, 0, 100)}%;${col ? 'background:' + col : ''}"></i></div>`; }
 
-function viewShop(){
+function panelShop(){
+  const st = viewed(); if (!st) return '';
+  if (live) return `<div class="card" style="text-align:center"><b>🍜 営業中…</b><div class="sub" style="margin-top:4px">お店の絵をタップすると早送り${S.stores.length > 1 ? '・◀▶でほかのお店も見られる' : ''}</div></div>`
+    + (live.res.stores.length > 1 ? `<div class="card">${live.res.stores.map(x => `<div class="row"><span>${AREAS[x.st.area].emoji} ${shortName(x.st)}</span><b class="num" id="tick_${x.st.id}">0杯</b></div>`).join('')}</div>` : '');
+  const a = AREAS[st.area], L = st.last;
+  const ctx = {day: S.day, wx: S.fc.wx, fest: S.fc.fest};
+  const est = demandOf(st, ctx, false);
   let h = '';
-  if (S.cash < 0) h += `<div class="warn">⚠️ お金がマイナスです。あと${3 - S.negDays}日で倒産！🏦銀行で借りるか、赤字の店を見直そう</div>`;
-  if (S.fc.fest && S.stores.some(s => s.area === 'shoten')) h += `<div class="warn" style="background:#8a6a1f55;border-color:var(--gold)">🏮 きょうは さくら商店街のお祭り！お客さんが2倍くらい来るかも。仕込みを多めに</div>`;
-  for (const st of S.stores){
-    const a = AREAS[st.area], L = st.last;
-    const ctx = {day: S.day, wx: S.fc.wx, fest: S.fc.fest};
-    const est = demandOf(st, ctx, false);
-    const owner = S.ownerAt === st.id;
-    h += `<div class="card">
-      <h3>${a.emoji} ${storeName(st)}</h3>
-      <div class="sub">${a.kind}・${st.seats}席（最大${st.maxSeats}）・家賃 ${yen(st.rent)}/日・ライバル${S.areas[st.area].rivals}店
-        ${owner ? '<span class="tag">👤オーナーが働く</span>' : ''}${st.mgr ? '<span class="tag">🧑‍🍳店長</span>' : ''}</div>
-      <div class="row"><span>評判</span><span>${stars(st.rep)}</span></div>
-      <div class="row"><span style="width:56px">知名度</span>${bar(st.aw)}<span class="sub num" style="width:28px;text-align:right">${Math.round(st.aw)}</span></div>
-      <div class="row"><span style="width:56px">きれいさ</span>${bar(st.clean, st.clean < 40 ? 'var(--ng)' : 'var(--ok)')}<span class="sub num" style="width:28px;text-align:right">${Math.round(st.clean)}</span></div>
-      ${L ? `<div class="row"><span>きのう</span><span class="num">客 ${L.served}人 / 来たかった ${L.demand}人　<b class="${L.profit >= 0 ? 'plus' : 'minus'}">${sgn(L.profit)}</b></span></div>
-      <div class="sub">${L.lostCap ? `😣 席・人手が足りず${L.lostCap}人帰った　` : ''}${L.lostPrep ? `🍥 売り切れで${L.lostPrep}人帰った　` : ''}${L.prep > L.served ? `🗑 ${L.prep - L.served}杯分あまった　` : ''}満足度 ${L.sat}</div>` : '<div class="sub">まだ営業していません</div>'}
-      <div class="row"><span>きょうの予想</span><span class="num">${Math.round(est * 0.88)}〜${Math.round(est * 1.12)}人（さばける数 ${capOf(st)}杯）</span></div>
-      <div style="text-align:right"><button class="btn" data-act="toggle" data-id="${st.id}">${openStore === st.id ? '▲ とじる' : '⚙️ 設定する'}</button></div>
-      ${openStore === st.id ? setPanel(st) : ''}
-    </div>`;
-  }
-  if (S.stores.length < MAX_STORES) h += `<div class="sub" style="text-align:center">新しいお店は「🗺 物件」から出せます</div>`;
+  if (S.cash < 0) h += `<div class="warn">⚠️ お金がマイナス！あと${3 - S.negDays}日で倒産。🏢社長室の電話（銀行）で借りるか、赤字の店を見直そう</div>`;
+  if (S.consults.length) h += `<div class="warn" style="background:#8a6a1f55;border-color:var(--gold)">📞 社長室に相談が${S.consults.length}件 来ています</div>`;
+  if (S.fc.fest && st.area === 'shoten') h += `<div class="warn" style="background:#8a6a1f55;border-color:var(--gold)">🏮 きょうはお祭り！お客さんが2倍くらい来るかも</div>`;
+  h += `<div class="card">
+    <div class="row"><b>${a.emoji} ${shortName(st)}</b><span class="sub">${a.kind}・${st.seats}席・ライバル${S.areas[st.area].rivals}店</span></div>
+    <div class="row"><span>評判</span><span>${stars(st.rep)}</span></div>
+    <div class="row"><span style="width:56px">知名度</span>${bar(st.aw)}<span class="sub num" style="width:26px;text-align:right">${Math.round(st.aw)}</span></div>
+    <div class="row"><span style="width:56px">きれいさ</span>${bar(st.clean, st.clean < 40 ? 'var(--ng)' : 'var(--ok)')}<span class="sub num" style="width:26px;text-align:right">${Math.round(st.clean)}</span></div>
+    ${L ? `<div class="row"><span>きのう</span><span class="num">客 ${L.served}人/来たかった ${L.demand}人 <b class="${L.profit >= 0 ? 'plus' : 'minus'}">${sgn(L.profit)}</b></span></div>` : ''}
+    <div class="row"><span>きょうの予想</span><span class="num">${Math.round(est * 0.88)}〜${Math.round(est * 1.12)}人（作れる ${capOf(st)}杯）</span></div>
+  </div>
+  <div class="card">
+    <div class="row"><span>💴 値段 <span class="sub">相場 ${yen(a.fair)}</span></span><span class="ctl">
+      <button class="btn" data-act="price" data-id="${st.id}" data-v="-50">−50</button><span class="v num">${yen(st.price)}</span>
+      <button class="btn" data-act="price" data-id="${st.id}" data-v="50">+50</button></span></div>
+    <div class="row"><span>🧑 店員</span><span class="ctl">
+      <button class="btn" data-act="staff" data-id="${st.id}" data-v="-1">−</button><span class="v">${st.staff}人</span>
+      <button class="btn" data-act="staff" data-id="${st.id}" data-v="1">＋</button></span></div>
+    <div style="text-align:center;margin-top:6px"><button class="btn main" data-act="sheet" data-v="store" data-id="${st.id}">⚙️ くわしい設定（材料・仕込み・広告・店長…）</button></div>
+  </div>`;
   return h;
 }
 
-// お店の設定パネル
+function panelOffice(){
+  let h = '';
+  if (S.cash < 0) h += `<div class="warn">⚠️ お金がマイナス！あと${3 - S.negDays}日で倒産</div>`;
+  if (S.consults.length) h += `<div class="sub" style="margin:0 0 4px">📞 相談が${S.consults.length}件 来ています</div>` + S.consults.map(c => consultHTML(c)).join('');
+  else h += `<div class="card sub">いまは相談はありません。営業すると、秘書や店長が相談に来ます。<br>絵の中の 📞電話・📋書類・モニター・窓・目標ボード をさわってみよう。</div>`;
+  h += `<div class="grid">
+    <button class="btn" data-act="sheet" data-v="stores">📋 お店の一覧</button>
+    <button class="btn" data-act="sheet" data-v="bank">📞 銀行（借金）</button>
+    <button class="btn" data-act="sheet" data-v="rec">📈 記録・グラフ</button>
+    <button class="btn" data-act="sheet" data-v="goals">🎯 目標</button>
+    <button class="btn" data-act="sheet" data-v="hq">🏭 本部・キッチン</button>
+    <button class="btn" data-act="scene" data-v="map">🗺 物件をさがす</button>
+  </div>`;
+  return h;
+}
+
+function listingCard(L){
+  const a = AREAS[L.area];
+  return `<div class="card">
+    <div class="row"><b>🏠 空き物件（${L.seats}席・最大${L.maxSeats}席）</b></div>
+    <div class="row"><span>家賃</span><span>${yen(L.rent)}/日（月 ${yen(L.rent * 30)}）</span></div>
+    <div class="row"><span><b>出店のお金</b></span><span><b>${yen(L.openCost)}</b> <button class="btn main" data-act="buy" data-id="${L.id}" ${S.cash < L.openCost || S.stores.length >= MAX_STORES ? 'disabled' : ''}>出店する</button></span></div>
+    ${S.cash < L.openCost ? '<div class="sub">お金が足りない（銀行で借りることもできる）</div>' : ''}
+  </div>`;
+}
+function panelMap(){
+  let h = '';
+  if (!mapSel){
+    h += `<div class="card sub">地図のエリアをタップすると、くわしく見られます。🟨「空」は出店できる物件（7日ごとに入れかわる）。</div>`;
+    h += `<div class="card"><b>いまの空き物件</b>${S.listings.map(L => `<div class="row"><span>${AREAS[L.area].emoji} ${AREAS[L.area].name}・${L.seats}席</span><button class="btn" data-act="mapArea" data-v="${L.area}">${yen(L.openCost)} ▶</button></div>`).join('')}</div>`;
+    return h;
+  }
+  const a = AREAS[mapSel], as = S.areas[mapSel];
+  const mine = S.stores.filter(s => s.area === mapSel);
+  h += `<div class="card">
+    <h3>${a.emoji} ${a.name}<span class="sub">（${a.kind}）</span></h3>
+    <div class="sub">${a.note}</div>
+    <div class="row"><span>人通り</span><span class="num">${Math.round(a.traffic * as.tMult).toLocaleString()}人/日（土日×${a.wk}）</span></div>
+    <div class="row"><span>相場の値段</span><span>${yen(a.fair)}・値段に${a.sens >= 1.5 ? 'とてもきびしい' : a.sens >= 1 ? 'ふつう' : 'あまり気にしない'}</span></div>
+    <div class="row"><span>雨の日</span><span>人通り ×${a.rain}</span></div>
+    <div class="row"><span>ライバル店</span><span>${as.rivals}店${mine.length ? `（うちの店も${mine.length}店→お客さんを取り合う）` : ''}</span></div>
+    ${mine.map(st => `<div class="row"><span>🚩 ${shortName(st)}（${st.no}号店）</span><button class="btn" data-act="goStore" data-id="${st.id}">お店へ ▶</button></div>`).join('')}
+  </div>`;
+  const ls = S.listings.filter(l => l.area === mapSel);
+  h += ls.length ? ls.map(listingCard).join('') : `<div class="card sub">このエリアには、いま空き物件がありません。</div>`;
+  h += `<div style="text-align:center"><button class="btn" data-act="mapArea" data-v="">◀ 一覧にもどる</button></div>`;
+  return h;
+}
+
+/* ---------- 下から出るシート ---------- */
+function openSheet(kind, id){ sheetKind = kind; sheetId = id || null; renderSheet(); }
+function closeSheet(){ sheetKind = null; $('sheet').innerHTML = ''; }
+function renderSheet(){
+  let title = '', body = '';
+  if (sheetKind === 'store'){ const st = S.stores.find(s => s.id === sheetId); if (!st) return closeSheet(); title = `⚙️ ${shortName(st)}の設定`; body = setPanel(st); }
+  else if (sheetKind === 'stores'){ title = '📋 お店の一覧'; body = sheetStores(); }
+  else if (sheetKind === 'bank'){ title = '📞 銀行'; body = sheetBank(); }
+  else if (sheetKind === 'rec'){ title = '📈 記録'; body = sheetRec(); }
+  else if (sheetKind === 'goals'){ title = '🎯 目標'; body = GOALS.map(q => `<div class="log">${S.goals[q.id] !== undefined ? '✅' : '⬜'} ${q.txt}${S.goals[q.id] !== undefined ? `<span class="sub">（${S.goals[q.id]}日目）</span>` : ''}</div>`).join(''); }
+  else if (sheetKind === 'hq'){ title = '🏭 本部・キッチン'; body = sheetHQ(); }
+  const box = $('sheet').querySelector('.box');
+  const top = box ? box.scrollTop : 0;
+  $('sheet').innerHTML = `<div class="ov" data-act="closeSheetBg"><div class="box"><div class="sheetHead"><b>${title}</b><button class="btn" data-act="closeSheet">✕ とじる</button></div>${body}</div></div>`;
+  $('sheet').querySelector('.box').scrollTop = top;
+  if (sheetKind === 'rec') drawChart();
+}
+
 function setPanel(st){
   const a = AREAS[st.area], id = st.id;
   const owner = S.ownerAt === st.id;
@@ -518,8 +1345,8 @@ function setPanel(st){
       <button class="btn" data-act="staff" data-id="${id}" data-v="1">＋</button></span></div>
     <div class="sub" style="text-align:right">人手で作れる ${staffCap(st)}杯 ／ 席でさばける ${seatCap(st)}杯</div>
     <div class="row"><span>🧑‍🍳 店長<br><span class="sub">${yen(MGR_WAGE)}/日</span></span><span class="ctl">
-      <button class="btn ${st.mgr ? 'sel' : ''}" data-act="mgr" data-id="${id}">${st.mgr ? 'いる（やめてもらう）' : '雇う'}</button></span></div>
-    <div class="row"><span>👤 オーナー<br><span class="sub">給料なしで働ける（1店だけ）</span></span><span class="ctl">
+      <button class="btn ${st.mgr ? 'sel' : ''}" data-act="mgr" data-id="${id}">${st.mgr ? `${st.mgrName || ''}さん（やめてもらう）` : '雇う'}</button></span></div>
+    <div class="row"><span>👤 オーナー（あなた）<br><span class="sub">給料なしで働ける（1店だけ）</span></span><span class="ctl">
       ${owner ? '<span class="tag">この店で働いている</span>' : `<button class="btn" data-act="owner" data-id="${id}">この店で働く</button>`}</span></div>
     <div class="row"><span>🥣 仕込み<br><span class="sub">あまりはすてる</span></span><span class="ctl">
       <button class="btn ${st.prepAuto ? 'sel' : ''}" data-act="prepAuto" data-id="${id}">おまかせ</button>
@@ -537,42 +1364,32 @@ function setPanel(st){
   </div>`;
 }
 
-function viewTown(){
-  let h = `<div class="sub" style="margin-bottom:6px">出店できる物件です。7日ごとに入れかわります。人通り・家賃・ライバル・お客さんの好みをよく見て選ぼう。</div>`;
-  if (S.stores.length >= MAX_STORES) h += `<div class="warn">もう${MAX_STORES}店あります（いまのところ最大）</div>`;
-  for (const L of S.listings){
-    const a = AREAS[L.area], as = S.areas[L.area];
-    const mine = S.stores.filter(s => s.area === L.area).length;
-    h += `<div class="card">
-      <h3>${a.emoji} ${a.name}<span class="sub">（${a.kind}）</span></h3>
-      <div class="sub">${a.note}</div>
-      <div class="row"><span>人通り</span><span class="num">${Math.round(a.traffic * as.tMult).toLocaleString()}人/日（土日×${a.wk}）</span></div>
-      <div class="row"><span>相場の値段</span><span>${yen(a.fair)}・値段に${a.sens >= 1.5 ? 'とてもきびしい' : a.sens >= 1 ? 'ふつう' : 'あまり気にしない'}</span></div>
-      <div class="row"><span>ライバル店</span><span>${as.rivals}店${mine ? `（うちの店も${mine}店ある→お客さんを取り合う）` : ''}</span></div>
-      <div class="row"><span>席</span><span>${L.seats}席（最大${L.maxSeats}席まで広げられる）</span></div>
-      <div class="row"><span>家賃</span><span>${yen(L.rent)}/日（月 ${yen(L.rent * 30)}）</span></div>
-      <div class="row"><span><b>出店のお金</b></span><span><b>${yen(L.openCost)}</b> <button class="btn main" data-act="buy" data-id="${L.id}" ${S.cash < L.openCost || S.stores.length >= MAX_STORES ? 'disabled' : ''}>出店する</button></span></div>
-    </div>`;
-  }
-  return h;
+function sheetStores(){
+  return S.stores.map(st => { const L = st.last; return `<div class="card">
+    <div class="row"><b>${AREAS[st.area].emoji} ${shortName(st)}</b><span>${stars(st.rep)}</span></div>
+    <div class="row sub"><span>${st.seats}席・店員${st.staff}人${st.mgr ? '・店長' : ''}${S.ownerAt === st.id ? '・あなた' : ''}・${yen(st.price)}</span>
+      <span>${L ? `きのう <b class="${L.profit >= 0 ? 'plus' : 'minus'}">${sgn(L.profit)}</b>` : ''}</span></div>
+    <div class="ctl"><button class="btn" data-act="goStore" data-id="${st.id}">🏪 見に行く</button><button class="btn main" data-act="sheet" data-v="store" data-id="${st.id}">⚙️ 設定</button></div>
+  </div>`; }).join('');
 }
-
-function viewBank(){
+function sheetBank(){
   const lim = creditLimit(), room = Math.max(0, lim - S.loan);
   const day = Math.round(S.loan * 0.0005) + Math.round(S.loan * 0.006);
-  const n = S.stores.length;
-  return `<div class="card">
-    <h3>🏦 ひばり信用金庫</h3>
-    <div class="row"><span>いまの借金</span><b class="num">${yen(S.loan)}</b></div>
-    <div class="row"><span>借りられる上限</span><span class="num">${yen(lim)}（あと ${yen(room)}）</span></div>
+  return `<div class="card talk"><img src="${faceImg('bank')}" alt=""><div style="flex:1"><div class="who">ひばり信用金庫 やまださん</div>
+    <div class="say">社長、いまの借金は <b>${yen(S.loan)}</b>。あと <b>${yen(room)}</b> までお貸しできます。</div></div></div>
+  <div class="card">
+    <div class="row"><span>借りられる上限</span><span class="num">${yen(lim)}</span></div>
     <div class="sub">上限は「お店の数と広さ」と「最近の利益」で決まる。利子は1日0.05%（1年で約18%）、毎日 借金の0.6%を自動で返す。いまは1日 ${yen(day)} はらっている。</div>
     <div class="row" style="margin-top:8px"><span>借りる</span><span class="ctl">
       ${[500000, 1000000, 3000000].map(v => `<button class="btn" data-act="borrow" data-v="${v}" ${room < v ? 'disabled' : ''}>${yen(v)}</button>`).join('')}</span></div>
     <div class="row"><span>返す</span><span class="ctl">
       <button class="btn" data-act="repay" data-v="500000" ${S.loan <= 0 ? 'disabled' : ''}>${yen(500000)}</button>
       <button class="btn" data-act="repay" data-v="all" ${S.loan <= 0 ? 'disabled' : ''}>ぜんぶ</button></span></div>
-  </div>
-  <div class="card">
+  </div>`;
+}
+function sheetHQ(){
+  const n = S.stores.length;
+  return `<div class="card">
     <h3>🏭 セントラルキッチン</h3>
     <div class="sub">チェーン店のための大きな工場。全部の店の材料が15%安くなる。ただし毎日 ${yen(CK_DAILY)} かかる。3店舗以上で作れる。</div>
     <div class="row"><span>${S.ck ? '✅ 作った' : yen(CK_COST)}</span>
@@ -582,18 +1399,18 @@ function viewBank(){
     <h3>🏢 本部のお金</h3>
     <div class="sub">3店舗目から、事務や管理のお金が1日 12,000円×（店の数−2）かかる。いまは1日 ${yen(n >= 3 ? 12000 * (n - 2) : 0)}。</div>
     <div class="row"><span>材料の値段（ふつう=100）</span><span class="num">${Math.round(S.foodMult * 100)}</span></div>
-  </div>`;
+  </div>
+  <div style="text-align:center"><button class="btn ng" data-act="reset">はじめからやり直す</button></div>`;
 }
-
-function viewRec(){
+function sheetRec(){
   const h30 = S.hist.slice(-30);
   const sum = k => h30.reduce((a, h) => a + h[k], 0);
-  let h = `<div class="card"><h3>📈 毎日の利益（最近60日）</h3><canvas id="chart" height="150"></canvas>
+  let h = `<div class="card"><b>毎日の利益（最近60日）</b><canvas class="chart" id="chart" height="150"></canvas>
     <div class="row"><span>最近30日の売り上げ</span><span class="num">${yen(sum('sales'))}</span></div>
     <div class="row"><span>最近30日の利益</span><b class="num ${sum('profit') >= 0 ? 'plus' : 'minus'}">${sgn(sum('profit'))}</b></div></div>`;
   if (S.today){
     const t = S.today;
-    h += `<div class="card"><h3>🧾 きのうのお金の内わけ</h3>`;
+    h += `<div class="card"><b>🧾 きのうのお金の内わけ</b>`;
     const row = (k, v) => `<div class="row"><span>${k}</span><span class="num ${v >= 0 ? 'plus' : 'minus'}">${sgn(v)}</span></div>`;
     const sumk = k => t.stores.reduce((a, s) => a + s[k], 0);
     h += row('売り上げ', sumk('sales')) + row('材料（仕込み）', -sumk('food')) + row('人件費（給料）', -sumk('wages'))
@@ -605,50 +1422,61 @@ function viewRec(){
     if (t.principal) h += `<div class="sub">ほかに借金の返済 ${yen(t.principal)}（借金がへる）</div>`;
     h += `</div>`;
   }
-  h += `<div class="card"><h3>🎯 目標</h3>${GOALS.map(g => `<div class="log">${S.goals[g.id] !== undefined ? '✅' : '⬜'} ${g.txt}${S.goals[g.id] !== undefined ? `<span class="sub">（${S.goals[g.id]}日目）</span>` : ''}</div>`).join('')}</div>`;
-  h += `<div class="card"><h3>📰 できごと</h3>${S.log.slice(0, 30).map(l => `<div class="log"><span class="sub">${l.d + 1}日目</span> ${l.m}</div>`).join('') || '<div class="sub">まだなし</div>'}</div>`;
-  h += `<div style="text-align:center"><button class="btn ng" data-act="reset">はじめからやり直す</button></div>`;
+  h += `<div class="card"><b>📰 できごと</b>${S.log.slice(0, 30).map(l => `<div class="log"><span class="sub">${l.d + 1}日目</span> ${l.m}</div>`).join('') || '<div class="sub">まだなし</div>'}</div>`;
   return h;
 }
-
 // 利益のグラフ（棒グラフ：緑=黒字、赤=赤字）
 function drawChart(){
-  const cv = $('chart'); if (!cv) return;
-  const W = cv.clientWidth, H = 150, dpr = window.devicePixelRatio || 1;
-  cv.width = W * dpr; cv.height = H * dpr;
-  const g = cv.getContext('2d'); g.scale(dpr, dpr);
+  const c = $('chart'); if (!c) return;
+  const W = c.clientWidth, H = 150, dpr = window.devicePixelRatio || 1;
+  c.width = W * dpr; c.height = H * dpr;
+  const x = c.getContext('2d'); x.scale(dpr, dpr);
   const data = S.hist.slice(-60);
-  if (!data.length){ g.fillStyle = '#d7c3ae'; g.font = '13px sans-serif'; g.fillText('まだデータがありません', 10, 75); return; }
+  if (!data.length){ x.fillStyle = '#e0ccb6'; x.font = '13px sans-serif'; x.fillText('まだデータがありません', 10, 75); return; }
   const mx = Math.max(10000, ...data.map(d => Math.abs(d.profit)));
   const mid = H / 2, bw = W / 60;
-  g.strokeStyle = '#ffffff40'; g.beginPath(); g.moveTo(0, mid); g.lineTo(W, mid); g.stroke();
+  x.strokeStyle = '#ffffff40'; x.beginPath(); x.moveTo(0, mid); x.lineTo(W, mid); x.stroke();
   data.forEach((d, i) => {
     const hh = d.profit / mx * (H / 2 - 6);
-    g.fillStyle = d.profit >= 0 ? '#6be38f' : '#ff6b6b';
-    g.fillRect(i * bw + 1, hh >= 0 ? mid - hh : mid, Math.max(1, bw - 2), Math.abs(hh));
+    x.fillStyle = d.profit >= 0 ? '#74e89a' : '#ff7474';
+    x.fillRect(i * bw + 1, hh >= 0 ? mid - hh : mid, Math.max(1, bw - 2), Math.abs(hh));
   });
-  g.fillStyle = '#d7c3ae'; g.font = '11px sans-serif';
-  g.fillText('+' + yen(mx), 4, 12); g.fillText('-' + yen(mx), 4, H - 3);
+  x.fillStyle = '#e0ccb6'; x.font = '11px sans-serif';
+  x.fillText('+' + yen(mx), 4, 12); x.fillText('-' + yen(mx), 4, H - 3);
 }
 
 /* =========================================================
    ボタンを押したとき
    ========================================================= */
 document.addEventListener('click', e => {
-  const t = e.target.closest('[data-tab],[data-act]');
-  if (!t || busy) return;
-  if (t.dataset.tab){ tab = t.dataset.tab; render(); return; }
+  Snd.init();
+  const t = e.target.closest('[data-scene],[data-act]');
+  if (!t) return;
+  if (t.dataset.act === 'closeSheetBg' && e.target !== t) return;   // シートの中をおしたときは閉じない
+  if (live && !['snd', 'viewPrev', 'viewNext'].includes(t.dataset.act)) return;                       // 営業中は操作できない
+  if (t.dataset.scene){ Snd.click(); setScene(t.dataset.scene); return; }
   act(t.dataset.act, t.dataset.id, t.dataset.v);
 });
 
 function act(a, id, v){
   const st = S && S.stores.find(s => s.id === id);
+  if (!['run1', 'run7', 'answer'].includes(a)) Snd.click();
   switch (a){
-    case 'toggle': openStore = openStore === id ? null : id; break;
+    case 'snd': Snd.on = !Snd.on; try { localStorage.setItem('donburi-sound-v1', Snd.on ? 'on' : 'off'); } catch (e) {} break;
+    case 'closeSheet': case 'closeSheetBg': closeSheet(); return;
+    case 'sheet': openSheet(v, id); return;
+    case 'scene': setScene(v); return;
+    case 'mapArea': mapSel = v || null; if (scene !== 'map') scene = 'map'; break;
+    case 'goStore': viewId = id; closeSheet(); scene = 'shop'; break;
+    case 'viewPrev': case 'viewNext': {
+      const i = S.stores.indexOf(viewed()), n = S.stores.length;
+      viewId = S.stores[(i + (a === 'viewNext' ? 1 : n - 1)) % n].id; break;
+    }
+    case 'answer': answer(id, v); return;
     case 'price': st.price = clamp(st.price + +v, 300, 2500); break;
     case 'q': st.q = +v; break;
     case 'staff': st.staff = clamp(st.staff + +v, 0, 12); break;
-    case 'mgr': st.mgr = !st.mgr; break;
+    case 'mgr': if (st.mgr) st.mgr = false; else hireMgr(st); break;
     case 'owner': S.ownerAt = st.id; break;
     case 'prepAuto':
       st.prepAuto = !st.prepAuto;
@@ -672,6 +1500,7 @@ function act(a, id, v){
       S.cash += sellValue(st); S.stores = S.stores.filter(s => s !== st);
       if (S.ownerAt === st.id) S.ownerAt = S.stores.length ? S.stores[0].id : null;
       addLog(`🚪 ${storeName(st)}を閉店した`);
+      closeSheet();
       if (!S.stores.length) return gameOver('お店がなくなってしまった');
       break;
     case 'buy': {
@@ -679,14 +1508,16 @@ function act(a, id, v){
       if (!L || S.cash < L.openCost) return toast('お金が足りません');
       if (!confirm(`${AREAS[L.area].name}に出店しますか？\n出店のお金 ${yen(L.openCost)}\n家賃 ${yen(L.rent)}/日`)) return;
       openShop(L); S.listings = S.listings.filter(l => l !== L);
-      tab = 'shop'; openStore = S.stores[S.stores.length - 1].id;
-      toast('新しいお店ができた！店員の数や値段を決めよう');
-      break;
+      const ns = S.stores[S.stores.length - 1];
+      viewId = ns.id; scene = 'shop'; Snd.good();
+      save(); render(); openSheet('store', ns.id);
+      toast('🎉 新しいお店ができた！店員の数や値段を決めよう');
+      return;
     }
     case 'borrow': {
       const room = creditLimit() - S.loan;
       if (+v > room) return;
-      S.loan += +v; S.cash += +v; addLog(`🏦 ${yen(+v)} 借りた`); break;
+      S.loan += +v; S.cash += +v; addLog(`🏦 ${yen(+v)} 借りた`); Snd.cash(); break;
     }
     case 'repay': {
       const amt = v === 'all' ? S.loan : Math.min(+v, S.loan);
@@ -695,11 +1526,11 @@ function act(a, id, v){
     }
     case 'ck':
       if (S.cash < CK_COST || S.stores.length < 3) return;
-      S.cash -= CK_COST; S.ck = true; addLog('🏭 セントラルキッチンを作った！');
+      S.cash -= CK_COST; S.ck = true; addLog('🏭 セントラルキッチンを作った！'); Snd.good();
       checkGoals([]); break;
     case 'reset':
       if (!confirm('本当に、はじめからやり直しますか？（いまのデータは消えます）')) return;
-      localStorage.removeItem(SAVE_KEY); S = null; showStart(); return;
+      localStorage.removeItem(SAVE_KEY); S = null; closeSheet(); showStart(); return;
     case 'run1': runDays(1); return;
     case 'run7': runDays(7); return;
   }
@@ -709,12 +1540,12 @@ function act(a, id, v){
 function toast(m){
   const d = document.createElement('div');
   d.textContent = m;
-  d.style.cssText = 'position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#000d;padding:10px 16px;border-radius:12px;z-index:20;font-size:14px;max-width:90%;text-align:center';
-  document.body.appendChild(d); setTimeout(() => d.remove(), 2200);
+  d.style.cssText = 'position:fixed;left:50%;bottom:96px;transform:translateX(-50%);width:max-content;background:#000e;padding:10px 16px;border-radius:12px;z-index:30;font-size:14px;max-width:90%;text-align:center;border:1px solid #ffffff30';
+  document.body.appendChild(d); setTimeout(() => d.remove(), 2300);
 }
 
 /* =========================================================
-   営業のアニメーション（本当の時間で 11:00 → 22:00）
+   営業（本当の時間で 11:00 → 22:00 が動く）
    ========================================================= */
 // お客さんが来る時間のかたより（お昼と夜にピーク）
 function rush(h){ return 0.3 + Math.exp(-((h - 12.3) ** 2) / 1.2) * 1.6 + Math.exp(-((h - 19) ** 2) / 2) * 1.2; }
@@ -723,66 +1554,50 @@ function rushCum(p){   // 0〜1：その時刻までに来た人の割合
   for (let i = 0; i < 110; i++){ const h = 11 + i / 10, r = rush(h); b += r; if (i / 110 < p) a += r; }
   return a / b;
 }
+// 売り切れになる時刻（0〜1）
+function soldTime(r){
+  if (!r.lostPrep) return undefined;
+  const want = Math.min(r.demand, r.cap);
+  for (let p = 0; p <= 1; p += 0.01) if (rushCum(p) * want >= r.served) return p;
+  return 1;
+}
 
 function runDays(n){
-  if (busy || S.over) return;
-  if (!S.stores.length) return;
-  busy = true;
+  if (live || S.over || !S.stores.length) return;
+  Snd.init();
+  closeSheet();
+  if (scene !== 'shop'){ scene = 'shop'; }
   const results = [];
   const step = () => {
+    const cash0 = S.cash;
     const r = simDay();
+    genConsults(r);
     results.push(r);
     const stop = S.over || r.msgs.some(m => m.startsWith('⚠️'));
-    animDay(r, n === 1 ? 2600 : 900, () => {
+    const soldP = {}; r.stores.forEach(x => { const t = soldTime(x); if (t !== undefined) soldP[x.st.id] = t; });
+    const dur = n === 1 ? 14 : 4.5;     // 1日の長さ（秒）
+    live = {res: r, cash0, t: 0, dur, ts: 14 / dur, fast: false, soldP, hold: 0, done: () => {
       if (results.length < n && !stop) return step();
-      busy = false;
+      live = null;
+      SH.cust = [];
       if (S.over){ render(); return gameOver('お金がマイナスのまま3日たった'); }
+      render();
       showResult(results);
-    });
+    }};
+    render();
   };
   step();
 }
 
-function animDay(r, ms, done){
-  const people = ['🧑', '👩', '👨', '🧒', '👵', '👴', '🧑‍💼', '👩‍🎓'];
-  $('ovl').innerHTML = `<div class="ov"><div class="box">
-    <div class="sub" style="text-align:center">${dateStr(r.day)}　${WX[r.ctx.wx]}${r.ctx.fest ? ' 🏮祭り' : ''}</div>
-    <div id="clock" class="num">11:00</div>
-    ${r.stores.map((s, i) => `<div class="live"><span class="nm">${AREAS[s.st.area].emoji} ${AREAS[s.st.area].name}</span>
-      <div class="street" id="street${i}"></div><span class="cnt num" id="cnt${i}">0杯</span></div>`).join('')}
-    <div class="sub" style="text-align:center;margin-top:6px">タップで早送り</div>
-  </div></div>`;
-  let t0 = performance.now(), last = t0, skip = false;
-  $('ovl').firstChild.onclick = () => { skip = true; };
-  const walkers = r.stores.map(() => []);
-  const shown = r.stores.map(() => 0);
-  const frame = now => {
-    const dt = Math.min(0.05, (now - last) / 1000); last = now;
-    let p = skip ? 1 : clamp((now - t0) / ms, 0, 1);
-    const hour = 11 + p * 11;
-    $('clock').textContent = `${Math.floor(hour)}:${String(Math.floor((hour % 1) * 60)).padStart(2, '0')}`;
-    const cum = rushCum(p);
-    r.stores.forEach((s, i) => {
-      const now_n = Math.round(s.served * cum);
-      // 新しく来たお客さんを歩かせる（多すぎると見えないので少しだけ）
-      if (now_n > shown[i] && walkers[i].length < 8 && Math.random() < 0.6){
-        const el = document.createElement('span'); el.textContent = pick(people);
-        $('street' + i).appendChild(el); walkers[i].push({el, x: 0});
-      }
-      shown[i] = now_n;
-      $('cnt' + i).textContent = now_n + '杯';
-      const w = $('street' + i).clientWidth;
-      walkers[i] = walkers[i].filter(o => {
-        o.x += dt * w * (ms < 1500 ? 2.2 : 1.1);   // 1秒あたりに歩く量（本当の時間で動く）
-        o.el.style.left = (o.x - 20) + 'px';
-        if (o.x > w + 10){ o.el.remove(); return false; }
-        return true;
-      });
-    });
-    if (p < 1) requestAnimationFrame(frame);
-    else setTimeout(done, skip ? 0 : 250);
-  };
-  requestAnimationFrame(frame);
+function liveUpdate(dt){
+  if (!live) return;
+  live.t += dt * (live.fast ? 5 : 1);
+  const cum = rushCum(clamp(live.t / live.dur, 0, 1));     // ほかの店の杯数も数える
+  for (const x of live.res.stores){ const el = document.getElementById('tick_' + x.st.id); if (el) el.textContent = Math.round(x.served * cum) + '杯'; }
+  if (live.t >= live.dur){
+    live.hold += dt;
+    if (live.hold > (live.fast ? 0.2 : 0.8)){ const d = live.done; d(); }
+  }
 }
 
 // 営業が終わったあとの結果
@@ -790,34 +1605,41 @@ function showResult(rs){
   const sales = rs.reduce((a, r) => a + r.sales, 0), profit = rs.reduce((a, r) => a + r.profit, 0);
   const msgs = rs.flatMap(r => r.msgs);
   const last = rs[rs.length - 1];
+  if (profit >= 0) Snd.cash(); else Snd.bad();
   let h = `<h2>${rs.length === 1 ? '🧾 きょうの結果' : `🧾 ${rs.length}日間の結果`}</h2>`;
+  h += `<div class="sub" style="text-align:center">利益</div><div class="big num ${profit >= 0 ? 'plus' : 'minus'}" id="bigNum">${sgn(0)}</div>
+    <div class="row" style="justify-content:center;gap:14px"><span class="sub">売り上げ ${yen(sales)}</span><span class="sub">お金 ${yen(S.cash)}</span></div>`;
   if (rs.length === 1){
     for (const s of last.stores){
-      h += `<div class="card"><b>${AREAS[s.st.area].emoji} ${AREAS[s.st.area].name}店</b>
-        <div class="row"><span>お客さん</span><span class="num">${s.served}人（来たかった ${s.demand}人）</span></div>
-        <div class="row"><span>売り上げ</span><span class="num">${yen(s.sales)}</span></div>
-        <div class="row"><span>この店の利益</span><b class="num ${s.profit >= 0 ? 'plus' : 'minus'}">${sgn(s.profit)}</b></div>
+      const a = AREAS[s.st.area];
+      h += `<div class="card"><div class="row"><b>${a.emoji} ${a.name}店</b><b class="num ${s.profit >= 0 ? 'plus' : 'minus'}">${sgn(s.profit)}</b></div>
+        <div class="row sub"><span>お客さん ${s.served}人（来たかった ${s.demand}人）</span><span>売り上げ ${yen(s.sales)}</span></div>
         <div class="sub">${s.lostCap ? `😣 ${s.lostCap}人が待ちきれず帰った　` : ''}${s.lostPrep ? `🍥 売り切れで${s.lostPrep}人帰った　` : ''}${s.prep > s.served ? `🗑 ${s.prep - s.served}杯分すてた　` : ''}満足度 ${s.sat}</div></div>`;
     }
     if (last.hq || last.ckCost || last.interest) h += `<div class="sub">本部 ${yen(last.hq)}・キッチン ${yen(last.ckCost)}・利子 ${yen(last.interest)} もひいています</div>`;
   }
-  h += `<div class="row" style="font-size:16px;margin-top:6px"><span>売り上げ</span><b class="num">${yen(sales)}</b></div>
-    <div class="row" style="font-size:18px"><span>利益</span><b class="num ${profit >= 0 ? 'plus' : 'minus'}">${sgn(profit)}</b></div>`;
   if (msgs.length) h += `<div class="card" style="margin-top:8px">${msgs.map(m => `<div class="log">${m}</div>`).join('')}</div>`;
-  if (S.cleared && !S.clearShown){ S.clearShown = true; save(); h += `<div class="warn" style="background:#8a6a1f88;border-color:var(--gold);font-size:16px;text-align:center">🏆 10店舗のチェーン店になった！クリア！<br><span class="sub">${S.day}日かかった。このまま続けて「借金0円」もめざせる</span></div>`; }
-  h += `<div style="text-align:center;margin-top:10px"><button class="btn main" style="padding:12px 40px" id="okBtn">OK</button></div>`;
+  if (S.consults.length) h += `<div class="warn" style="background:#8a6a1f55;border-color:var(--gold)">📞 社長室に相談が${S.consults.length}件 来ています</div>`;
+  if (S.cleared && !S.clearShown){ S.clearShown = true; save(); Snd.good(); h += `<div class="warn" style="background:#8a6a1f88;border-color:var(--gold);font-size:16px;text-align:center">🏆 10店舗のチェーン店になった！クリア！<br><span class="sub">${S.day}日かかった。このまま続けて「借金0円」もめざせる</span></div>`; }
+  h += `<div style="display:flex;gap:8px;justify-content:center;margin-top:10px">
+    ${S.consults.length ? '<button class="btn main" style="padding:12px 18px" id="toOffice">🏢 相談を聞く</button>' : ''}
+    <button class="btn ${S.consults.length ? '' : 'main'}" style="padding:12px 30px" id="okBtn">OK</button></div>`;
   $('ovl').innerHTML = `<div class="ov"><div class="box">${h}</div></div>`;
-  $('okBtn').onclick = () => { $('ovl').innerHTML = ''; render(); };
+  // 利益の数字をカウントアップ
+  const el = $('bigNum'), t0 = performance.now();
+  const up = now => { const k = clamp((now - t0) / 700, 0, 1); if (el.isConnected){ el.textContent = sgn(profit * (1 - (1 - k) ** 3)); if (k < 1) requestAnimationFrame(up); } };
+  requestAnimationFrame(up);
+  $('okBtn').onclick = () => { Snd.click(); $('ovl').innerHTML = ''; render(); };
+  if ($('toOffice')) $('toOffice').onclick = () => { Snd.click(); $('ovl').innerHTML = ''; scene = 'office'; render(); };
 }
 
 function gameOver(why){
-  S.over = true; save();
-  const best = S.stores.length;
+  S.over = true; save(); Snd.bad();
   $('ovl').innerHTML = `<div class="ov"><div class="box" style="text-align:center">
     <h2>💥 倒産…</h2><div>${why}</div>
     <div class="card" style="margin-top:10px;text-align:left">
       <div class="row"><span>つづいた日数</span><b>${S.day}日</b></div>
-      <div class="row"><span>さいごのお店の数</span><b>${best}店</b></div>
+      <div class="row"><span>さいごのお店の数</span><b>${S.stores.length}店</b></div>
       <div class="row"><span>のこった借金</span><b>${yen(S.loan)}</b></div>
       <div class="row"><span>たっせいした目標</span><b>${Object.keys(S.goals).length} / ${GOALS.length}</b></div>
     </div>
@@ -829,55 +1651,81 @@ function gameOver(why){
 /* =========================================================
    スタート画面（店の名前と、最初の物件を選ぶ）
    ========================================================= */
+function titleBowl(){ return `<div style="font-size:54px;text-align:center;line-height:1.1;filter:drop-shadow(0 4px 6px #000a)">🍜</div>`; }
 function showStart(){
   const saved = load();
   if (saved && !saved.over){
     $('ovl').innerHTML = `<div class="ov"><div class="box" style="text-align:center">
-      <h2>🍜 どんぶりチェーン</h2>
+      ${titleBowl()}<div class="title">どんぶりチェーン</div>
       <div class="sub">1店のラーメン屋から、10店のチェーン店へ</div>
       <div class="card" style="margin-top:10px">${saved.shopName}・${saved.stores.length}店・${dateStr(saved.day)}</div>
       <button class="btn main" style="padding:12px 30px" id="contBtn">つづきから</button>
       <div style="margin-top:12px"><button class="btn" id="newBtn">はじめから</button></div></div></div>`;
-    $('contBtn').onclick = () => { S = saved; $('ovl').innerHTML = ''; render(); };
+    $('contBtn').onclick = () => { Snd.init(); S = fixSave(saved); $('ovl').innerHTML = ''; render(); };
     $('newBtn').onclick = () => { if (confirm('いまのデータは消えます。はじめからにしますか？')){ localStorage.removeItem(SAVE_KEY); startPick(); } };
     return;
   }
   startPick();
 }
 function startPick(){
-  newGame();
+  newGame(); fixSave(S);
   const card = L => { const a = AREAS[L.area]; return `<div class="card">
     <h3>${a.emoji} ${a.name}<span class="sub">（${a.kind}）</span></h3><div class="sub">${a.note}</div>
     <div class="row"><span>人通り ${a.traffic.toLocaleString()}人/日・ライバル${a.rivals}店・相場 ${yen(a.fair)}</span></div>
     <div class="row"><span>${L.seats}席・家賃 ${yen(L.rent)}/日</span><span>出店 <b>${yen(L.openCost)}</b></span></div>
     <div style="text-align:right"><button class="btn main" data-pick="${L.id}">ここにする</button></div></div>`; };
   $('ovl').innerHTML = `<div class="ov"><div class="box">
-    <h2>🍜 どんぶりチェーン</h2>
-    <div class="sub" style="margin-bottom:8px">あなたは ${yen(S.cash)} を持って、ラーメン屋を始めることにした。
+    ${titleBowl()}<div class="title">どんぶりチェーン</div>
+    <div class="sub" style="margin:6px 0 8px">あなたは ${yen(S.cash)} を持って、ラーメン屋を始めることにした。
       小さな1店から、<b>10店のチェーン店</b>をめざそう。家賃・給料・材料は毎日かかる。お金がマイナスのまま3日たつと倒産！</div>
-    <div class="sub">お店の名前（10文字まで）</div>
+    <div class="sub">お店の名前（10文字まで・のれんには3文字）</div>
     <input type="text" id="nameIn" maxlength="10" value="${S.shopName}">
     <div class="sub" style="margin:10px 0 4px">最初のお店の場所を選ぼう</div>
     ${S.starters.map(card).join('')}</div></div>`;
   $('ovl').querySelectorAll('[data-pick]').forEach(b => b.onclick = () => {
+    Snd.init(); Snd.good();
     const nm = $('nameIn').value.trim().slice(0, 10);
     if (nm) S.shopName = nm;
     openShop(S.starters.find(l => l.id === b.dataset.pick));
     delete S.starters;
-    openStore = S.stores[0].id; tab = 'shop';
+    viewId = S.stores[0].id; scene = 'shop';
     save(); $('ovl').innerHTML = ''; render();
-    toast('まずは店員の数・値段・仕込みを決めて「1日営業する」！');
+    toast('お店の絵をタップすると設定できる。決めたら「▶ 営業」！');
   });
 }
 
 /* ===== セーブ・ロード（localStorage） ===== */
 function save(){ try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
 function load(){ try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); return s && s.stores ? s : null; } catch (e) { return null; } }
+// 前の版のセーブにない項目をたす（前のセーブもそのまま遊べる）
+function fixSave(s){
+  s.consults = s.consults || [];
+  s.cd = s.cd || {};
+  for (const st of s.stores) if (st.mgr && !st.mgrName) st.mgrName = pick(MGR_NAMES);
+  return s;
+}
 
-/* テスト用：G.sim(日数) で アニメなしで進める */
-window.G = {get S(){ return S; }, set S(v){ S = v; }, simDay, newGame, openShop, demandOf, capOf, autoPrep, AREAS, render};
+/* ===== ずっと回るループ（1秒に60回） ===== */
+let lastT = performance.now();
+function loop(now){
+  const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now; T += dt;
+  requestAnimationFrame(loop);    // 先に次をたのむ（エラーが出ても止まらないように）
+  try {
+    if (S && S.stores.length){
+      liveUpdate(dt);
+      if (scene === 'shop') shopUpdate(dt, viewed());
+      Snd.bgm(dt);
+    }
+    drawStage();
+  } catch (e) { console.error(e); }
+}
 
+/* テスト用：G.simDay() で アニメなしで1日進む */
+window.G = {get S(){ return S; }, get live(){ return live; }, set S(v){ S = v; }, simDay, newGame, openShop, demandOf, capOf, autoPrep, AREAS, render, genConsults, setScene, fixSave};
+
+fitStage();
 showStart();
+requestAnimationFrame(loop);
 </script>
 </body>
 </html>
