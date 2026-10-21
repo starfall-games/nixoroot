@@ -204,6 +204,13 @@ canvas{display:block}
 .ach .ic{font-size:26px;width:36px;text-align:center}
 .ach.no{opacity:.4}
 .ach .d{font-size:12px;color:var(--sub)}
+#online{padding:calc(var(--sat) + 8px) 8px 0;background:radial-gradient(circle at 50% 0%,#2a3040,#15110d 70%)}
+#online .top{display:flex;align-items:center;gap:8px;width:min(560px,100%);margin-bottom:8px}
+#online .top h2{flex:1;font-size:26px}
+#onBody{width:min(560px,100%);flex:1}
+.inp{font:inherit;font-weight:800;font-size:18px;padding:9px 12px;border-radius:10px;border:1.5px solid var(--gold);background:#1d1814;color:#fff;width:100%;user-select:text;-webkit-user-select:text;touch-action:manipulation}
+.stampB{position:fixed;left:50%;z-index:35;pointer-events:none;font-size:22px;font-weight:800;padding:8px 16px;border-radius:18px;background:#fffaf0;color:#2a2118;border:2px solid var(--gold);box-shadow:0 6px 18px rgba(0,0,0,.5);white-space:nowrap}
+.stampB.foe{top:calc(var(--sat) + 86px)} .stampB.me{bottom:calc(var(--sab) + 150px)}
 </style>
 </head>
 <body>
@@ -217,6 +224,7 @@ canvas{display:block}
     <div class="menu">
       <button class="btn" id="bStory">🏯 天下統一（ストーリー）</button>
       <button class="btn blue" id="bVs">⚔️ 一騎討ち（CPU対戦）</button>
+      <button class="btn dark" id="bOn">🌐 オンライン対戦（友だち・ランダム）</button>
       <div class="row2">
         <button class="btn dark" id="bTut">📜 あそびかた</button>
         <button class="btn dark" id="bRec">📖 戦績・図鑑</button>
@@ -271,7 +279,7 @@ canvas{display:block}
     <span class="pill roundp" id="hRound"></span>
     <button class="btn dark small" id="bMenu" aria-label="メニュー">≡</button>
   </div>
-  <div id="zoomBox"><button class="btn dark" id="zIn">＋</button><button class="btn dark" id="zOut">－</button><button class="btn dark" id="zFit" style="font-size:15px">⛶</button></div>
+  <div id="zoomBox"><button class="btn dark" id="zIn">＋</button><button class="btn dark" id="zOut">－</button><button class="btn dark" id="zFit" style="font-size:15px">⛶</button><button class="btn dark" id="zSt" style="display:none;font-size:18px">💬</button></div>
   <div id="info" class="panel"></div>
   <div id="tut" class="washi"><div class="face" id="tutFace"></div><div style="flex:1;display:flex;flex-direction:column"><div class="tx" id="tutTx"></div><button class="btn blue small nx" id="tutNx">つぎへ ▶</button></div></div>
   <div class="hud panel" id="hudBot">
@@ -304,6 +312,11 @@ canvas{display:block}
 </section>
 
 <!-- ===== 戦績・図鑑 ===== -->
+<section id="online" class="screen">
+  <div class="top"><button class="btn dark small" id="bOnBack">‹ もどる</button><h2 class="brush">オンライン対戦</h2></div>
+  <div id="onBody" class="scroll"></div>
+</section>
+
 <section id="record" class="screen">
   <div class="top"><button class="btn dark small" id="bRecBack">‹ もどる</button><h2 class="brush">戦績・図鑑</h2></div>
   <div class="tabs" id="recTabs"></div>
@@ -483,6 +496,7 @@ const ACH = [
   {id:'nightw', ic:'🌙', name:'夜戦の勝者',     desc:'夜の戦で勝つ'},
   {id:'wins10', ic:'🔥', name:'百戦錬磨',       desc:'10回勝つ'},
   {id:'tokai',  ic:'🗾', name:'東海平定',       desc:'ストーリー「東海の章」をクリア'},
+  {id:'online', ic:'🌐', name:'天下の好敵手',   desc:'オンライン対戦で勝つ'},
 ];
 function rankOf(rp){ let r = RANKS[0]; for (const x of RANKS) if (rp >= x[0]) r = x; return r[1]; }
 function nextRank(rp){ for (const x of RANKS) if (rp < x[0]) return x; return null; }
@@ -1694,7 +1708,7 @@ function coreEndTurn(){
   b.mv = 0; b.charge = false; b.night = false; b.sandan = false; b.atk = 0; b.toka = false;
   for (const u of S.units) if (u.rev > 0) u.rev--;
   S.turnCount++; S.side = 1 - s;
-  if (S.side === 0){ S.round++; if (S.round > S.maxRound) return 'judge'; }
+  if (S.side === (S.first || 0)){ S.round++; if (S.round > S.maxRound) return 'judge'; }   // 先に動く側の番で1ターン進む
   return null;
 }
 function coreCheckEnd(){
@@ -2237,14 +2251,14 @@ function renderHud(){
   if (!S) return;
   for (const s of [0, 1]){
     const c = mainObj(s), sho = S.units.find(u => u.side === s && u.type === 'sho');
-    $('hName' + s).innerHTML = `${CLANS[S.clans[s]].name} ${GEN[S.load[s].gen].name}<small>${sho ? '' : '（討死）'}</small>`;
+    $('hName' + s).innerHTML = S.names ? `${esc(S.names[s])}<small>${GEN[S.load[s].gen].name}${sho ? '' : '（討死）'}</small>` : `${CLANS[S.clans[s]].name} ${GEN[S.load[s].gen].name}<small>${sho ? '' : '（討死）'}</small>`;
     $('hBar' + s).style.width = (c ? c.hp / c.max * 100 : 0) + '%';
     $('hCas' + s).textContent = (c && c.kind === 'keep' ? '🏯' : '⛺') + (c ? c.hp : 0);
     $('hFood' + s).textContent = '🍙' + S.food[s];
   }
   const vis = S.units.filter(u => u.side === 1 && !hiddenFrom(u, 0)).length, all = S.units.filter(u => u.side === 1).length;
   $('hCnt1').textContent = '兵' + vis + (all > vis ? '+?' : '');
-  $('hRound').textContent = `${Math.min(S.round, S.maxRound)}/${S.maxRound}ターン`;
+  $('hRound').textContent = `${Math.min(S.round, S.maxRound)}/${S.maxRound}` + (S.mode === 'online' && !S.over ? `　⏱${turnLeft()}` : 'ターン');
   const ord = S.side === 0 ? S.orders : 0, n = Math.max(ord, S.side === 0 ? S.orders : 0, 3);
   $('hOrd').innerHTML = '采配' + Array.from({length:Math.min(8, Math.max(n, ord))}, (_, i) => `<i class="${i < ord ? 'on' : ''}"></i>`).join('');
   const my = S.side === 0 && !S.over && !AUTO;
@@ -2379,8 +2393,10 @@ async function startTurn(){
   coreStartTurn();
   const s = S.side;
   sfx(s === 0 ? 'turnMe' : 'turnFoe');
-  banner(s === 0 ? `わが軍の番　${S.round}/${S.maxRound}` : '敵軍の番', s === 0 ? '' : 'r');
+  banner(s === 0 ? `わが軍の番　${S.round}/${S.maxRound}` : (S.mode === 'online' ? '相手の番' : '敵軍の番'), s === 0 ? '' : 'r');
   renderHud(); infoDefault();
+  NETI.turnAt = Date.now();
+  if (S.mode === 'online'){ if (s === 1) netWaitFoe(); return; }   // オンライン：相手の番は待つだけ
   if (s === 1 || AUTO) runAI(s);
   else { tutAdvance('turn'); }
 }
@@ -2466,6 +2482,7 @@ async function onCellTap(x, y){
     const t2 = tsel; tsel = null;
     if (!c){ setInfo('やめました'); sfx('tap'); return; }
     busy = true; renderHud();
+    netSend(t2.kind === 'tac' ? {t:'tac', id:t2.id, x, y} : {t:'sk', id:t2.u.id, x, y});
     if (t2.kind === 'tac') await actTactic(0, t2.id, c); else await actSkill(t2.u, c);
     busy = false; if (afterAction()) return; renderHud(); infoDefault(); if (t2.kind === 'tac') tutAdvance('tactic'); return;
   }
@@ -2492,6 +2509,7 @@ async function onCellTap(x, y){
   if (act.k === 'info'){ sfx('tap'); if (vis) unitInfo(vis); else terrainInfo(x, y); return; }
   if (act.k === 'move'){
     busy = true; renderHud(); const su = sel.u; sel.moves = new Map(); sel.targets = [];
+    netSend({t:'mv', id:su.id, x, y});
     const res = await actMove(su, x, y); busy = false;
     if (res === 'ambushed'){ sel = null; renderHud(); infoDefault(); tutAdvance('move'); return; }
     sel = {u:su, phase:'attack', moves:new Map(), targets:[]}; refreshSel();
@@ -2501,6 +2519,7 @@ async function onCellTap(x, y){
   }
   if (act.k === 'attack'){
     busy = true; const su = sel.u; sel = null; renderHud();
+    netSend({t:'atk', id:su.id, x:act.tg.x, y:act.tg.y});
     await actAttack(su, act.tg); busy = false;
     if (afterAction()) return;
     renderHud(); infoDefault(); tutAdvance('attack'); return;
@@ -2521,7 +2540,7 @@ function openReinforce(){
   h += `<div class="row"><button class="btn dark small" id="mClose" ${tn && tn.t === 'buy' ? 'disabled' : ''}>とじる</button></div>`;
   openModal(h);
   $('modalBody').querySelectorAll('[data-buy]').forEach(b => b.onclick = async () => {
-    closeModal(); busy = true; renderHud(); await actReinforce(0, b.dataset.buy); busy = false; renderHud(); infoDefault(); tutAdvance('buy');
+    closeModal(); busy = true; renderHud(); netSend({t:'rf', k:b.dataset.buy}); await actReinforce(0, b.dataset.buy); busy = false; renderHud(); infoDefault(); tutAdvance('buy');
   });
   $('mClose').onclick = closeModal;
 }
@@ -2546,7 +2565,7 @@ $('bTac').onclick = () => {
       tsel = {kind:'tac', id, cells}; sel = null;
       setInfo(`<span class="g">${T.name}</span>：${T.tgt === 'ally' ? '味方' : '敵'}の隊をタップ（ほかの所でやめる）`); return;
     }
-    busy = true; renderHud(); await actTactic(0, id); busy = false; if (afterAction()) return; renderHud(); infoDefault(); tutAdvance('tactic');
+    busy = true; renderHud(); netSend({t:'tac', id}); await actTactic(0, id); busy = false; if (afterAction()) return; renderHud(); infoDefault(); tutAdvance('tactic');
   });
   $('mClose').onclick = closeModal;
 };
@@ -2568,14 +2587,16 @@ $('bSkill').onclick = () => {
       if (!cells.size){ setInfo('HP6以下の見えている敵がいない'); sfx('bad'); return; }
       tsel = {kind:'skill', u, cells}; sel = null; setInfo('<span class="g">調略</span>：寝返らせる敵の隊をタップ'); return;
     }
-    busy = true; renderHud(); await actSkill(u); busy = false; if (afterAction()) return; if (sel) refreshSel(); renderHud(); infoDefault();
+    busy = true; renderHud(); netSend({t:'sk', id:u.id}); await actSkill(u); busy = false; if (afterAction()) return; if (sel) refreshSel(); renderHud(); infoDefault();
   });
   $('mClose').onclick = closeModal;
 };
 $('bEnd').onclick = () => {
   if (busy || S.side !== 0 || S.over) return;
   if (!tutAllow('end')){ sfx('bad'); tutNudge(); return; }
-  sfx('tap'); finishSel(); tsel = null; tutAdvance('end'); endTurn();
+  sfx('tap'); finishSel(); tsel = null; tutAdvance('end');
+  if (S.mode === 'online') netSend({t:'end', snap:snapState()});   // ターンの終わりに戦場ぜんぶを送る
+  endTurn();
 };
 $('bMenu').onclick = () => {
   sfx('tap');
@@ -2586,7 +2607,7 @@ $('bMenu').onclick = () => {
     <button class="btn blue" id="mClose">つづける</button></div>`);
   $('mClose').onclick = closeModal;
   $('mSnd').onclick = () => { if (SV.bgm && SV.se) SV.bgm = false; else if (!SV.bgm && SV.se) SV.se = false; else { SV.bgm = true; SV.se = true; } saveNow(); Music.refresh(); $('bMenu').onclick(); };
-  $('mGive').onclick = () => { closeModal(); if (!S.over){ busy = true; finishBattle(1, '退却した'); } };
+  $('mGive').onclick = () => { closeModal(); if (!S.over){ netSend({t:'resign'}); busy = true; finishBattle(1, '退却した'); } };
   $('mRule').onclick = () => { openModal(`<h3 class="brush">ルール</h3><div style="font-size:13px;font-weight:800;line-height:1.75;color:var(--ink2)">
     ・勝ち：敵の本陣（城）のHPを0にする／敵の総大将をたおす<br>
     ・${S.maxRound}ターンで決まらなければ「戦功」（あたえたダメージ。本陣・門へは2倍）が多い方の勝ち<br>
@@ -2665,11 +2686,11 @@ function validLoad(l){ // 持っているものだけ・上限の中に
 const deckCost = l => l.tactics.reduce((a, id) => a + TAC[id].cost, 0) + l.items.reduce((a, id) => a + ITM[id].cost, 0);
 /* 一騎討ちの戦の大きさ（マップ・兵の数・武将の数・ターン数がかわる） */
 const SCALES = [
-  {name:'小せりあい', W:7,  H:10, subs:0, rounds:10, camp:10, coin:0.6, time:'5分くらい',
+  {name:'小せりあい', turnSec:90,  W:7,  H:10, subs:0, rounds:10, camp:10, coin:0.6, time:'5分くらい',
    units:['ashi','ashi','kiba','yumi'], note:'7×10マス・総大将＋4隊・10ターン'},
-  {name:'合戦',       W:9,  H:12, subs:1, rounds:14, camp:14, coin:1,   time:'10〜15分くらい',
+  {name:'合戦',       turnSec:120, W:9,  H:12, subs:1, rounds:14, camp:14, coin:1,   time:'10〜15分くらい',
    units:['ashi','ashi','samu','kiba','yumi','tep'], note:'9×12マス・総大将＋副将1人＋6隊・14ターン'},
-  {name:'大合戦',     W:11, H:16, subs:2, rounds:18, camp:18, coin:1.6, time:'20〜30分くらい',
+  {name:'大合戦',     turnSec:150, W:11, H:16, subs:2, rounds:18, camp:18, coin:1.6, time:'20〜30分くらい',
    units:['ashi','ashi','ashi','samu','samu','kiba','kiba','yumi','yumi','tep','tep','ozutsu'], note:'11×16マス・総大将＋副将2人＋12隊・18ターン'},
 ];
 function vsConfig(diff, scale = SV.scale || 1){
@@ -2741,7 +2762,7 @@ async function startBattle(cfg, after){
   Music.play('battle');
   renderHud(); showTut();
   const title = cfg.mode === 'story' ? BATTLES[cfg.prov].title : cfg.mode === 'tut' ? '序章　野盗退治' : '一騎討ち';
-  sfx('horn'); banner(title, 'g');
+  sfx('horn'); banner(title, 'g'); countMe();
   await sleep(1300);
   busy = false;
   startTurn();
@@ -2766,6 +2787,11 @@ async function finishBattle(winner, reason, info){
     if (win){ rp = D.rp; coins = Math.round(D.coin * SCALES[battleCfg.scale ?? 1].coin); SV.w++; SV.byDiff[S.diff][0]++; giveAch('first'); if (S.diff >= 1) giveAch('normal'); if (S.diff >= 2) giveAch('hard'); }
     else if (draw){ rp = 5; coins = 40; SV.d++; }
     else { rp = -D.lose; coins = 20; SV.l++; SV.byDiff[S.diff][1]++; }
+  } else if (S.mode === 'online'){
+    const k = SCALES[battleCfg.scale ?? 1].coin;
+    if (win){ rp = 30; coins = Math.round(150 * k); SV.w++; SV.onW = (SV.onW || 0) + 1; giveAch('online'); }
+    else if (draw){ rp = 5; coins = 40; SV.d++; }
+    else { rp = -10; coins = 30; SV.l++; SV.onL = (SV.onL || 0) + 1; }
   } else {
     if (win){ const Bt = BATTLES[S.prov]; coins = Bt.reward.coins; SV.w++; rp = 30;
       if (!SV.story.own.includes(S.prov)) SV.story.own.push(S.prov);
@@ -2781,7 +2807,7 @@ async function finishBattle(winner, reason, info){
   const got = checkUnlocks(); saveNow();
   lastResult = {win, draw, reason: win || draw ? reason : reason.replace('落とした', '落とされた').replace('討ち取った', '討ち取られた'),
     mode:S.mode, prov:S.prov, diff:S.diff, scale:battleCfg.scale ?? 1, coins, rp, rankUp:rankOf(before) !== rankOf(SV.rp) && rp > 0, newAch:S.newAch.slice(), got,
-    gen:S.load[0].gen, foe:S.load[1].gen, round:Math.min(S.round, S.maxRound), stats:{...st}, lost:S.stats[1].kills, time:S.env.time};
+    foeName:S.names ? S.names[1] : null, gen:S.load[0].gen, foe:S.load[1].gen, round:Math.min(S.round, S.maxRound), stats:{...st}, lost:S.stats[1].kills, time:S.env.time};
   if (window.IK_ONEND) window.IK_ONEND(winner, reason);
   await sleep(2200);
   running = false;
@@ -2791,7 +2817,7 @@ function showResult(){
   const R = lastResult;
   $('rTitle').textContent = R.win ? '勝利' : R.draw ? '引き分け' : '敗北';
   $('rTitle').className = 'resT brush' + (R.win ? '' : ' lose');
-  const where = R.mode === 'story' ? `${PROVS[R.prov].name}「${BATTLES[R.prov].title}」` : R.mode === 'tut' ? '序章' : `一騎討ち・${SCALES[R.scale].name}（${DIFFS[R.diff].name}）`;
+  const where = R.mode === 'story' ? `${PROVS[R.prov].name}「${BATTLES[R.prov].title}」` : R.mode === 'tut' ? '序章' : R.mode === 'online' ? `オンライン・${SCALES[R.scale].name}（vs ${esc(R.foeName || '相手')}）` : `一騎討ち・${SCALES[R.scale].name}（${DIFFS[R.diff].name}）`;
   $('rReason').textContent = `${where}　${R.reason}`;
   $('rStats').innerHTML = `
     <div>総大将</div><div class="v">${GEN[R.gen].name}</div><div>相手</div><div class="v">${GEN[R.foe].name}</div>
@@ -2805,6 +2831,7 @@ function showResult(){
     R.got.map(x => `<div class="newget">${x.kind === 'gens' ? '🎌 新しい武将「' + x.d.name + '」が仲間になった！' : x.kind === 'tactics' ? '📜 新しい作戦「' + x.d.name + '」を手に入れた！' : '🎒 新しい道具「' + x.d.name + '」を手に入れた！'}</div>`).join('');
   const btns = $('rBtns'); btns.innerHTML = '';
   const add = (txt, cls, fn) => { const b = document.createElement('button'); b.className = 'btn ' + cls; b.textContent = txt; b.onclick = () => { sfx('tap'); fn(); }; btns.appendChild(b); };
+  if (R.mode === 'online'){ show('result'); onlineResultBtns(); return; }
   if (R.mode === 'vs'){ add('もう一戦！', '', () => startBattle(vsConfig(R.diff, R.scale))); add('陣立てへ', 'dark', () => openPrep('vs')); add('タイトルへ', 'dark', openTitle); }
   else if (R.mode === 'story'){
     if (R.win) add('物語のつづき ▶', 'gold', async () => { await playScene(BATTLES[R.prov].post, sceneBg(R.prov)); openStory(); });
@@ -2978,13 +3005,13 @@ let prepMode = 'vs', prepProv = null;
 function openPrep(mode, prov){
   prepMode = mode; prepProv = prov || null; show('prep'); Music.play('map');
   $('pCoin').textContent = '🪙 ' + SV.coins;
-  $('prepTitle').textContent = mode === 'story' ? `陣立て　${PROVS[prov].name}` : '陣立て';
+  $('prepTitle').textContent = mode === 'story' ? `陣立て　${PROVS[prov].name}` : mode === 'online' ? '陣立て　オンライン' : '陣立て';
   renderPrep();
 }
 function renderPrep(){
   const L = prepMode === 'story' ? SV.sload : SV.load; validLoad(L);
   const body = $('prepBody'); let h = '';
-  if (prepMode === 'vs'){
+  if (prepMode !== 'story'){
     h += `<div class="sec panel"><h3 class="brush">総大将 <small>やられたら負け</small></h3><div class="gens" id="gGen"></div></div>`;
     h += `<div class="sec panel"><h3 class="brush">副将 <small>采配+1・スキル（大合戦は2人目を自動）</small></h3><div class="gens" id="gSub"></div></div>`;
   } else {
@@ -3002,7 +3029,7 @@ function renderPrep(){
     d.onclick = () => { if (lockTxt){ sfx('bad'); prepMsg(lockTxt); return; } sfx('select'); onclick(); prepMsg(`${G.name}「${SKILLS[G.skill].name}」：${SKILLS[G.skill].desc}`); };
     return d;
   };
-  if (prepMode === 'vs'){
+  if (prepMode !== 'story'){
     for (const G of PLAYABLE) $('gGen').appendChild(genCard(G.id, L.gen === G.id, owns('gens', G.id) ? null : unlockText(G.unlock), () => { if (L.sub === G.id) L.sub = L.gen; L.gen = G.id; saveNow(); renderPrep(); }, L.gen === G.id ? '大将' : ''));
     for (const G of PLAYABLE) if (G.id !== L.gen) $('gSub').appendChild(genCard(G.id, L.sub === G.id, owns('gens', G.id) ? null : unlockText(G.unlock), () => { L.sub = G.id; saveNow(); renderPrep(); }, L.sub === G.id ? '副将' : ''));
   } else {
@@ -3030,14 +3057,15 @@ function renderPrep(){
   // 下の帯
   const cost = deckCost(L), bar = $('prepBar');
   bar.innerHTML = `<div class="capbar">陣立てポイント <b>${cost}/${DECK_CAP}</b><div class="bar"><i style="width:${cost / DECK_CAP * 100}%"></i></div></div>` +
-    (prepMode === 'vs' ? `<div class="seg">${SCALES.map((C, i) => `<button class="btn dark ${(SV.scale ?? 1) === i ? 'on' : ''}" data-sc="${i}">${C.name}<br><small style="font-size:11px">⏱${C.time}</small></button>`).join('')}</div><div class="note" style="margin:-4px 0 6px">戦の大きさ：${SCALES[SV.scale ?? 1].note}</div><div class="seg">${DIFFS.map((D, i) => `<button class="btn ${i === 0 ? 'blue' : i === 1 ? '' : 'gold'} ${SV.diff === i ? 'on' : ''}" data-d="${i}">${D.name}</button>`).join('')}</div><div class="note" id="prepMsg">${DIFFS[SV.diff].note}（勝つと 🪙${DIFFS[SV.diff].coin}）</div>`
+    (prepMode === 'online' ? `<div class="note" id="prepMsg">オンライン対戦で持っていく陣立て</div>` : prepMode === 'vs' ? `<div class="seg">${SCALES.map((C, i) => `<button class="btn dark ${(SV.scale ?? 1) === i ? 'on' : ''}" data-sc="${i}">${C.name}<br><small style="font-size:11px">⏱${C.time}</small></button>`).join('')}</div><div class="note" style="margin:-4px 0 6px">戦の大きさ：${SCALES[SV.scale ?? 1].note}</div><div class="seg">${DIFFS.map((D, i) => `<button class="btn ${i === 0 ? 'blue' : i === 1 ? '' : 'gold'} ${SV.diff === i ? 'on' : ''}" data-d="${i}">${D.name}</button>`).join('')}</div><div class="note" id="prepMsg">${DIFFS[SV.diff].note}（勝つと 🪙${DIFFS[SV.diff].coin}）</div>`
       : `<div class="note" id="prepMsg">${BATTLES[prepProv].title}：${BATTLES[prepProv].tags.join('・')}</div>`) +
-    `<div class="row" style="margin-top:8px"><button class="btn dark" id="bPB">もどる</button><button class="btn" id="bGo" style="flex:1">⚔️ 出陣！</button></div>`;
+    `<div class="row" style="margin-top:8px"><button class="btn dark" id="bPB">もどる</button><button class="btn" id="bGo" style="flex:1">${prepMode === 'online' ? '✅ この陣立てで決定' : '⚔️ 出陣！'}</button></div>`;
   bar.querySelectorAll('[data-sc]').forEach(b => b.onclick = () => { SV.scale = +b.dataset.sc; saveNow(); sfx('tap'); renderPrep(); });
   bar.querySelectorAll('[data-d]').forEach(b => b.onclick = () => { SV.diff = +b.dataset.d; saveNow(); sfx('tap'); renderPrep(); });
-  $('bPB').onclick = $('bPrepBack').onclick = () => { sfx('tap'); prepMode === 'story' ? openStory() : openTitle(); };
+  $('bPB').onclick = $('bPrepBack').onclick = () => { sfx('tap'); prepMode === 'story' ? openStory() : prepMode === 'online' ? openOnline() : openTitle(); };
   $('bGo').onclick = async () => {
     sfx('tap');
+    if (prepMode === 'online'){ openOnline(); return; }
     if (prepMode === 'story'){ await playScene(BATTLES[prepProv].pre, sceneBg(prepProv)); startBattle(storyConfig(prepProv), 'story'); }
     else startBattle(vsConfig(SV.diff, SV.scale));
   };
@@ -3058,7 +3086,7 @@ function renderRecord(){
   if (recTab === 0){
     h = `<div class="panel stats" style="width:100%"><div>ランク</div><div class="v">${rankOf(SV.rp)}（${SV.rp}）</div><div>コイン</div><div class="v">🪙 ${SV.coins}</div>
       <div>ぜんぶ</div><div class="v">${SV.w}勝 ${SV.l}敗 ${SV.d}分</div>${DIFFS.map((D, i) => `<div>一騎討ち・${D.name}</div><div class="v">${SV.byDiff[i][0]}勝 ${SV.byDiff[i][1]}敗</div>`).join('')}
-      <div>天下統一</div><div class="v">${SV.story.own.length}/5国</div></div>`;
+      <div>天下統一</div><div class="v">${SV.story.own.length}/5国</div><div>オンライン</div><div class="v">${SV.onW || 0}勝 ${SV.onL || 0}敗</div></div>`;
   } else if (recTab === 1){
     h = ACH.map(a => `<div class="panel ach ${SV.ach[a.id] ? '' : 'no'}"><div class="ic">${a.ic}</div><div><b>${a.name}</b><div class="d">${a.desc}</div></div></div>`).join('');
   } else if (recTab === 2){
@@ -3093,7 +3121,7 @@ function openTitle(){
   };
   requestAnimationFrame(loop);
 }
-function show(id){ document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id)); closeModal(); if (id !== 'battle') running = false; }
+function show(id){ document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id)); closeModal(); if (id !== 'battle'){ running = false; $('zSt').style.display = 'none'; } }
 $('bStory').onclick = async () => {
   sfx('tap');
   if (!SV.story.prologue){ await playScene(PROLOGUE, 'castle'); SV.story.prologue = true; saveNow();
@@ -3102,13 +3130,408 @@ $('bStory').onclick = async () => {
   openStory();
 };
 $('bVs').onclick = () => { sfx('tap'); openPrep('vs'); };
+$('bOn').onclick = () => { sfx('tap'); openOnline(); };
 $('bTut').onclick = () => { sfx('tap'); startBattle(tutConfig(), 'title'); };
 $('bRec').onclick = () => { sfx('tap'); recTab = 0; openRecord(); };
 $('bBgm').onclick = () => { SV.bgm = !SV.bgm; saveNow(); ensureAC(); Music.refresh(); openTitle(); };
 $('bSe').onclick = () => { SV.se = !SV.se; saveNow(); sfx('tap'); openTitle(); };
 
+
+/* =========================================================
+   オンライン対戦（友だちルーム・ランダムマッチ）
+   ・Firebase Realtime Database の ikusa/ の下を使う（大富豪と同じプロジェクト）
+   ・手元（localhost）や ?net=local のときは、本物のデータベースを使わず
+     同じブラウザのタブどうしでつなぐ「まねっこ」になる（テスト用）
+   ・しくみ：おたがいの操作（動く・攻撃・作戦…）を送り合い、両方で同じ計算をする。
+     ターンの終わりには戦場ぜんぶを送って、ずれを直す
+   ・それぞれの画面では「自分が下（青）」。相手の座標は 180度回して読む
+   ========================================================= */
+const RTDB_URL = 'https://starfall-ranking-default-rtdb.asia-southeast1.firebasedatabase.app';
+const FB_CONF = {apiKey:'AIzaSyBo5h7S82Ni6_oCBrmbkQsaZp-TVDSflMY', projectId:'starfall-ranking', databaseURL:RTDB_URL};
+const DEV_HOST = /^(localhost|127\.|192\.168\.|10\.|\[::1\])/.test(location.hostname) || location.protocol === 'file:';
+const USE_LOCAL_NET = Q.get('net') === 'local' || DEV_HOST;   // 手元のテストでは本物のデータベースに書かない
+const UNLOCK_AT = 100;   // 遊んだ人がこの人数をこえたらランダムマッチを開放
+const STAMPS = [['👍','よろしく！'], ['🔥','いくぞ！'], ['😮','やるな！'], ['😅','しまった…'], ['🙏','ありがとう'], ['🎌','いい戦だった！']];
+// 使えない言葉（大富豪・STARFALL と同じ）。電話番号みたいな数字の並びもダメ
+const NG_WORDS = ['しね','死ね','シネ','ころす','殺す','コロス','うざ','ウザ','きも','キモ','ばか','バカ','馬鹿',
+  'あほ','アホ','ぶす','ブス','ちんこ','まんこ','fuck','shit','bitch','kill','sex','http','www','.com'];
+function okName(n){ const l = String(n).normalize('NFKC').toLowerCase(); return !NG_WORDS.some(w => l.includes(w)) && !/\d{4,}/.test(l); }
+function cleanName(t){ return String(t || '').replace(/[<>&"'\s]/g, '').slice(0, 8); }
+function safeName(n){ n = cleanName(n); return n && okName(n) ? n : 'しのび武者'; }
+const esc = t => String(t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+class FBRoom {   // 本物：ikusa/〇〇
+  constructor(path){ this.ref = firebase.database().ref('ikusa/' + path); this.offs = []; }
+  async get(k){ return (await this.ref.child(k).get()).val(); }
+  async all(){ return (await this.ref.get()).val() || {}; }
+  set(k, v){ return this.ref.child(k).set(v); }
+  add(list, i, v){ return this.ref.child(list).child(String(i)).set(v); }
+  async claim(k, v){ const r = await this.ref.child(k).transaction(cur => cur ? undefined : v); return r.committed; }   // 2人が同時に入っても1人だけ
+  incr(k){ return this.ref.child(k).transaction(v => (v || 0) + 1); }
+  on(k, cb){ const r = this.ref.child(k), f = s => cb(s.val()); r.on('value', f); this.offs.push(() => r.off('value', f)); }
+  onAdd(list, cb){ const r = this.ref.child(list), f = s => cb(s.key, s.val()); r.on('child_added', f); this.offs.push(() => r.off('child_added', f)); }
+  dropOnLeave(k){ (k ? this.ref.child(k) : this.ref).onDisconnect().remove(); }
+  remove(k){ return (k ? this.ref.child(k) : this.ref).remove(); }
+  close(){ this.offs.forEach(f => f()); this.offs = []; }
+}
+class LocalRoom {   // まねっこ：同じブラウザのタブどうし（BroadcastChannel）
+  constructor(path){
+    this.data = {}; this.ls = {}; this.as = {}; this.bc = new BroadcastChannel('ikusa-' + path);
+    this.bc.onmessage = e => {
+      const m = e.data;
+      if (m.hello){ this.bc.postMessage({dump:this.data}); return; }
+      if (m.dump){ for (const k in m.dump) if (this.data[k] === undefined) this._put(k, m.dump[k]); return; }
+      this._put(m.k, m.v);
+    };
+    this.bc.postMessage({hello:1});
+  }
+  _put(k, v){
+    this.data[k] = v; (this.ls[k] || []).forEach(f => f(v));
+    const p = k.indexOf('/'); if (p > 0 && v != null){ const l = k.slice(0, p), i = k.slice(p + 1); (this.as[l] || []).forEach(f => f(i, v)); }
+  }
+  get(k){ return new Promise(r => setTimeout(() => r(this.data[k] ?? null), 150)); }
+  all(){ return new Promise(r => setTimeout(() => r(Object.fromEntries(Object.entries(this.data).filter(([, v]) => v != null))), 150)); }
+  set(k, v){ this.bc.postMessage({k, v}); this._put(k, v); return Promise.resolve(); }
+  add(list, i, v){ return this.set(list + '/' + i, v); }
+  async claim(k, v){ await new Promise(r => setTimeout(r, 120)); if (this.data[k]) return false; await this.set(k, v); return true; }
+  incr(k){ return this.set(k, (this.data[k] || 0) + 1); }
+  on(k, cb){ (this.ls[k] = this.ls[k] || []).push(cb); cb(this.data[k] ?? null); }
+  onAdd(list, cb){ (this.as[list] = this.as[list] || []).push(cb); for (const k in this.data){ if (k.startsWith(list + '/') && this.data[k] != null) cb(k.slice(list.length + 1), this.data[k]); } }
+  dropOnLeave(){}
+  remove(k){ if (!k){ for (const kk in this.data) this.set(kk, null); return Promise.resolve(); } for (const kk in this.data) if (kk === k || kk.startsWith(k + '/')) this.set(kk, null); return Promise.resolve(); }
+  close(){ this.ls = {}; this.as = {}; this.bc.close(); }
+}
+function loadScript(src){ return new Promise((ok, ng) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = ng; document.head.appendChild(s); }); }
+async function netReady(){
+  if (USE_LOCAL_NET) return true;
+  if (!window.firebase || !firebase.database){
+    await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
+    await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js');
+    firebase.initializeApp(FB_CONF);
+  }
+  return true;
+}
+const makeRoom = path => USE_LOCAL_NET ? new LocalRoom(path) : new FBRoom(path);
+
+/* ----- 遊んだ人数（ランダムマッチの開放に使う。送るのは数字だけ） ----- */
+let playerCount = null;
+async function countMe(){
+  if (SV.counted || AUTO || USE_LOCAL_NET) return;   // 手元のテストでは数えない
+  try { await netReady(); const st = makeRoom('stats'); await st.incr('players'); st.close(); SV.counted = true; saveNow(); } catch(e){}
+}
+async function loadCount(){
+  try { await netReady(); const st = makeRoom('stats'); playerCount = (await st.get('players')) || 0; st.close(); } catch(e){ playerCount = null; }
+  return playerCount;
+}
+const unlocked = () => Q.get('unlock') === '1' && USE_LOCAL_NET ? true : (playerCount !== null && playerCount >= UNLOCK_AT);
+
+/* ----- いまの部屋のようす ----- */
+const NETI = {early:[], on:false, room:null, reg:null, code:'', seat:0, pub:false, scale:1, g:0, q:0, recvQ:0, queue:[], pumping:false,
+  foe:null, foeLoad:null, hostInfo:null, turnAt:0, foeBeat:0, again:[0, 0], ivs:[], cid:Math.random().toString(36).slice(2, 10), lastStamp:0, lastFoeStamp:0, waitSince:0, phase:'menu'};
+
+// 自分の陣立て（オンライン用）。大合戦の2人目の副将も、ここで決めておく
+function myOnlineLoad(){
+  const L = SV.load; if (!owns('gens', L.gen)) L.gen = 'hayate'; if (!owns('gens', L.sub) || L.sub === L.gen) L.sub = SV.owned.gens.find(g => g !== L.gen); validLoad(L);
+  const extra = SV.owned.gens.find(g => g !== L.gen && g !== L.sub) || L.sub;
+  return {gen:L.gen, subsBy:[[], [L.sub], [L.sub, extra]], tactics:L.tactics.slice(), items:L.items.slice()};
+}
+// 相手から来た陣立てを、ルールの中におさめる（へんな値が来てもこわれないように）
+function sanitizeLoad(l, scale){
+  l = l || {};
+  const ids = PLAYABLE.map(g => g.id), gen = ids.includes(l.gen) ? l.gen : 'hayate', need = SCALES[scale].subs;
+  let subs = ((l.subsBy || [])[scale] || []).filter(g => ids.includes(g) && g !== gen);
+  subs = [...new Set(subs)];
+  for (const g of ids) if (subs.length < need && g !== gen && !subs.includes(g)) subs.push(g);
+  const out = {gen, subs:subs.slice(0, need), tactics:[...new Set((l.tactics || []).filter(id => TAC[id]))].slice(0, MAX_TAC), items:[...new Set((l.items || []).filter(id => ITM[id]))].slice(0, MAX_ITEM)};
+  while (deckCost(out) > DECK_CAP){ if (out.items.length) out.items.pop(); else out.tactics.pop(); }
+  return out;
+}
+function pvpConfig(scale, la, lb){
+  const SC = SCALES[scale], r = Math.random();
+  const army = l => [{type:'sho', gen:l.gen}, ...l.subs.map(g => ({type:'bus', gen:g})), ...SC.units.map(t => ({type:t})), ...(l.items.includes('teppo') ? [{type:'tep'}] : [])];
+  return {mode:'online', scale, W:SC.W, H:SC.H, sym:true, kind:Math.random() < 0.55 ? 'river' : 'field', foeBase:'camp', campHp:SC.camp,
+    time:r < 0.5 ? 'day' : r < 0.75 ? 'dusk' : r < 0.88 ? 'night' : 'day', fog:r >= 0.88, rounds:SC.rounds, diff:1,
+    clans:['hinata','aka'], load:[la, lb], army:[army(la), army(lb)], allow:[UNIT_ORDER, UNIT_ORDER], unitCap:SC.units.length + 8};
+}
+// 戦場を送れる形にする／受け取った戦場を自分の向きにする
+function snapState(){
+  const o = {...S}; delete o._df; delete o.newAch;
+  o.units = S.units.map(u => { const {vx, vy, alpha, ax, ay, hop, ...r} = u; return r; });
+  return JSON.stringify(o);
+}
+function flipState(st){
+  const W = st.W, H = st.H, n = JSON.parse(JSON.stringify(st));
+  n.map = st.map.map((r, y) => r.map((_, x) => st.map[H - 1 - y][W - 1 - x]));
+  n.own = {}; for (const k in st.own){ const [x, y] = k.split(',').map(Number); n.own[key(W - 1 - x, H - 1 - y)] = 1 - st.own[k]; }
+  for (const u of n.units){ u.x = W - 1 - u.x; u.y = H - 1 - u.y; u.side = 1 - u.side; }
+  for (const o of n.objs){ o.x = W - 1 - o.x; o.y = H - 1 - o.y; o.side = 1 - o.side; }
+  for (const k of ['food', 'load', 'buffs', 'stats', 'allow']) n[k] = n[k].slice().reverse();
+  if (n.names) n.names = n.names.slice().reverse();
+  n.side = 1 - st.side; n.first = 1 - (st.first || 0); n.clans = ['hinata', 'aka'];
+  return n;
+}
+function adoptState(st){
+  const old = new Map(S.units.map(u => [u.id, u])), mapChanged = st.map.map(r => r.join('')).join() !== S.map.map(r => r.join('')).join();
+  for (const u of st.units){ const o = old.get(u.id); u.vx = o ? o.vx : u.x*B + B/2; u.vy = o ? o.vy : u.y*B + B/2; u.alpha = o ? o.alpha : 0; }
+  st.newAch = S.newAch; st.names = st.names || S.names; S = st;
+  if (mapChanged) TERR = paintTerrain(S);
+}
+
+/* ----- 送る・受け取る ----- */
+function netSend(a){
+  if (!NETI.on || !S || S.mode !== 'online') return;
+  a.g = NETI.g; a.q = ++NETI.q;
+  NETI.room.add('m' + NETI.seat, a.q, JSON.stringify(a)).catch(() => {});
+}
+function netRecv(str){
+  let a; try { a = JSON.parse(str); } catch(e){ return; }
+  if (!a) return;
+  if (a.g !== NETI.g){ if (a.g > NETI.g) NETI.early.push(a); return; }   // 戦の始まりより先に届いたものは、とっておく
+  if (a.q <= NETI.recvQ || NETI.queue.some(q => q.q === a.q)) return;
+  NETI.queue.push(a); NETI.queue.sort((x, y) => x.q - y.q); pump();
+}
+async function pump(){
+  if (NETI.pumping) return; NETI.pumping = true;
+  try {
+    while (NETI.queue.length && NETI.queue[0].q === NETI.recvQ + 1 && S && !S.over){
+      const a = NETI.queue.shift(); NETI.recvQ = a.q;
+      busy = true; renderHud();
+      await applyRemote(a);
+      if (S && S.side === 1) busy = false;
+    }
+  } finally { NETI.pumping = false; if (S && S.side === 0 && !S.over && !NETI.queue.length) busy = false; renderHud(); }
+}
+async function applyRemote(a){
+  const fx = x => S.W - 1 - x, fy = y => S.H - 1 - y, byId = id => S.units.find(q => q.id === id);
+  NETI.turnAt = Math.max(NETI.turnAt, Date.now() - SCALES[NETI.scale].turnSec * 1000 + 30000);   // 相手が動いているあいだは「返事がない」にしない
+  switch (a.t){
+    case 'mv': { const u = byId(a.id); if (u) await actMove(u, fx(a.x), fy(a.y)); break; }
+    case 'atk': { const u = byId(a.id); if (u){ const tg = targetsFrom(u, u.x, u.y).find(t => t.x === fx(a.x) && t.y === fy(a.y)); if (tg) await actAttack(u, tg); } break; }
+    case 'rf': if (TYPES[a.k]) await actReinforce(1, a.k); break;
+    case 'tac': await actTactic(1, a.id, a.x != null ? unitAt(fx(a.x), fy(a.y)) : null); break;
+    case 'sk': { const u = byId(a.id); if (u) await actSkill(u, a.x != null ? unitAt(fx(a.x), fy(a.y)) : null); break; }
+    case 'end': adoptState(flipState(JSON.parse(a.snap))); busy = false; endTurn(); return;
+    case 'resign': busy = false; finishBattle(0, '相手が退却した'); return;
+  }
+  afterAction();
+}
+function netWaitFoe(){ setInfo(`<span class="e">${esc(S.names ? S.names[1] : '相手')}の番…</span>　相手が動かすのを待っています`); pump(); }
+
+/* ----- 部屋に入ったあとの共通のしたく ----- */
+function attachRoom(){
+  const R = NETI.room, me = NETI.seat, foe = 1 - me;
+  R.onAdd('m' + foe, (i, v) => netRecv(v));
+  R.on('on' + foe, v => { if (v) NETI.foeBeat = Date.now(); });
+  R.on('st' + foe, v => { if (!v) return; try { const s = JSON.parse(v); if (s.g === NETI.g && s.at !== NETI.lastFoeStamp){ NETI.lastFoeStamp = s.at; showStamp(1, s.k); } } catch(e){} });
+  for (const k of [0, 1]) R.on('again' + k, v => { NETI.again[k] = v || 0; if (NETI.seat === 0) tryRematch(); if ($('result').classList.contains('on')) onlineResultBtns(); });
+  const beat = () => R.set('on' + me, Date.now()).catch(() => {});
+  beat(); R.dropOnLeave('on' + me);
+  NETI.ivs.push(setInterval(beat, 8000), setInterval(netTick, 500));
+}
+function leaveOnline(){
+  if (!NETI.on && !NETI.room) return;
+  NETI.ivs.forEach(clearInterval); NETI.ivs = [];
+  try {
+    if (NETI.reg){ NETI.reg.remove(NETI.code); NETI.reg.close(); }
+    if (NETI.room){ if (NETI.seat === 0) NETI.room.remove(); else { NETI.room.remove('guest'); NETI.room.remove('on1'); } NETI.room.close(); }
+  } catch(e){}
+  Object.assign(NETI, {on:false, room:null, reg:null, code:'', foe:null, foeLoad:null, hostInfo:null, queue:[], phase:'menu', again:[0, 0]});
+}
+window.addEventListener('pagehide', () => { if (NETI.room && NETI.on){ try { NETI.room.set('on' + NETI.seat, null); } catch(e){} } });
+
+/* ----- 部屋を作る（友だち用・ランダムマッチ用） ----- */
+async function createRoom(pub){
+  const name = readName(); if (!name) return false;
+  try { await netReady(); } catch(e){ onErr('つながらなかったよ。ネットを確かめてね'); return false; }
+  for (let i = 0; i < 8; i++){
+    const code = String(1000 + (Math.random() * 9000 | 0)), room = makeRoom(code);
+    let h; try { h = await room.get('host'); } catch(e){ onErr('つながらなかったよ。ネットを確かめてね'); room.close(); return false; }
+    if (h){ room.close(); continue; }
+    Object.assign(NETI, {on:true, room, code, seat:0, pub, scale:SV.scale ?? 1, g:0, foe:null, foeLoad:null, phase:'lobby', waitSince:Date.now(), again:[0, 0]});
+    await room.set('host', {name, sc:NETI.scale, pub:pub ? 1 : 0, at:Date.now(), cid:NETI.cid});
+    room.dropOnLeave(null);
+    room.on('guest', v => onGuest(v));
+    attachRoom();
+    if (pub){ NETI.reg = makeRoom('pub'); NETI.reg.dropOnLeave(code); const hb = () => { if (!NETI.foe && NETI.reg) NETI.reg.set(code, {at:Date.now(), sc:NETI.scale}).catch(() => {}); }; hb(); NETI.ivs.push(setInterval(hb, 5000)); }
+    renderOnline(); return true;
+  }
+  onErr('部屋が作れなかったよ。もう一度ためしてね'); return false;
+}
+function onGuest(v){
+  if (NETI.seat !== 0) return;
+  const had = NETI.foe;
+  if (v){
+    NETI.foe = {name:safeName(v.name), cid:v.cid}; NETI.foeLoad = v.load;
+    if (!had){ sfx('horn'); if (NETI.reg){ NETI.reg.remove(NETI.code); } if (NETI.pub) setTimeout(() => { if (NETI.foe && NETI.phase === 'lobby') hostStart(); }, 2500); }
+  } else { NETI.foe = null; NETI.foeLoad = null; }
+  if (NETI.phase === 'lobby') renderOnline();
+}
+/* ----- 合言葉で部屋に入る ----- */
+async function joinRoom(code, pub){
+  const name = readName(); if (!name) return false;
+  if (!/^\d{4}$/.test(code)){ onErr('合言葉は4けたの数字だよ'); return false; }
+  try { await netReady(); } catch(e){ onErr('つながらなかったよ。ネットを確かめてね'); return false; }
+  const room = makeRoom(code);
+  let h; try { h = await room.get('host'); } catch(e){ room.close(); onErr('つながらなかったよ'); return false; }
+  if (!h){ room.close(); if (!pub) onErr('その合言葉の部屋は見つからないよ'); return false; }
+  const ok = await room.claim('guest', {name, cid:NETI.cid, load:myOnlineLoad(), at:Date.now()});
+  if (!ok){ room.close(); if (!pub) onErr('その部屋はもう2人そろっているよ'); return false; }
+  Object.assign(NETI, {on:true, room, code, seat:1, pub, scale:[0, 1, 2].includes(h.sc) ? h.sc : 1, g:0, hostInfo:{name:safeName(h.name)}, foe:{name:safeName(h.name)}, phase:'lobby', again:[0, 0]});
+  room.dropOnLeave('guest');
+  room.on('host', v => { if (!v && NETI.on && NETI.seat === 1 && NETI.phase === 'lobby'){ leaveOnline(); openOnline(); onErr('部屋がなくなったよ'); } });
+  room.on('start', v => { if (v) guestStart(v); });
+  attachRoom();
+  sfx('horn'); renderOnline(); return true;
+}
+/* ----- 戦を始める ----- */
+async function hostStart(){
+  if (NETI.seat !== 0 || !NETI.foe || !NETI.on) return;
+  const sc = NETI.scale;
+  const cfg = pvpConfig(sc, sanitizeLoad(myOnlineLoad(), sc), sanitizeLoad(NETI.foeLoad, sc));
+  newBattle(cfg);
+  S.names = [safeName(SV.name), NETI.foe.name]; S.first = 0;
+  NETI.g = Date.now(); NETI.q = 0; NETI.recvQ = 0; NETI.queue = []; NETI.early = []; NETI.again = [0, 0];
+  await NETI.room.set('again0', 0); await NETI.room.set('again1', 0);
+  await NETI.room.remove('m0'); await NETI.room.remove('m1');
+  await NETI.room.set('start', JSON.stringify({g:NETI.g, sc, snap:snapState()}));
+  beginOnlineBattle();
+}
+function guestStart(str){
+  let m; try { m = JSON.parse(str); } catch(e){ return; }
+  if (!m || m.g === NETI.g || NETI.seat !== 1) return;
+  NETI.g = m.g; NETI.q = 0; NETI.recvQ = 0; NETI.queue = []; NETI.scale = m.sc;
+  S = flipState(JSON.parse(m.snap));
+  beginOnlineBattle();
+}
+async function beginOnlineBattle(){
+  NETI.phase = 'battle';
+  battleCfg = {mode:'online', scale:NETI.scale}; afterBattle = null;
+  S.mode = 'online'; S.newAch = []; S.tutorial = false; sel = null; tsel = null; busy = true;
+  FX.parts = []; FX.texts = []; FX.shots = []; FX.slashes = []; FX.ghosts = []; FX.rings = [];
+  tut = null; show('battle'); $('tut').classList.remove('on'); $('zSt').style.display = '';
+  putFace($('hFace0'), S.load[0].gen); putFace($('hFace1'), S.load[1].gen, true);
+  TERR = paintTerrain(S);
+  for (const u of S.units){ u.vx = u.x*B + B/2; u.vy = u.y*B + B/2; }
+  resizeBattle(); camFit(); clampCam(true);
+  running = true; lastFrame = 0; requestAnimationFrame(frame);
+  Music.play('battle'); renderHud();
+  sfx('horn'); banner(`オンライン　${SCALES[NETI.scale].name}`, 'g');
+  countMe();
+  await sleep(1300);
+  busy = false; NETI.foeBeat = Date.now();
+  startTurn();
+  // 始まる前に届いていた相手の操作を読む
+  const early = NETI.early.filter(a => a.g === NETI.g); NETI.early = []; for (const a of early) netRecv(JSON.stringify(a));
+}
+function netTick(){
+  if (!NETI.on || !S || S.mode !== 'online' || S.over || NETI.phase !== 'battle') return;
+  const lim = SCALES[NETI.scale].turnSec * 1000, el = Date.now() - NETI.turnAt;
+  if (S.side === 0 && el > lim && !busy){ toast('時間切れ！'); finishSel(); tsel = null; closeModal(); netSend({t:'end', snap:snapState()}); endTurn(); return; }
+  const lost = Date.now() - NETI.foeBeat > 30000;
+  if (S.side === 1 && !NETI.pumping && (lost || el > lim + 45000)){ finishBattle(0, lost ? '相手の接続が切れた' : '相手から返事がない'); return; }
+  if (lost && S.side === 0) setInfo('<span class="e">相手の接続が切れたかも…</span>　このまま待つか、ターンを進めてね');
+  renderHud();
+}
+function turnLeft(){ return Math.max(0, Math.ceil((SCALES[NETI.scale].turnSec * 1000 - (Date.now() - NETI.turnAt)) / 1000)); }
+/* ----- もう一戦 ----- */
+function tryRematch(){
+  if (NETI.seat !== 0 || !NETI.on || !S || !S.over) return;
+  if (NETI.again[0] === NETI.g && NETI.again[1] === NETI.g && NETI.foe) hostStart();
+}
+function onlineResultBtns(){
+  const btns = $('rBtns'); if (!btns || !lastResult || lastResult.mode !== 'online') return;
+  const foeHere = NETI.on && Date.now() - NETI.foeBeat < 30000;
+  const meReady = NETI.again[NETI.seat] === NETI.g, foeReady = NETI.again[1 - NETI.seat] === NETI.g;
+  btns.innerHTML = `<button class="btn" id="rAgainOn" ${foeHere && !meReady ? '' : 'disabled'}>${meReady ? '相手を待っています…' : 'もう一戦（同じ相手）'}</button><button class="btn dark" id="rLeaveOn">部屋を出る</button>` +
+    `<div class="note" style="width:100%">${!foeHere ? '相手は部屋を出たみたい' : foeReady ? '相手は「もう一戦」を押しているよ！' : ''}</div>`;
+  $('rAgainOn').onclick = () => { sfx('tap'); NETI.room.set('again' + NETI.seat, NETI.g); };
+  $('rLeaveOn').onclick = () => { sfx('tap'); leaveOnline(); openOnline(); };
+}
+/* ----- スタンプ ----- */
+$('zSt').onclick = () => {
+  sfx('tap');
+  openModal(`<h3 class="brush">スタンプ</h3><div class="row">${STAMPS.map((s, i) => `<button class="btn dark small" data-st="${i}" style="min-width:120px">${s[0]} ${s[1]}</button>`).join('')}</div>
+    <div class="note" style="margin-top:8px">チャットはなし。決まったスタンプだけ送れます</div><div class="row" style="margin-top:8px"><button class="btn dark small" id="mClose">とじる</button></div>`);
+  $('mClose').onclick = closeModal;
+  $('modalBody').querySelectorAll('[data-st]').forEach(b => b.onclick = () => {
+    closeModal(); if (Date.now() - NETI.lastStamp < 2500){ toast('ちょっと待ってね'); return; }
+    NETI.lastStamp = Date.now(); const k = +b.dataset.st;
+    if (NETI.room) NETI.room.set('st' + NETI.seat, JSON.stringify({k, at:Date.now(), g:NETI.g})).catch(() => {});
+    showStamp(0, k);
+  });
+};
+function showStamp(side, k){
+  const s = STAMPS[k]; if (!s) return;
+  const d = document.createElement('div'); d.className = 'stampB ' + (side ? 'foe' : 'me'); d.textContent = s[0] + ' ' + s[1];
+  document.body.appendChild(d); sfx('page');
+  d.animate([{opacity:0, transform:'translateX(-50%) scale(.6)'}, {opacity:1, transform:'translateX(-50%) scale(1.08)', offset:.15}, {opacity:1, transform:'translateX(-50%) scale(1)', offset:.85}, {opacity:0}], {duration:2600}).onfinish = () => d.remove();
+}
+
+/* ----- オンラインの画面 ----- */
+function onErr(t){ const e = $('onErr'); if (e) e.textContent = t || ''; }
+function readName(){
+  const el = $('onName'), n = cleanName(el ? el.value : SV.name);
+  if (!n){ onErr('ニックネームを入れてね'); return null; }
+  if (!okName(n)){ onErr('その言葉は使えないよ。別のニックネームにしてね'); return null; }
+  SV.name = n; saveNow(); return n;
+}
+function openOnline(){ show('online'); Music.play('map'); renderOnline(); if (NETI.phase === 'menu') loadCount().then(() => { if (NETI.phase === 'menu' && $('online').classList.contains('on')) renderOnline(); }); }
+function renderOnline(){
+  const body = $('onBody'); let h = '';
+  if (NETI.phase === 'lobby'){
+    const host = NETI.seat === 0, SC = SCALES[NETI.scale];
+    const meN = esc(safeName(SV.name)), foeN = NETI.foe ? esc(NETI.foe.name) : null;
+    h += `<div class="sec panel" style="text-align:center">`;
+    if (NETI.pub) h += `<div class="brush" style="font-size:26px">🎲 ランダムマッチ</div><div style="font-size:30px;margin:6px 0" class="brush">${foeN ? '相手が見つかった！' : 'さがし中…'}</div>`;
+    else h += `<div class="note">合言葉（4けた）</div><div class="brush" style="font-size:56px;letter-spacing:.15em;color:#ffe9a8">${NETI.code}</div><div class="note">${host ? 'この数字を友だちに教えてね（2人で対戦）' : ''}</div>`;
+    h += `<div style="margin:10px 0;font-weight:800">戦の大きさ：${SC.name}　⏱${SC.time}<br><span class="note">1ターンの持ち時間 ${SC.turnSec}秒</span></div>`;
+    h += `<div class="cardrow"><div class="ic">🔵</div><div class="d"><b>${host ? meN + '（あなた）' : (NETI.hostInfo ? esc(NETI.hostInfo.name) : '')}</b><br>部屋を作った人</div></div>`;
+    h += `<div class="cardrow"><div class="ic">🔴</div><div class="d"><b>${host ? (foeN || '<span style="opacity:.6">まだ来ていない…</span>') : meN + '（あなた）'}</b><br>入った人</div></div>`;
+    if (host && !NETI.pub) h += `<div class="row" style="margin-top:8px"><button class="btn gold" id="onGo" ${foeN ? '' : 'disabled'}>⚔️ 出陣！</button></div>`;
+    if (!host) h += `<div class="note" style="margin-top:8px">部屋を作った人が「出陣！」を押すと始まるよ</div>`;
+    if (NETI.pub && !foeN && Date.now() - NETI.waitSince > 60000) h += `<div class="note">なかなか見つからないね。CPU と戦うこともできるよ</div><div class="row"><button class="btn blue small" id="onCpu">CPU と一騎討ち</button></div>`;
+    h += `<div class="row" style="margin-top:10px"><button class="btn dark small" id="onLeave">部屋を出る</button></div></div>`;
+  } else {
+    const L = myOnlineLoad(), SCi = SV.scale ?? 1;
+    h += `<div class="sec panel"><h3 class="brush">ニックネーム</h3><input class="inp" id="onName" maxlength="8" value="${esc(SV.name || '')}" placeholder="8文字まで"><div class="note" style="text-align:left;margin-top:4px">本名や学校の名前は書かないでね。相手に見えるのはニックネームだけ</div></div>`;
+    h += `<div class="sec panel"><h3 class="brush">陣立て</h3><div style="font-size:13px;font-weight:800;line-height:1.7;color:var(--ink2)">総大将 ${GEN[L.gen].name}・副将 ${GEN[L.subsBy[1][0]].name}<br>作戦 ${L.tactics.map(id => TAC[id].name).join('・') || 'なし'}　道具 ${L.items.map(id => ITM[id].name).join('・') || 'なし'}</div><div class="row" style="margin-top:6px"><button class="btn dark small" id="onPrep">陣立てを変える</button></div></div>`;
+    h += `<div class="sec panel"><h3 class="brush">戦の大きさ</h3><div class="seg">${SCALES.map((C, i) => `<button class="btn dark ${SCi === i ? 'on' : ''}" data-osc="${i}">${C.name}<br><small style="font-size:11px">⏱${C.time}</small></button>`).join('')}</div><div class="note">部屋を作る人の大きさで戦うよ（${SCALES[SCi].note}）</div></div>`;
+    h += `<div class="sec panel"><h3 class="brush">友だちと対戦</h3><div class="row"><button class="btn" id="onMake">部屋を作る</button></div>
+      <div style="display:flex;gap:8px;margin-top:10px;align-items:center"><input class="inp" id="onCode" inputmode="numeric" maxlength="4" placeholder="合言葉（4けた）" style="flex:1"><button class="btn blue" id="onJoin">入る</button></div></div>`;
+    const cnt = playerCount;
+    h += `<div class="sec panel"><h3 class="brush">だれかと対戦 <small>ランダムマッチ</small></h3><div class="row"><button class="btn gold" id="onRand" ${unlocked() ? '' : 'disabled'}>${unlocked() ? '🎲 ランダムマッチ' : '🔒 ランダムマッチ'}</button></div>
+      <div class="note" style="margin-top:6px">${unlocked() ? `🎉 遊んだ人が ${UNLOCK_AT}人をこえて開放されたよ！ 同じ「戦の大きさ」の人とつながる` : cnt === null ? '遊んだ人の数を読みこみ中…（ネットにつながっていないと読めないよ）' : `遊んだ人が ${UNLOCK_AT}人になったら開放！ いま ${cnt}人（あと ${Math.max(0, UNLOCK_AT - cnt)}人）`}</div></div>`;
+    h += `<div class="note" id="onErr" style="color:#ff9f8f;font-size:14px;min-height:20px"></div>`;
+    h += `<div class="note" style="margin-bottom:20px">チャットはなし。決まったスタンプだけ送れます。${USE_LOCAL_NET ? '<br>（テスト用：この画面は手元のまねっこ通信。同じブラウザの別のタブとつながります）' : ''}</div>`;
+  }
+  body.innerHTML = h;
+  const nm = $('onName'); if (nm) nm.onchange = () => { SV.name = cleanName(nm.value); saveNow(); };
+  body.querySelectorAll('[data-osc]').forEach(b => b.onclick = () => { SV.name = cleanName($('onName').value); SV.scale = +b.dataset.osc; saveNow(); sfx('tap'); renderOnline(); });
+  if ($('onPrep')) $('onPrep').onclick = () => { SV.name = cleanName($('onName').value); saveNow(); sfx('tap'); openPrep('online'); };
+  if ($('onMake')) $('onMake').onclick = async () => { sfx('tap'); await createRoom(false); };
+  if ($('onJoin')) $('onJoin').onclick = async () => { sfx('tap'); await joinRoom(($('onCode').value || '').replace(/\D/g, ''), false); };
+  if ($('onRand')) $('onRand').onclick = async () => { sfx('tap'); await randomMatch(); };
+  if ($('onGo')) $('onGo').onclick = () => { sfx('tap'); hostStart(); };
+  if ($('onLeave')) $('onLeave').onclick = () => { sfx('tap'); leaveOnline(); openOnline(); };
+  if ($('onCpu')) $('onCpu').onclick = () => { sfx('tap'); leaveOnline(); openPrep('vs'); };
+}
+async function randomMatch(){
+  if (!unlocked()) return;
+  const name = readName(); if (!name) return;
+  try { await netReady(); } catch(e){ onErr('つながらなかったよ'); return; }
+  const sc = SV.scale ?? 1, reg = makeRoom('pub'); let all = {};
+  try { all = await reg.all(); } catch(e){}
+  reg.close();
+  const now = Date.now();
+  const cands = Object.entries(all).filter(([c, v]) => v && v.sc === sc && Math.abs(now - v.at) < 20000).sort((a, b) => a[1].at - b[1].at);
+  for (const [code] of cands) if (await joinRoom(code, true)) return;
+  await createRoom(true);
+}
+$('bOnBack').onclick = () => { sfx('tap'); leaveOnline(); openTitle(); };
+setInterval(() => { if (NETI.phase === 'lobby' && NETI.pub && $('online').classList.contains('on')) renderOnline(); }, 5000);
+
 // テスト用のつなぎ口
-window.IK = {get S(){ return S; }, set S(v){ S = v; }, startBattle, vsConfig, storyConfig, tutConfig, aiBest, onCellTap, endTurn, get busy(){ return busy; }, get tut(){ return tut; }, playScene, openStory, openPrep, get SV(){ return SV; }};
+window.IK = {NETI, get S(){ return S; }, set S(v){ S = v; }, startBattle, vsConfig, storyConfig, tutConfig, aiBest, onCellTap, endTurn, get busy(){ return busy; }, get tut(){ return tut; }, playScene, openStory, openPrep, get SV(){ return SV; }};
 checkUnlocks(); saveNow();   // 前の版で取った実績のごほうびも、ここで渡す
 openTitle();
 if (AUTO) startBattle(vsConfig(+(Q.get('diff') || 1), +(Q.get('scale') ?? 1)));
