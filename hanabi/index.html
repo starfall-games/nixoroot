@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#0b0f2a">
+<title>ドドン花火</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#fff6e0;--sub:#b8b0d8;--gold:#ffc23a;--red:#ff4a5a;--sat:env(safe-area-inset-top);--sab:env(safe-area-inset-bottom)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:#0b0f2a}
+body{font-family:'M PLUS Rounded 1c',system-ui,-apple-system,"Hiragino Maru Gothic ProN",sans-serif;color:var(--ink);user-select:none;-webkit-user-select:none;touch-action:none}
+#cv{position:fixed;inset:0;width:100%;height:100%;display:block}
+.layer{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;z-index:5}
+.layer.on{display:flex}
+.btn{font-family:inherit;font-weight:800;font-size:19px;color:#fff;border:0;border-radius:18px;padding:14px 22px;cursor:pointer;
+  background:linear-gradient(180deg,#ff6a5a,#d6303f);box-shadow:0 5px 0 #7a1420,0 0 20px rgba(255,80,90,.35);transition:transform .06s}
+.btn:active{transform:translateY(4px);box-shadow:0 1px 0 #7a1420}
+.btn.gold{background:linear-gradient(180deg,#ffe07a,#f0a418);color:#4a2a00;box-shadow:0 5px 0 #8a5a08,0 0 20px rgba(255,190,60,.35)}
+.btn.gold:active{box-shadow:0 1px 0 #8a5a08}
+.btn.dark{background:linear-gradient(180deg,#3a3f78,#232650);box-shadow:0 5px 0 #11132e}
+.btn.dark:active{box-shadow:0 1px 0 #11132e}
+.btn.small{font-size:15px;padding:10px 14px;border-radius:14px}
+.card{background:linear-gradient(180deg,rgba(40,36,90,.96),rgba(20,18,50,.96));border:2px solid rgba(255,194,58,.55);border-radius:22px;box-shadow:0 10px 40px rgba(0,0,0,.5);padding:16px}
+.note{font-size:13px;color:var(--sub);text-align:center;line-height:1.6}
+.row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.row .btn{flex:1}
+#title{justify-content:flex-end;padding:0 18px calc(var(--sab) + 26px);gap:12px}
+.logo{position:fixed;top:calc(var(--sat) + 10vh);left:0;right:0;text-align:center;pointer-events:none}
+.logo h1{margin:0;font-size:min(64px,16vw);line-height:1.05;color:#fff;-webkit-text-stroke:6px #c4203a;paint-order:stroke fill;text-shadow:0 0 24px rgba(255,120,80,.8),0 6px 0 #7a1420;transform:rotate(-3deg)}
+.logo p{margin:12px 0 0;font-weight:800;color:var(--gold);font-size:15px;text-shadow:0 2px 0 #000}
+.pills{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.pill{background:rgba(20,18,50,.8);border:1.5px solid rgba(255,194,58,.5);border-radius:999px;padding:6px 14px;font-weight:800;font-size:14px}
+.menu{display:flex;flex-direction:column;gap:12px;width:min(340px,100%)}
+#hud{position:fixed;top:calc(var(--sat) + 8px);left:0;right:0;display:none;justify-content:space-between;align-items:flex-start;padding:0 14px;z-index:4;pointer-events:none}
+#hud.on{display:flex}
+#hScore{font-size:38px;font-weight:800;line-height:1;color:#fff;text-shadow:0 0 12px rgba(255,200,80,.7),0 3px 0 #000}
+#hSub{font-size:13px;font-weight:800;color:var(--sub);margin-top:4px}
+#hMatch{font-size:26px;font-weight:800;text-align:right;text-shadow:0 2px 0 #000}
+#hFever{font-size:13px;font-weight:800;color:var(--gold);text-align:right;margin-top:2px}
+#pauseBtn{position:fixed;top:calc(var(--sat) + 70px);right:12px;z-index:6;display:none;padding:6px 12px;font-size:14px}
+#result{justify-content:center;padding:16px;background:rgba(5,6,20,.55);overflow-y:auto;touch-action:pan-y}
+#result .card{width:min(380px,100%);text-align:center}
+.big{font-size:60px;font-weight:800;line-height:1;color:#fff;text-shadow:0 0 18px rgba(255,190,60,.9),0 4px 0 #7a1420;margin:6px 0}
+.stats{display:grid;grid-template-columns:1fr auto;gap:5px 12px;font-weight:800;font-size:15px;text-align:left;margin:10px 0}
+.stats .v{text-align:right;color:var(--gold)}
+.newb{display:inline-block;background:var(--gold);color:#4a2a00;border-radius:10px;padding:3px 10px;font-weight:800;font-size:14px;margin:4px}
+.modal{position:fixed;inset:0;background:rgba(5,6,20,.6);display:none;align-items:center;justify-content:center;z-index:20;padding:14px}
+.modal.on{display:flex}
+.modal .card{width:min(420px,100%);max-height:88vh;overflow-y:auto;touch-action:pan-y}
+#shareImg{width:min(280px,80vw);border-radius:14px}
+.how{font-weight:800;font-size:14.5px;line-height:1.8}
+.how b{color:var(--gold)}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<section id="title" class="layer on">
+  <div class="logo"><h1>ドドン<br>花火</h1><p>つなげて、連鎖させて、夜空をうめつくせ！</p></div>
+  <div class="pills"><span class="pill" id="tBest"></span><span class="pill" id="tRank"></span></div>
+  <div class="menu">
+    <button class="btn" id="bPlay">🎆 あそぶ</button>
+    <button class="btn gold" id="bDaily">📅 今日のチャレンジ</button>
+    <div class="row"><button class="btn dark small" id="bHow">❓ ルール</button><button class="btn dark small" id="bRec">🏆 記録</button><button class="btn dark small" id="bSnd">🔊</button></div>
+  </div>
+</section>
+
+<div id="hud"><div><div id="hScore">0</div><div id="hSub"></div></div><div><div id="hMatch"></div><div id="hFever"></div></div></div>
+<button class="btn dark small" id="pauseBtn">Ⅱ</button>
+<section id="result" class="layer"><div class="card" id="resCard"></div></section>
+<div class="modal" id="modal"><div class="card" id="modalBody"></div></div>
+
+<script>
+'use strict';
+/* =========================================================
+   ドドン花火
+   ・花火玉をタップすると爆発。となりの同じ色の玉に火がうつって連鎖する
+   ・大きな連鎖で「特別な玉」ができる（菊玉・線香玉・大玉）
+   ・タップするとマッチが1本へる。大連鎖でマッチがもどる。マッチがなくなったら終わり
+   ・動きと演出は本当の時間（ミリ秒）で進める
+   ========================================================= */
+const $ = id => document.getElementById(id);
+const Q = new URLSearchParams(location.search);
+const FAST = Q.has('fast') ? 0.05 : 1;   // テスト用：?fast で早送り
+const sleep = ms => new Promise(r => setTimeout(r, ms * FAST));
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+function mulberry(seed){ return function(){ seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function ell(g, x, y, rx, ry){ g.beginPath(); g.ellipse(x, y, Math.max(.1, rx), Math.max(.1, ry), 0, 0, Math.PI * 2); }
+
+const COLS = 7, ROWS = 9;
+// 玉の色（名前・明るい色・暗い色）
+const COLORS = [
+  {n:'紅', a:'#ff5a6e', b:'#a3122e'}, {n:'藍', a:'#5a9bff', b:'#1a3f9e'}, {n:'金', a:'#ffd04a', b:'#b07a0a'},
+  {n:'若葉', a:'#6ee07a', b:'#1f7a32'}, {n:'藤', a:'#c27aff', b:'#5a1f9e'}, {n:'橙', a:'#ff9a3a', b:'#a8460a'},
+];
+// 特別な玉
+const SP = {
+  kiku:{name:'菊玉', desc:'まわり8マスに火がつく（色はかんけいなし）'},
+  sen: {name:'線香玉', desc:'たての列と横の列ぜんぶに火がつく'},
+  dai: {name:'大玉', desc:'2マス先まで、まわりぜんぶに火がつく'},
+};
+const RANKS = [[0,'見習い花火師'],[5000,'花火師'],[15000,'一人前の花火師'],[30000,'名人'],[50000,'大名人'],[80000,'花火の神さま']];
+const rankOf = s => { let r = RANKS[0][1]; for (const [n, t] of RANKS) if (s >= n) r = t; return r; };
+
+/* ===== セーブ ===== */
+const SAVE_KEY = 'dodon-save-v1';
+function defSave(){ return {best:0, bestChain:0, plays:0, se:true, bgm:true, daily:{}, how:false}; }
+let SV = (() => { try { return Object.assign(defSave(), JSON.parse(localStorage.getItem(SAVE_KEY) || '{}')); } catch(e){ return defSave(); } })();
+const save = () => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(SV)); } catch(e){} };
+
+/* =========================================================
+   音（Web Audio）。連鎖が進むほど音が高くなる（五音の音階）
+   ========================================================= */
+let AC = null, SEG = null, BGG = null, NOISE = null;
+function ensureAC(){
+  if (AC){ if (AC.state === 'suspended') AC.resume(); return true; }
+  try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){ return false; }
+  const m = AC.createGain(); m.gain.value = 0.85; m.connect(AC.destination);
+  const comp = AC.createDynamicsCompressor(); comp.connect(m);
+  SEG = AC.createGain(); SEG.gain.value = 0.8; SEG.connect(comp);
+  BGG = AC.createGain(); BGG.gain.value = 0.16; BGG.connect(comp);
+  NOISE = AC.createBuffer(1, AC.sampleRate * 2, AC.sampleRate); const d = NOISE.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2 - 1;
+  return true;
+}
+function tone(f, d, type = 'sine', v = .2, at = 0, f2 = null, dest = SEG){
+  const t = AC.currentTime + at, o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + d);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+  o.connect(g).connect(dest); o.start(t); o.stop(t + d + .03);
+}
+function noise(d, v, type = 'lowpass', freq = 1000, at = 0, dest = SEG){
+  const t = AC.currentTime + at, s = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
+  s.buffer = NOISE; f.type = type; f.frequency.value = freq; g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+  s.connect(f).connect(g).connect(dest); s.start(t, Math.random()); s.stop(t + d);
+}
+const PENTA = [0, 2, 4, 7, 9];
+const pf = step => 330 * Math.pow(2, (Math.floor(step / 5) * 12 + PENTA[step % 5]) / 12);
+let lastPop = 0;
+function sfx(n, p = 0){
+  if (!SV.se || !ensureAC()) return;
+  switch (n){
+    case 'tap':   tone(900, .06, 'triangle', .12, 0, 650); break;
+    case 'fuse':  noise(.25, .12, 'highpass', 3500); break;
+    case 'pop': { if (AC.currentTime - lastPop < 0.025) return; lastPop = AC.currentTime;
+      const f = pf(Math.min(24, p)); tone(f, .18, 'triangle', .16); tone(f * 2, .1, 'sine', .05); noise(.07, .14, 'bandpass', 1800); break; }
+    case 'boom':  tone(110, .45, 'sine', .5, 0, 40); noise(.5, .35, 'lowpass', 700); break;
+    case 'big':   tone(80, .8, 'sine', .7, 0, 30); noise(1.2, .45, 'lowpass', 500); for (let i = 0; i < 10; i++) noise(.08, .08, 'highpass', 4000, .25 + Math.random() * .8); break;
+    case 'whistle': tone(700, .5, 'sine', .05, 0, 1700); break;
+    case 'special': [0, 4, 7, 12].forEach((s, i) => tone(523 * Math.pow(2, s / 12), .22, 'square', .05, i * .05)); tone(1568, .4, 'sine', .08, .2); break;
+    case 'match': tone(1200, .12, 'sine', .12); tone(1600, .16, 'sine', .1, .08); break;
+    case 'fever': [0, 4, 7, 12, 16, 19, 24].forEach((s, i) => tone(392 * Math.pow(2, s / 12), .3, 'triangle', .13, i * .06)); tone(98, .8, 'sine', .4); break;
+    case 'combo': tone(pf(p + 5), .25, 'square', .06, 0, pf(p + 8)); break;
+    case 'end':   [12, 7, 4, 0].forEach((s, i) => tone(330 * Math.pow(2, s / 12), .35, 'triangle', .12, i * .15)); break;
+    case 'best':  [0, 7, 12, 16, 19, 24, 28].forEach((s, i) => tone(523 * Math.pow(2, s / 12), .35, 'triangle', .14, i * .08)); break;
+  }
+}
+// 祭りばやし風の BGM（太鼓と笛）。フィーバー中と終盤は速くなる
+const BGM = {timer:null, next:0, step:0, tempo:1,
+  start(){ if (this.timer || !SV.bgm || !ensureAC()) return; this.next = AC.currentTime + .1; this.timer = setInterval(() => this.tick(), 60); },
+  stop(){ clearInterval(this.timer); this.timer = null; },
+  tick(){
+    const spb = 60 / (100 * this.tempo) / 2;
+    const mel = [7, null, 9, null, 12, null, 9, 7, 4, null, 7, null, 4, 2, 0, null, 2, null, 4, 7, 9, null, 7, null, 4, null, 2, 4, 0, null, null, null];
+    while (this.next < AC.currentTime + .25){
+      const b = this.step % 32, m = mel[b], at = this.next - AC.currentTime;
+      if (m != null) tone(523 * Math.pow(2, m / 12), .28, 'sine', .4, at, null, BGG);
+      if (b % 4 === 0){ tone(90, .25, 'sine', 1, at, 50, BGG); }
+      if (b % 4 === 2 || (this.tempo > 1.1 && b % 2 === 1)) tone(1300, .03, 'triangle', .2, at, null, BGG);
+      this.step++; this.next += spb;
+    }
+  }};
+window.addEventListener('pointerdown', () => { ensureAC(); if (SV.bgm) BGM.start(); }, {passive:true});
+const buzz = ms => { try { if (navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) navigator.vibrate(ms); } catch(e){} };
+
+/* =========================================================
+   ゲームの中身
+   ========================================================= */
+let game = null, busy = false, mode = 'title', paused = false;
+let grid = [];        // grid[r][c] = {col, sp, wet, y(見た目の行), pop, id}
+let nextId = 1;
+function newShell(r){
+  const g = game, nc = g.taps < 15 ? 4 : g.taps < 45 ? 5 : 6;   // だんだん色がふえる
+  const s = {col:Math.floor(g.rng() * nc), sp:null, wet:0, y:r, vy:0, pop:0, id:nextId++, born:performance.now()};
+  // 湿った玉（2回火をつけないと爆発しない）は中盤から
+  if (g.taps >= 30 && g.rng() < Math.min(0.12, (g.taps - 30) * 0.004)) s.wet = 1;
+  // フィナーレでは特別な玉がふりやすい
+  if (g.finale && g.rng() < 0.06) s.sp = ['kiku', 'sen', 'dai'][Math.floor(g.rng() * 3)];
+  return s;
+}
+function newGame(daily){
+  const seed = daily ? dailySeed() : (Math.random() * 1e9 | 0);
+  game = {daily, rng:mulberry(seed), score:0, shown:0, matches:daily ? 30 : 45, taps:0, fever:0, feverLeft:0, gauge:0, bestChain:0, maxCount:0,
+    specials:0, mid:false, finale:false, matchGot:0, log:[], start:performance.now()};
+  grid = [];
+  for (let r = 0; r < ROWS; r++){ grid[r] = []; for (let c = 0; c < COLS; c++){ const s = newShell(r); s.y = r - ROWS - 2 - Math.random() * 2; grid[r][c] = s; } }
+  SV.plays++; save();
+  mode = 'play'; showLayer(null); $('hud').classList.add('on'); $('pauseBtn').style.display = 'block'; busy = false;
+  BGM.tempo = 1; updHud(); layout();
+  if (game.daily) banner('今日のチャレンジ', '#ffc23a'); else banner('開幕！', '#ff6a5a');
+}
+
+/* ----- 盤の場所 ----- */
+let VW = 0, VH = 0, DPR = 1, CS = 50, BX = 0, BY = 0;
+function layout(){
+  DPR = Math.min(2, devicePixelRatio || 1); VW = innerWidth; VH = innerHeight;
+  CV.width = Math.round(VW * DPR); CV.height = Math.round(VH * DPR);
+  CS = Math.floor(Math.min((Math.min(VW, 480) - 16) / COLS, (VH * 0.6) / ROWS));
+  BX = Math.round((VW - CS * COLS) / 2); BY = Math.round(VH - CS * ROWS - 18 - (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sab')) || 0));
+}
+const CV = $('cv'), G = CV.getContext('2d');
+addEventListener('resize', layout); layout();
+
+/* ----- タップ ----- */
+CV.addEventListener('pointerdown', e => {
+  if (mode !== 'play' || busy || paused || !game) return;
+  const c = Math.floor((e.clientX - BX) / CS), r = Math.floor((e.clientY - BY) / CS);
+  if (c < 0 || r < 0 || c >= COLS || r >= ROWS || !grid[r][c]) return;
+  ignite(r, c);
+});
+
+// 火をつける（連鎖の計算と演出）
+async function ignite(r0, c0){
+  busy = true; game.taps++; game.matches--; updHud();
+  const tapped = grid[r0][c0], tapCol = tapped.col;
+  sfx('fuse'); buzz(8);
+  rings.push({x:BX + (c0 + .5) * CS, y:BY + (r0 + .5) * CS, t0:performance.now(), dur:350, col:'255,230,160'});
+  await sleep(120);
+  const done = new Set(), queued = new Set([r0 * COLS + c0]);
+  let wave = [[r0, c0]], w = 0, count = 0, pts = 0;
+  const fever = game.feverLeft > 0 ? 3 : 1;
+  while (wave.length){
+    const next = [];
+    for (const [r, c] of wave){
+      const s = grid[r][c]; if (!s) continue;
+      if (s.wet && w > 0){ s.wet = 0; s.pop = 1; continue; }   // 湿った玉：1回目はかわくだけ
+      done.add(r * COLS + c); count++;
+      const p = (10 + 5 * w) * fever; pts += p;
+      explodeFx(r, c, s, w, p);
+      // つぎに火がつく玉
+      const add = (rr, cc, any) => {
+        if (rr < 0 || cc < 0 || rr >= ROWS || cc >= COLS) return;
+        const k = rr * COLS + cc; if (queued.has(k) || !grid[rr][cc]) return;
+        if (!any && grid[rr][cc].col !== s.col) return;
+        queued.add(k); next.push([rr, cc]);
+      };
+      if (s.sp === 'kiku'){ for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) add(r + dr, c + dc, true); }
+      else if (s.sp === 'sen'){ for (let i = 0; i < COLS; i++) add(r, i, true); for (let i = 0; i < ROWS; i++) add(i, c, true); }
+      else if (s.sp === 'dai'){ for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++) if (Math.abs(dr) + Math.abs(dc) <= 3) add(r + dr, c + dc, true); }
+      else { add(r - 1, c); add(r + 1, c); add(r, c - 1); add(r, c + 1); }
+      if (s.sp){ sfx('special'); shake(6 + (s.sp === 'dai' ? 8 : 3)); flash(.35); }
+    }
+    for (const k of done){ const rr = Math.floor(k / COLS), cc = k % COLS; if (grid[rr][cc]) grid[rr][cc] = null; }
+    if (w > 0 && next.length) sfx('combo', w);
+    if (w >= 2) chainText(w + 1, count);
+    wave = next; w++;
+    // 連鎖が進むほど少しずつ速く（気持ちよく）
+    await sleep(Math.max(55, 150 - w * 12));
+  }
+  const waves = w;
+  // ボーナス：たくさんまとめて消すほど倍率アップ
+  const bonusMul = 1 + Math.floor(count / 5) * 0.1;
+  const gain = Math.round(pts * bonusMul);
+  game.score += gain; game.bestChain = Math.max(game.bestChain, waves); game.maxCount = Math.max(game.maxCount, count);
+  game.log.push(count);
+  scorePop(BX + (c0 + .5) * CS, BY + (r0 + .5) * CS, gain, count, waves);
+  // 大連鎖：スローと光
+  if (count >= 15){ slow(.35, 700); flash(.8); sfx('big'); shake(16); buzz([30, 40, 60]); skyShow(Math.min(6, Math.floor(count / 6)), true); }
+  else if (count >= 6){ sfx('boom'); shake(6); buzz(25); }
+  // 特別な玉が生まれる
+  if (count >= 6 && !grid[r0][c0] && !tapped.sp){   // 特別な玉からの連鎖では、新しい特別な玉はできない
+    const sp = count >= 16 ? 'dai' : count >= 10 ? 'sen' : 'kiku';
+    const s = {col:tapCol, sp, wet:0, y:r0, vy:0, pop:1.6, id:nextId++, born:performance.now()};
+    grid[r0][c0] = s; game.specials++;
+    floatText(BX + (c0 + .5) * CS, BY + (r0 - .3) * CS, `${SP[sp].name}！`, '#ffe07a', 22);
+  }
+  // マッチがもどる
+  const back = count >= 35 ? 3 : count >= 22 ? 2 : count >= 12 ? 1 : 0;
+  if (back){ game.matches += back; game.matchGot += back; sfx('match'); floatText(VW / 2, BY - 140, `🔥マッチ +${back}`, '#ffd04a', 24, true); }
+  // 祭りゲージ → フィーバー
+  if (game.feverLeft > 0) game.feverLeft--;
+  else { game.gauge += count; if (game.gauge >= 60){ game.gauge = 0; startFever(5, '祭りだ！ ×3'); } }
+  await sleep(120);
+  await gravity();
+  // 中盤の山場：夏祭りタイム（特別な玉がふる）
+  if (!game.mid && game.taps >= 30){ game.mid = true; await natsumatsuri(); }
+  // 終盤：フィナーレ（のこりマッチ5本）
+  if (!game.finale && game.matches <= 5 && game.taps >= 20){ game.finale = true; BGM.tempo = 1.25; banner('フィナーレ！', '#ff6a5a'); sfx('fever'); }
+  updHud();
+  if (game.matches <= 0){ await finaleShow(); return; }
+  busy = false;
+}
+function startFever(n, text){ game.feverLeft = n; BGM.tempo = 1.2; banner(text, '#ffc23a'); sfx('fever'); flash(.5); skyShow(4, true); }
+async function natsumatsuri(){
+  banner('夏祭りタイム！', '#ffc23a'); sfx('fever'); flash(.5);
+  // 盤のあちこちに特別な玉をふらせる
+  for (let i = 0; i < 4; i++){
+    const r = Math.floor(game.rng() * ROWS), c = Math.floor(game.rng() * COLS), s = grid[r][c];
+    if (s){ s.sp = ['kiku', 'sen', 'kiku', 'dai'][i]; s.wet = 0; s.pop = 1.6; }
+    await sleep(180); sfx('special');
+  }
+  game.feverLeft = Math.max(game.feverLeft, 4); BGM.tempo = 1.2; skyShow(5, true);
+}
+// 上からつめる・新しい玉がふる
+async function gravity(){
+  for (let c = 0; c < COLS; c++){
+    let write = ROWS - 1;
+    for (let r = ROWS - 1; r >= 0; r--){ const s = grid[r][c]; if (s){ if (write !== r){ grid[write][c] = s; grid[r][c] = null; } write--; } }
+    let k = 0;
+    for (let r = write; r >= 0; r--){ const s = newShell(r); s.y = -1 - k - Math.random() * .3; grid[r][c] = s; k++; }
+  }
+  await sleep(380);
+}
+// マッチがなくなった：盤の特別な玉がぜんぶ打ちあがって、しめの大花火
+async function finaleShow(){
+  banner('しめの大花火', '#ffc23a');
+  let bonus = 0;
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++){
+    const s = grid[r][c]; if (!s || !s.sp) continue;
+    const p = s.sp === 'dai' ? 500 : s.sp === 'sen' ? 300 : 150; bonus += p;
+    explodeFx(r, c, s, 6, p); grid[r][c] = null; sfx('boom'); shake(8); await sleep(260);
+  }
+  if (bonus){ game.score += bonus; floatText(VW / 2, BY - 30, `しめボーナス +${bonus}`, '#ffe07a', 28, true); }
+  skyShow(8, true); sfx('big'); flash(.9); shake(18);
+  await sleep(2200);
+  gameOver();
+}
+
+/* =========================================================
+   演出：パーティクル・空の花火・文字・光
+   ========================================================= */
+let parts = [], rockets = [], texts = [], rings = [], shakeP = 0, flashA = 0, slowT = 0, slowK = 1, banners = [];
+function shake(p){ shakeP = Math.max(shakeP, p); }
+function flash(a){ flashA = Math.max(flashA, a); }
+function slow(k, ms){ slowK = k; slowT = performance.now() + ms; }
+function explodeFx(r, c, s, w, p){
+  const x = BX + (c + .5) * CS, y = BY + (r + .5) * CS, col = COLORS[s.col];
+  sfx('pop', w + (s.sp ? 3 : 0));
+  const n = s.sp ? 26 : 12;
+  for (let i = 0; i < n; i++){
+    const a = Math.random() * Math.PI * 2, sp = (s.sp ? 160 : 90) + Math.random() * 160;
+    parts.push({x, y, vx:Math.cos(a) * sp, vy:Math.sin(a) * sp, g:180, life:.55 + Math.random() * .35, age:0, col:Math.random() < .3 ? '#fff' : col.a, sz:2 + Math.random() * 2.5, trail:true});
+  }
+  rings.push({x, y, t0:performance.now(), dur:320, col:hex2rgb(col.a)});
+  if (p && (w >= 2 || s.sp)) floatText(x, y, '+' + p, '#fff', 12 + Math.min(10, w), false, 500);
+  // 空にも花火（連鎖の何個かに1回）
+  if (s.sp || w % 2 === 0) launch(x, y, col, s.sp ? 1.6 : 0.8 + Math.min(1, w * 0.12));
+}
+function hex2rgb(h){ const n = parseInt(h.slice(1), 16); return `${n >> 16},${(n >> 8) & 255},${n & 255}`; }
+function launch(x, y, col, size){
+  if (rockets.length > 14) return;
+  const tx = clamp(x + (Math.random() - .5) * 160, 30, VW - 30), ty = 60 + Math.random() * Math.max(60, BY - 160);
+  rockets.push({x, y, x0:x, y0:y, tx, ty, t0:performance.now(), dur:520 + Math.random() * 200, col, size});
+  if (Math.random() < .4) sfx('whistle');
+}
+function skyShow(n, big){
+  const cols = COLORS;
+  for (let i = 0; i < n; i++) setTimeout(() => launch(VW * (.15 + Math.random() * .7), BY, cols[Math.floor(Math.random() * cols.length)], big ? 1.8 + Math.random() : 1), i * 140 * FAST);
+}
+function burstSky(x, y, col, size){
+  const n = Math.round(50 * size), sp = 120 * size + 60;
+  const kind = Math.random();
+  for (let i = 0; i < n; i++){
+    const a = i / n * Math.PI * 2 + Math.random() * .1, v = sp * (kind < .5 ? (.85 + Math.random() * .15) : Math.random());
+    parts.push({x, y, vx:Math.cos(a) * v, vy:Math.sin(a) * v, g:40, life:1.3 + Math.random() * .6, age:0, col:Math.random() < .25 ? '#fff6d0' : col.a, sz:1.6 + size, trail:true, sky:true, drag:.985});
+  }
+  rings.push({x, y, t0:performance.now(), dur:500, col:hex2rgb(col.a), big:size * 50});
+  if (FAST === 1 && AC && SV.se) noise(.35, .12 * Math.min(1.5, size), 'lowpass', 600);   // 遠くのドーン
+}
+function floatText(x, y, txt, col, size, screen, dur){ texts.push({x, y, txt, col, size, t0:performance.now(), dur:dur || 1100}); }
+function chainText(n, count){ texts.push({x:VW / 2, y:BY - 40, txt:`${n}連鎖！`, col:n >= 8 ? '#ffe07a' : '#fff', size:30 + Math.min(26, n * 2.5), t0:performance.now(), dur:700, chain:true}); }
+function scorePop(x, y, gain, count, waves){
+  texts.push({x:clamp(x, 80, VW - 80), y:Math.max(BY - 80, y - 30), txt:`+${gain}`, col:'#ffe07a', size:24 + Math.min(24, count), t0:performance.now(), dur:1100});
+  if (count >= 10) texts.push({x:VW / 2, y:BY - 90, txt:count >= 30 ? 'ドドドーン！！' : count >= 18 ? 'ドドーン！' : 'ドーン！', col:'#ff8a5a', size:40, t0:performance.now() + 150, dur:1000});
+}
+function banner(t, col){ banners.push({t, col, t0:performance.now(), dur:1500}); }
+
+/* ----- 毎フレーム ----- */
+let lastT = 0;
+const stars = Array.from({length:90}, () => ({x:Math.random(), y:Math.random() * .7, s:Math.random(), p:Math.random() * 6}));
+function frame(now){
+  requestAnimationFrame(frame);
+  if (!innerWidth || !innerHeight) return;
+  if (VW !== innerWidth || VH !== innerHeight || !CV.width) layout();
+  let dt = Math.min(.05, (now - (lastT || now)) / 1000); lastT = now;
+  if (now > slowT) slowK = lerp(slowK, 1, dt * 5);
+  const sdt = dt * slowK;
+  const g = G; g.setTransform(DPR, 0, 0, DPR, 0, 0);
+  // 夜空
+  const sky = g.createLinearGradient(0, 0, 0, VH); sky.addColorStop(0, '#05071a'); sky.addColorStop(.55, '#141a4a'); sky.addColorStop(1, '#2a1a3a');
+  g.fillStyle = sky; g.fillRect(0, 0, VW, VH);
+  for (const s of stars){ g.fillStyle = `rgba(255,255,240,${.25 + .5 * Math.abs(Math.sin(now * .001 + s.p)) * s.s})`; g.fillRect(s.x * VW, s.y * VH, 1.5, 1.5); }
+  const fev = game && game.feverLeft > 0;
+  if (fev){ const fg = g.createLinearGradient(0, 0, 0, VH * .6); fg.addColorStop(0, 'rgba(255,170,60,0)'); fg.addColorStop(1, `rgba(255,120,60,${.15 + .08 * Math.sin(now * .006)})`); g.fillStyle = fg; g.fillRect(0, 0, VW, VH * .6); }
+  // 山なみと川
+  g.fillStyle = '#0c0e26'; g.beginPath(); g.moveTo(0, BY - 30); for (let x = 0; x <= VW; x += 20) g.lineTo(x, BY - 60 - Math.sin(x * .012) * 18 - Math.sin(x * .031) * 8); g.lineTo(VW, BY); g.lineTo(0, BY); g.fill();
+  // ちょうちん（盤の上）
+  const ly = BY - 22;
+  g.strokeStyle = 'rgba(30,20,10,.9)'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(0, ly - 12); g.quadraticCurveTo(VW / 2, ly + 2, VW, ly - 12); g.stroke();
+  for (let i = 0; i < 9; i++){ const x = (i + .5) * VW / 9, y = ly - 12 + Math.sin((i + .5) / 9 * Math.PI) * 12, sw = Math.sin(now * .002 + i) * .06;
+    g.save(); g.translate(x, y); g.rotate(sw);
+    const lg = g.createRadialGradient(0, 10, 2, 0, 10, 26); lg.addColorStop(0, `rgba(255,160,80,${fev ? .5 : .3})`); lg.addColorStop(1, 'rgba(255,160,80,0)'); g.fillStyle = lg; g.fillRect(-26, -16, 52, 52);
+    g.fillStyle = '#e8402e'; ell(g, 0, 10, 8, 10); g.fill(); g.fillStyle = '#2a1408'; g.fillRect(-5, -1, 10, 2.5); g.fillRect(-5, 19, 10, 2.5); g.restore(); }
+  // 空の花火（ロケット）
+  for (let i = rockets.length - 1; i >= 0; i--){
+    const k = rockets[i], p = (now - k.t0) / k.dur;
+    if (p >= 1){ rockets.splice(i, 1); burstSky(k.tx, k.ty, k.col, k.size); continue; }
+    const e = 1 - Math.pow(1 - p, 2), x = lerp(k.x0, k.tx, e), y = lerp(k.y0, k.ty, e);
+    g.fillStyle = 'rgba(255,230,180,.9)'; ell(g, x, y, 2, 2); g.fill();
+    g.strokeStyle = 'rgba(255,200,120,.35)'; g.lineWidth = 2; g.beginPath(); g.moveTo(x, y); g.lineTo(lerp(k.x0, k.tx, Math.max(0, e - .08)), lerp(k.y0, k.ty, Math.max(0, e - .08))); g.stroke();
+  }
+  // 盤
+  const sx = shakeP ? (Math.random() - .5) * shakeP : 0, sy = shakeP ? (Math.random() - .5) * shakeP : 0; shakeP *= .86; if (shakeP < .3) shakeP = 0;
+  g.save(); g.translate(sx, sy);
+  const bw = CS * COLS, bh = CS * ROWS;
+  if (game){ g.fillStyle = 'rgba(10,8,30,.6)'; g.beginPath(); g.roundRect ? g.roundRect(BX - 8, BY - 8, bw + 16, bh + 16, 16) : g.rect(BX - 8, BY - 8, bw + 16, bh + 16); g.fill();
+  g.strokeStyle = fev ? `rgba(255,194,58,${.6 + .4 * Math.sin(now * .01)})` : 'rgba(255,194,58,.35)'; g.lineWidth = 2; g.stroke(); }
+  g.save(); g.beginPath(); g.rect(BX - 6, BY - 6, bw + 12, bh + 12); g.clip();   // 玉は盤の中だけに描く（上から落ちてくる玉が空に見えないように）
+  if (game) for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++){
+    const s = grid[r] && grid[r][c]; if (!s) continue;
+    // 落ちる動き（本当の時間で）
+    if (s.y < r){ s.vy += 40 * sdt; s.y = Math.min(r, s.y + s.vy * sdt); if (s.y >= r){ s.y = r; if (s.vy > 6) s.pop = Math.max(s.pop, .25); s.vy = 0; } }
+    else s.y = r;
+    s.pop = Math.max(0, s.pop - dt * 3);
+    drawShell(g, BX + (c + .5) * CS, BY + (s.y + .5) * CS, CS * .44 * (1 + s.pop * .25), s, now);
+  }
+  g.restore();
+  // 輪
+  for (let i = rings.length - 1; i >= 0; i--){ const R = rings[i], p = (now - R.t0) / R.dur; if (p >= 1){ rings.splice(i, 1); continue; }
+    g.strokeStyle = `rgba(${R.col},${1 - p})`; g.lineWidth = 3 * (1 - p) + 1; ell(g, R.x, R.y, (R.big || CS * .5) * p + 4, (R.big || CS * .5) * p + 4); g.stroke(); }
+  g.restore();
+  // パーティクル（あとが残る）
+  g.globalCompositeOperation = 'lighter';
+  for (let i = parts.length - 1; i >= 0; i--){
+    const q = parts[i]; q.age += sdt; if (q.age >= q.life){ parts.splice(i, 1); continue; }
+    if (q.drag){ q.vx *= q.drag; q.vy *= q.drag; }
+    q.vy += q.g * sdt; const ox = q.x, oy = q.y; q.x += q.vx * sdt; q.y += q.vy * sdt;
+    const a = 1 - q.age / q.life;
+    g.strokeStyle = q.col; g.globalAlpha = a * (q.sky ? .9 : 1); g.lineWidth = q.sz;
+    g.beginPath(); g.moveTo(ox - q.vx * sdt * 2, oy - q.vy * sdt * 2); g.lineTo(q.x, q.y); g.stroke();
+  }
+  g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+  // 文字
+  g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
+  for (let i = texts.length - 1; i >= 0; i--){
+    const t = texts[i], p = (now - t.t0) / t.dur; if (p >= 1){ texts.splice(i, 1); continue; } if (p < 0) continue;
+    const sc = p < .15 ? .4 + p / .15 * .8 : 1.2 - Math.min(.2, (p - .15)), y = t.y - p * (t.chain ? 10 : 28);
+    g.save(); g.translate(t.x, y); g.scale(sc, sc); g.globalAlpha = p > .75 ? (1 - p) / .25 : 1;
+    g.font = `800 ${t.size}px 'M PLUS Rounded 1c', sans-serif`; g.lineWidth = t.size * .18; g.strokeStyle = 'rgba(40,10,30,.9)'; g.strokeText(t.txt, 0, 0); g.fillStyle = t.col; g.fillText(t.txt, 0, 0); g.restore();
+  }
+  // 大きな帯の文字
+  for (let i = banners.length - 1; i >= 0; i--){
+    const b = banners[i], p = (now - b.t0) / b.dur; if (p >= 1){ banners.splice(i, 1); continue; }
+    const x = p < .2 ? lerp(-VW / 2, VW / 2, p / .2) : p > .8 ? lerp(VW / 2, VW * 1.5, (p - .8) / .2) : VW / 2;
+    g.fillStyle = 'rgba(10,8,30,.7)'; g.fillRect(0, VH * .32 - 34, VW, 68);
+    g.font = "800 38px 'M PLUS Rounded 1c', sans-serif"; g.lineWidth = 7; g.strokeStyle = 'rgba(60,10,20,.95)'; g.strokeText(b.t, x, VH * .32); g.fillStyle = b.col; g.fillText(b.t, x, VH * .32);
+  }
+  if (flashA > 0){ g.fillStyle = `rgba(255,245,220,${flashA * .6})`; g.fillRect(0, 0, VW, VH); flashA = Math.max(0, flashA - dt * 2.5); }
+  // スコアの数字が少しずつ上がる
+  if (game && game.shown !== game.score){ game.shown = game.shown + Math.ceil((game.score - game.shown) * Math.min(1, dt * 8)); if (Math.abs(game.score - game.shown) < 2) game.shown = game.score; $('hScore').textContent = game.shown.toLocaleString(); }
+}
+function drawShell(g, x, y, r, s, now){
+  const col = COLORS[s.col];
+  g.fillStyle = 'rgba(0,0,0,.35)'; ell(g, x + r * .12, y + r * .2, r, r * .95); g.fill();
+  const gr = g.createRadialGradient(x - r * .35, y - r * .4, r * .1, x, y, r);
+  gr.addColorStop(0, '#fff'); gr.addColorStop(.25, col.a); gr.addColorStop(1, col.b);
+  g.fillStyle = gr; ell(g, x, y, r, r); g.fill();
+  // 紙のすじ（花火玉らしく）
+  g.strokeStyle = 'rgba(0,0,0,.18)'; g.lineWidth = 1; g.beginPath(); g.moveTo(x - r, y); g.quadraticCurveTo(x, y + r * .3, x + r, y); g.stroke();
+  g.beginPath(); g.moveTo(x, y - r); g.quadraticCurveTo(x - r * .25, y, x, y + r); g.stroke();
+  // 導火線
+  g.strokeStyle = '#3a2410'; g.lineWidth = 2; g.beginPath(); g.moveTo(x + r * .1, y - r * .95); g.quadraticCurveTo(x + r * .35, y - r * 1.25, x + r * .2, y - r * 1.35); g.stroke();
+  if (s.sp){
+    const tw = .5 + .5 * Math.sin(now * .008 + s.id);
+    g.save(); g.globalCompositeOperation = 'lighter'; const hg = g.createRadialGradient(x, y, r * .5, x, y, r * 1.5); hg.addColorStop(0, `rgba(255,230,140,${.25 + tw * .25})`); hg.addColorStop(1, 'rgba(255,230,140,0)'); g.fillStyle = hg; ell(g, x, y, r * 1.5, r * 1.5); g.fill(); g.restore();
+    g.fillStyle = '#fff6d0'; g.strokeStyle = 'rgba(80,40,0,.8)'; g.lineWidth = 1.5;
+    if (s.sp === 'kiku'){ g.beginPath(); for (let i = 0; i < 16; i++){ const a = i / 16 * Math.PI * 2, rr = i % 2 ? r * .25 : r * .62; g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } g.closePath(); g.fill(); g.stroke(); }
+    else if (s.sp === 'sen'){ g.lineWidth = r * .16; g.strokeStyle = '#fff6d0'; g.beginPath(); g.moveTo(x - r * .7, y); g.lineTo(x + r * .7, y); g.moveTo(x, y - r * .7); g.lineTo(x, y + r * .7); g.stroke(); g.fillStyle = '#fff'; ell(g, x, y, r * .18, r * .18); g.fill(); }
+    else { g.strokeStyle = '#ffd04a'; g.lineWidth = r * .14; ell(g, x, y, r * .82, r * .82); g.stroke(); g.fillStyle = '#fff6d0'; g.font = `800 ${r * .9}px 'M PLUS Rounded 1c'`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('大', x, y + r * .04); }
+  }
+  if (s.wet){ g.fillStyle = 'rgba(120,180,255,.55)'; ell(g, x, y, r, r); g.fill(); g.fillStyle = '#d8ecff'; for (const [dx, dy] of [[-.35, -.1], [.2, .25], [.35, -.35]]){ g.beginPath(); const px = x + dx * r, py = y + dy * r; g.moveTo(px, py - r * .2); g.quadraticCurveTo(px + r * .13, py, px, py + r * .08); g.quadraticCurveTo(px - r * .13, py, px, py - r * .2); g.fill(); } }
+}
+requestAnimationFrame(frame);
+
+/* =========================================================
+   表示・画面
+   ========================================================= */
+function updHud(){
+  if (!game) return;
+  $('hSub').textContent = `${game.taps}発目　最大${game.bestChain}連鎖${game.daily ? '　📅' : ''}`;
+  $('hMatch').textContent = `🔥 ${game.matches}`;
+  $('hFever').textContent = game.feverLeft > 0 ? `祭り ×3 あと${game.feverLeft}発` : `祭りゲージ ${Math.min(100, Math.round(game.gauge / 60 * 100))}%`;
+}
+function showLayer(id){ document.querySelectorAll('.layer').forEach(l => l.classList.toggle('on', l.id === id)); }
+function openModal(h){ $('modalBody').innerHTML = h; $('modal').classList.add('on'); }
+function closeModal(){ $('modal').classList.remove('on'); }
+function todayKey(){ const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+function dailySeed(){ let h = 11; for (const c of todayKey()) h = (h * 31 + c.charCodeAt(0)) | 0; return h; }
+function gameOver(){
+  mode = 'result'; busy = false; BGM.tempo = 1;
+  $('hud').classList.remove('on'); $('pauseBtn').style.display = 'none';
+  const g = game, mins = (performance.now() - g.start) / 60000;
+  let newBest = false, dailyNote = '';
+  if (!g.daily){ if (g.score > SV.best){ SV.best = g.score; newBest = true; } }
+  else { const k = todayKey(), d = SV.daily[k]; if (!d){ SV.daily[k] = {score:g.score, chain:g.bestChain}; dailyNote = '今日の記録として残したよ！'; } else if (g.score > d.score){ d.score = g.score; d.chain = g.bestChain; dailyNote = '今日の自己ベスト更新！'; } else dailyNote = `今日の記録：${d.score.toLocaleString()}点`; }
+  const newChain = g.bestChain > SV.bestChain; if (newChain) SV.bestChain = g.bestChain;
+  save();
+  sfx(newBest ? 'best' : 'end');
+  $('resCard').innerHTML = `<div class="note">${g.daily ? `📅 今日のチャレンジ ${todayKey()}` : 'おつかれさま！'}</div>
+    <div class="big">${g.score.toLocaleString()}</div><div style="font-weight:800">点 ${newBest ? '<span class="newb">🎉 自己ベスト！</span>' : ''}</div>
+    <div class="stats"><div>打ち上げた回数</div><div class="v">${g.taps}発</div><div>最大連鎖</div><div class="v">${g.bestChain}連鎖${newChain ? ' 🆕' : ''}</div>
+    <div>いちどに消した数</div><div class="v">${g.maxCount}個</div><div>作った特別な玉</div><div class="v">${g.specials}個</div><div>もどったマッチ</div><div class="v">${g.matchGot}本</div><div>あそんだ時間</div><div class="v">${mins.toFixed(1)}分</div></div>
+    <div class="note">ランク「${rankOf(Math.max(SV.best, g.score))}」　自己ベスト ${SV.best.toLocaleString()}点${dailyNote ? '<br>' + dailyNote : ''}</div>
+    <div class="row" style="margin-top:12px"><button class="btn gold small" id="rShare">📸 結果カード</button><button class="btn dark small" id="rCopy">📋 コピー</button></div>
+    <div class="row" style="margin-top:10px"><button class="btn" id="rAgain">🎆 もう1回</button></div>
+    <div class="row" style="margin-top:8px"><button class="btn dark small" id="rHome">タイトルへ</button></div>`;
+  showLayer('result');
+  $('rAgain').onclick = () => { sfx('tap'); newGame(g.daily); };
+  $('rHome').onclick = () => { sfx('tap'); toTitle(); };
+  $('rCopy').onclick = async () => { try { await navigator.clipboard.writeText(shareText()); $('rCopy').textContent = 'コピーした！'; } catch(e){ openModal(`<h3>この文字をコピーしてね</h3><textarea style="width:100%;height:120px;font:inherit">${shareText()}</textarea><div class="row"><button class="btn dark small" id="mc">とじる</button></div>`); $('mc').onclick = closeModal; } };
+  $('rShare').onclick = shareCard;
+}
+function shareText(){
+  const g = game;
+  return `【ドドン花火】${g.daily ? '今日のチャレンジ ' + todayKey() : ''}\n🎆 ${g.score.toLocaleString()}点\n最大${g.bestChain}連鎖・いちどに${g.maxCount}個\nランク「${rankOf(Math.max(SV.best, g.score))}」\n#ドドン花火 ${location.origin + location.pathname}`;
+}
+function shareCard(){
+  sfx('tap');
+  const g = game, c = document.createElement('canvas'); c.width = 600; c.height = 760; const x = c.getContext('2d');
+  const bg = x.createLinearGradient(0, 0, 0, 760); bg.addColorStop(0, '#05071a'); bg.addColorStop(1, '#2a1a3a'); x.fillStyle = bg; x.fillRect(0, 0, 600, 760);
+  x.globalCompositeOperation = 'lighter';
+  for (let k = 0; k < 6; k++){ const cx = 80 + Math.random() * 440, cy = 120 + Math.random() * 300, col = COLORS[k % COLORS.length].a, n = 60;
+    for (let i = 0; i < n; i++){ const a = i / n * Math.PI * 2, r = 50 + Math.random() * 40; x.strokeStyle = col; x.globalAlpha = .7; x.lineWidth = 2.5; x.beginPath(); x.moveTo(cx + Math.cos(a) * r * .3, cy + Math.sin(a) * r * .3); x.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); x.stroke(); } }
+  x.globalAlpha = 1; x.globalCompositeOperation = 'source-over';
+  x.textAlign = 'center'; x.lineJoin = 'round';
+  const big = (t, y, s, col) => { x.font = `800 ${s}px 'M PLUS Rounded 1c', sans-serif`; x.lineWidth = s * .16; x.strokeStyle = '#7a1420'; x.strokeText(t, 300, y); x.fillStyle = col; x.fillText(t, 300, y); };
+  big('ドドン花火', 90, 64, '#fff');
+  x.fillStyle = '#ffc23a'; x.font = "800 26px 'M PLUS Rounded 1c', sans-serif"; x.fillText(g.daily ? `今日のチャレンジ ${todayKey()}` : 'きろく', 300, 150);
+  big(`${g.score.toLocaleString()}点`, 520, 84, '#ffe07a');
+  x.fillStyle = '#fff6e0'; x.font = "800 28px 'M PLUS Rounded 1c', sans-serif";
+  x.fillText(`最大${g.bestChain}連鎖・いちどに${g.maxCount}個`, 300, 590); x.fillText(`ランク「${rankOf(Math.max(SV.best, g.score))}」`, 300, 636);
+  x.fillStyle = '#b8b0d8'; x.font = "800 22px 'M PLUS Rounded 1c', sans-serif"; x.fillText('#ドドン花火', 300, 720);
+  openModal(`<h3 style="margin:0 0 8px">📸 結果カード</h3><div style="text-align:center"><img id="shareImg" src="${c.toDataURL('image/png')}" alt="結果カード"></div><div class="note" style="margin:8px 0">長押しで保存できるよ。本名や学校の名前は書かないでね</div><div class="row"><button class="btn dark small" id="mc">とじる</button></div>`);
+  $('mc').onclick = closeModal;
+}
+function toTitle(){
+  mode = 'title'; game = null; busy = false; grid = [];
+  $('hud').classList.remove('on'); $('pauseBtn').style.display = 'none';
+  $('tBest').textContent = `🏆 ベスト ${SV.best.toLocaleString()}点`; $('tRank').textContent = `「${rankOf(SV.best)}」`;
+  $('bSnd').textContent = SV.se ? '🔊' : '🔇';
+  const d = SV.daily[todayKey()]; $('bDaily').textContent = d ? `📅 今日のチャレンジ（${d.score.toLocaleString()}点）` : '📅 今日のチャレンジ';
+  showLayer('title');
+}
+function howTo(first){
+  openModal(`<h3 style="margin:0 0 8px">❓ ルール</h3><div class="how">
+    ① 花火玉を<b>タップ</b>すると爆発！<br>② となりの<b>同じ色</b>の玉に火がうつって<b>連鎖</b>する<br>③ たくさん消すほど、連鎖が長いほど高得点<br>
+    ・6個以上でその場所に<b>特別な玉</b>：🌼菊玉（まわり8マス）・✚線香玉（たて横1列）・大玉（広いはんい）。<b>色はかんけいなく</b>火がつくので、別の色にもつながる！<br>
+    ・タップするとマッチ🔥が1本へる。<b>12個以上でマッチがもどる</b>（22個で2本・35個で3本）<br>
+    ・祭りゲージがたまると<b>×3</b>の祭り。30発目で「夏祭りタイム」、のこり5本で「フィナーレ」<br>
+    ・💧湿った玉は1回目の火ではかわくだけ<br>・マッチがなくなると、盤の特別な玉が「しめの大花火」でボーナスに</div>
+    <div class="row" style="margin-top:12px"><button class="btn" id="mc">${first ? 'やってみる！' : 'とじる'}</button></div>`);
+  $('mc').onclick = () => { closeModal(); sfx('tap'); if (first){ SV.how = true; save(); newGame(false); } };
+}
+$('bPlay').onclick = () => { sfx('tap'); if (!SV.how) howTo(true); else newGame(false); };
+$('bDaily').onclick = () => { sfx('tap'); newGame(true); };
+$('bHow').onclick = () => { sfx('tap'); howTo(false); };
+$('bRec').onclick = () => { sfx('tap'); const days = Object.entries(SV.daily).sort().slice(-5).reverse();
+  openModal(`<h3 style="margin:0 0 8px">🏆 記録</h3><div class="stats"><div>自己ベスト</div><div class="v">${SV.best.toLocaleString()}点</div><div>最大連鎖</div><div class="v">${SV.bestChain}連鎖</div><div>あそんだ回数</div><div class="v">${SV.plays}回</div><div>ランク</div><div class="v">${rankOf(SV.best)}</div></div>
+    <div class="note">ランク：${RANKS.map(r => r[1] + (r[0] ? `（${r[0].toLocaleString()}）` : '')).join(' → ')}</div>
+    ${days.length ? `<div class="note" style="margin-top:8px">今日のチャレンジ：<br>${days.map(([d, v]) => `${d}　${v.score.toLocaleString()}点`).join('<br>')}</div>` : ''}
+    <div class="row" style="margin-top:12px"><button class="btn dark small" id="mc">とじる</button></div>`); $('mc').onclick = closeModal; };
+$('bSnd').onclick = () => { SV.se = !SV.se; SV.bgm = SV.se; save(); if (SV.bgm) BGM.start(); else BGM.stop(); sfx('tap'); toTitle(); };
+$('pauseBtn').onclick = () => { sfx('tap'); paused = true;
+  openModal(`<h3 style="margin:0 0 10px">Ⅱ ひと休み</h3><div class="row"><button class="btn" id="mR">つづける</button></div><div class="row" style="margin-top:8px"><button class="btn dark small" id="mQ">やめてタイトルへ</button></div>`);
+  $('mR').onclick = () => { closeModal(); paused = false; }; $('mQ').onclick = () => { closeModal(); paused = false; toTitle(); }; };
+
+// タイトルの夜空にも花火
+setInterval(() => { if (mode === 'title' && document.visibilityState === 'visible') launch(VW * (.2 + Math.random() * .6), VH, COLORS[Math.floor(Math.random() * COLORS.length)], 1 + Math.random()); }, 900);
+window.DD = {get game(){ return game; }, get grid(){ return grid; }, get busy(){ return busy; }, ignite, newGame, SV, COLS, ROWS};
+toTitle();
+</script>
+</body>
+</html>
