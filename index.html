@@ -119,6 +119,57 @@ if (/^#move=/.test(location.hash)) location.replace("/starfall/" + location.hash
     .btn.itch { background: #ffffff12; color: var(--text); border: 1px solid #ffffff2a; font-weight: 700; }
     .hero .btn.play { font-size: 18px; padding: 13px 26px; font-family: 'Chakra Petch', sans-serif; letter-spacing: 2px; }
 
+    /* ===== FUTSAL STRIKE の特大カード ===== */
+    .fs {
+      position: relative; display: grid; grid-template-columns: 1.5fr 1fr;
+      margin: 16px 0 8px; border-radius: 22px; overflow: hidden;
+      background: radial-gradient(120% 140% at 100% 0%, #1d4ed8 0%, #0b1a4a 45%, #070b1a 100%);
+      border: 1px solid #60a5fa44;
+      box-shadow: 0 20px 60px #0008, 0 0 40px #2563eb33;
+    }
+    .fs-show { position: relative; display: block; min-height: 300px; overflow: hidden; background: #050814; }
+    .fs-show figure { position: absolute; inset: 0; margin: 0; opacity: 0; transition: opacity 1s ease; }
+    .fs-show figure.on { opacity: 1; }
+    .fs-show img { width: 100%; height: 100%; object-fit: cover; display: block; transform: scale(1.02); }
+    /* ゆっくりズームする（テレビ中継っぽく） */
+    .fs-show figure.on img { animation: kenburns 5.5s ease-out forwards; }
+    @keyframes kenburns { from { transform: scale(1.02); } to { transform: scale(1.12) translate(-1.5%, -1%); } }
+    .fs-show::after {   /* 下を暗くして字を読みやすく */
+      content: ""; position: absolute; inset: 0; pointer-events: none;
+      background: linear-gradient(to top, #000a 0%, transparent 38%), linear-gradient(to right, transparent 70%, #070b1a 100%);
+    }
+    .fs-show figcaption {
+      position: absolute; left: 16px; bottom: 14px; z-index: 1;
+      font-weight: 800; font-size: 17px; text-shadow: 0 2px 8px #000;
+    }
+    .fs-live {
+      position: absolute; top: 12px; left: 12px; z-index: 2;
+      font-family: 'Chakra Petch', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: 2px;
+      background: #dc2626; color: #fff; padding: 3px 10px; border-radius: 6px;
+    }
+    .fs-dots { position: absolute; right: 16px; bottom: 18px; z-index: 2; display: flex; gap: 6px; }
+    .fs-dots i { width: 8px; height: 8px; border-radius: 50%; background: #ffffff55; transition: background .3s, width .3s; }
+    .fs-dots i.on { background: #fff; width: 20px; border-radius: 4px; }
+    .fs-body { padding: 24px 24px 22px; display: flex; flex-direction: column; gap: 10px; }
+    .fs-kicker { font-family: 'Chakra Petch', sans-serif; color: #93c5fd; letter-spacing: 3px; font-size: 13px; }
+    .fs-title {
+      margin: 0; font-family: 'Orbitron', sans-serif; font-weight: 900; letter-spacing: 2px;
+      font-size: clamp(30px, 4.2vw, 44px); line-height: 1.05; font-style: italic;
+      background: linear-gradient(180deg, #fff 30%, #93c5fd); -webkit-background-clip: text; background-clip: text; color: transparent;
+      filter: drop-shadow(0 0 18px #3b82f699);
+    }
+    .fs-catch { margin: 0; font-family: 'Dela Gothic One', sans-serif; font-size: 18px; line-height: 1.45; color: #fde047; }
+    .fs-points { list-style: none; margin: 2px 0 0; padding: 0; display: grid; gap: 8px; }
+    .fs-points li { background: #ffffff0d; border: 1px solid #ffffff14; border-radius: 12px; padding: 8px 12px; }
+    .fs-points b { display: block; font-size: 15px; }
+    .fs-points span { display: block; font-size: 13px; color: #b6c3e0; }
+    .fs-tags { display: flex; gap: 6px; flex-wrap: wrap; font-size: 12px; font-weight: 700; }
+    .fs-tags span { padding: 2px 8px; border-radius: 6px; background: #3b82f622; color: #bfdbfe; }
+    .btn.fs-play {
+      background: linear-gradient(180deg, #4ade80, #16a34a); color: #052e14; font-size: 18px; padding: 12px 26px;
+      box-shadow: 0 4px 0 #14532d, 0 0 24px #22c55e66;
+    }
+
     /* ===== ならびかえ（ジャンルのボタン） ===== */
     .section-head { display: flex; align-items: end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 30px 0 12px; }
     .section-head h2 { font-family: 'Dela Gothic One', sans-serif; font-weight: 400; margin: 0; font-size: 24px; }
@@ -171,6 +222,16 @@ if (/^#move=/.test(location.hash)) location.replace("/starfall/" + location.hash
       .hero .body { padding: 16px 18px 18px; gap: 8px; }
       .hero .kicker { display: none; }
       .hero .moved { font-size: 12px; padding: 6px 10px; }
+      .fs { grid-template-columns: 1fr; }
+      .fs-show { min-height: 0; aspect-ratio: 16 / 9; }
+      .fs-show::after { background: linear-gradient(to top, #000a 0%, transparent 40%); }
+      .fs-show figcaption { font-size: 15px; left: 12px; bottom: 10px; }
+      .fs-dots { right: 12px; bottom: 14px; }
+      .fs-body { padding: 16px 18px 18px; }
+      .fs-points { grid-template-columns: 1fr 1fr; gap: 6px; }
+      .fs-points li { padding: 7px 9px; }
+      .fs-points b { font-size: 13px; }
+      .fs-points span { font-size: 12px; }
       .grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); gap: 12px; }
       .section-head { margin-top: 24px; }
     }
@@ -200,6 +261,35 @@ if (/^#move=/.test(location.hash)) location.replace("/starfall/" + location.hash
         <div class="btns">
           <a class="btn play" href="/starfall/">▶ PLAY</a>
           <a class="btn itch" href="https://nixoroot.itch.io/starfall" target="_blank" rel="noopener">itch.io</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- FUTSAL STRIKE の特大カード（本物のゲーム画面のスライドショー） -->
+    <section class="fs" aria-label="FUTSAL STRIKE">
+      <a class="fs-show" href="/futsal/" aria-label="FUTSAL STRIKE を遊ぶ">
+        <!-- 画像は ~/Desktop の公開版 FUTSAL を CPU どうしで動かして撮ったもの（img/futsal-1〜4.jpg） -->
+        <figure class="on"><img src="img/futsal-1.jpg" alt="キーパーが横っ飛びでシュートを止める場面" width="1200" height="675"><figcaption>🧤 キーパーの横っ飛び！</figcaption></figure>
+        <figure><img src="img/futsal-2.jpg" alt="ゴール前にせめこむ選手たち" width="1200" height="675" loading="lazy"><figcaption>⚡ 一気にゴール前へ！</figcaption></figure>
+        <figure><img src="img/futsal-3.jpg" alt="観客でいっぱいの夜のアリーナ" width="1200" height="675" loading="lazy"><figcaption>🏟 満員の夜のアリーナ</figcaption></figure>
+        <figure><img src="img/futsal-4.jpg" alt="ボールを追う選手を低い目線で見た場面" width="1200" height="675" loading="lazy"><figcaption>👟 ボールを追って全力ダッシュ</figcaption></figure>
+        <span class="fs-live">● 3D</span>
+        <span class="fs-dots" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i></span>
+      </a>
+      <div class="fs-body">
+        <div class="fs-kicker">3D FUTSAL GAME</div>
+        <h2 class="fs-title">FUTSAL STRIKE</h2>
+        <p class="fs-catch">走って、つないで、決めろ！<br>スマホで遊べる 本格3Dフットサル。</p>
+        <ul class="fs-points">
+          <li><b>⚽ 本格3Dの試合</b><span>パス・シュート・フェイント・ヘディング。FK・PK の読み合いも</span></li>
+          <li><b>🌐 友だちとオンライン対戦</b><span>部屋コードを送るだけで、すぐ対戦できる</span></li>
+          <li><b>🎰 ガチャでチームづくり</b><span>レジェンド選手や監督を集めて、自分だけのチームに</span></li>
+          <li><b>🧑 選手になりきる</b><span>一人称の目線でプレー。キャリアで世界をめざせ</span></li>
+        </ul>
+        <div class="fs-tags"><span>無料</span><span>スマホ・PC</span><span>登録なし</span><span>⏱ 1試合 5〜10分</span></div>
+        <div class="btns">
+          <a class="btn fs-play" href="/futsal/">⚽ 今すぐ遊ぶ</a>
+          <a class="btn itch" href="https://nixoroot.itch.io/futsal-strike" target="_blank" rel="noopener">itch.io</a>
         </div>
       </div>
     </section>
@@ -244,6 +334,7 @@ if (/^#move=/.test(location.hash)) location.replace("/starfall/" + location.hash
 //   added  : 公開した日。この日から NEW_DAYS 日のあいだ「NEW」マークが出る
 //   img    : 画像のサムネイルを使うときは、そのファイル（例 "thumbs/xxx.png"）
 //   emoji, color : 絵がないときの自動サムネイル用
+//   featured : true なら、一覧には出さない（上の特大カードで紹介しているゲーム）
 // ならび順は、このリストの順（上ほど先に出る）
 // =====================================================================
 const NEW_DAYS = 14;
@@ -253,7 +344,7 @@ const GAMES = [
     genre: "戦国ストラテジー", time: "5〜15分", tags: ["versus", "brain"], online: true, added: "2026-10-21" },
   { id: "futsal", url: "/futsal/", title: "FUTSAL STRIKE",
     desc: "3D のフットサル。パス・シュート・ドリブルで点を取れ！ ガチャで選手を集めてチームを強くしよう。",
-    genre: "3Dスポーツ", time: "5〜10分", tags: ["action", "versus"], online: true,
+    genre: "3Dスポーツ", time: "5〜10分", tags: ["action", "versus"], online: true, featured: true,
     itch: "https://nixoroot.itch.io/futsal-strike" },
   { id: "daifugo", url: "/daifugo/", title: "大富豪",
     desc: "8切り・革命・11バック…ローカルルールを自由に選べるトランプゲーム。CPU ともオンラインでも。",
@@ -459,7 +550,7 @@ function esc(t) { return String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<":
 
 // ===== カードを並べる =====
 const grid = document.getElementById("grid");
-grid.innerHTML = GAMES.map(g => `
+grid.innerHTML = GAMES.filter(g => !g.featured).map(g => `
   <article class="card" data-tags="${g.tags.join(" ")}">
     ${isNew(g) ? '<span class="badge-new">NEW</span>' : ""}
     <div class="thumb">${thumbHTML(g)}</div>
@@ -476,7 +567,7 @@ grid.innerHTML = GAMES.map(g => `
       </div>
     </div>
   </article>`).join("");
-document.getElementById("count").textContent = (GAMES.length + 1) + " GAMES";
+document.getElementById("count").textContent = (GAMES.length + 1) + " GAMES";   // +1 は STARFALL
 document.getElementById("hero-art").innerHTML = svg(ART.starfall(), "STARFALL");
 
 // ===== ジャンルでしぼる =====
@@ -495,6 +586,19 @@ chips.addEventListener("click", e => {
   });
   document.getElementById("empty").style.display = shown ? "none" : "block";
 });
+
+// ===== FUTSAL STRIKE のスライドショー（4.5秒ごとに次の画面へ） =====
+(function () {
+  const figs = document.querySelectorAll(".fs-show figure"), dots = document.querySelectorAll(".fs-dots i");
+  if (figs.length < 2 || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  let i = 0;
+  setInterval(() => {
+    if (document.hidden) return;   // 見ていないときは止める
+    figs[i].classList.remove("on"); dots[i].classList.remove("on");
+    i = (i + 1) % figs.length;
+    figs[i].classList.add("on"); dots[i].classList.add("on");
+  }, 4500);
+})();
 
 // ===== STARFALL のきろく（このブラウザのセーブを「読むだけ」。書きかえない） =====
 try {
