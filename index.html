@@ -20,6 +20,9 @@ if (/^#move=/.test(location.hash)) location.replace("/starfall/" + location.hash
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://nixoroot.com/">
   <meta property="og:site_name" content="nixoroot GAMES">
+  <meta property="og:image" content="https://nixoroot.com/img/futsal-3.jpg">
+  <meta property="og:locale" content="ja_JP">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="canonical" href="https://nixoroot.com/">
   <meta name="theme-color" content="#0b0f1e">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%AE%3C/text%3E%3C/svg%3E">
@@ -170,6 +173,28 @@ if (/^#move=/.test(location.hash)) location.replace("/starfall/" + location.hash
       box-shadow: 0 4px 0 #14532d, 0 0 24px #22c55e66;
     }
 
+    /* ===== アプリの中のブラウザ（LINE・Instagram など）で開いたときの案内 ===== */
+    .inapp {
+      display: none; position: sticky; top: 0; z-index: 50;
+      background: #facc15; color: #1a1300; padding: 10px 16px;
+      font-size: 14px; font-weight: 700; line-height: 1.5;
+      box-shadow: 0 4px 16px #0008;
+    }
+    .inapp.on { display: block; }
+    .inapp .row { max-width: 1120px; margin: 0 auto; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .inapp p { margin: 0; flex: 1 1 240px; }
+    .inapp small { display: block; font-weight: 500; }
+    .inapp button {
+      border: 0; border-radius: 10px; padding: 8px 14px; font: inherit; font-weight: 800; cursor: pointer;
+      background: #1a1300; color: #facc15; touch-action: manipulation;
+    }
+    .inapp .x { background: transparent; color: #1a1300; padding: 4px 8px; font-size: 18px; }
+
+    /* ===== ホーム画面に追加する方法（FUTSAL のカード） ===== */
+    .fs-home { font-size: 13px; color: #b6c3e0; }
+    .fs-home summary { cursor: pointer; font-weight: 700; color: #bfdbfe; }
+    .fs-home ol { margin: 6px 0 0; padding-left: 20px; }
+
     /* ===== ならびかえ（ジャンルのボタン） ===== */
     .section-head { display: flex; align-items: end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 30px 0 12px; }
     .section-head h2 { font-family: 'Dela Gothic One', sans-serif; font-weight: 400; margin: 0; font-size: 24px; }
@@ -241,6 +266,14 @@ if (/^#move=/.test(location.hash)) location.replace("/starfall/" + location.hash
   </style>
 </head>
 <body>
+  <!-- アプリの中のブラウザで開いたときだけ出る案内（下の script で出す） -->
+  <div class="inapp" id="inapp" role="region" aria-label="ブラウザで開く案内">
+    <div class="row">
+      <p id="inapp-msg">いつものブラウザ（Safari や Chrome）で開くと、セーブが消えにくく、ホーム画面にも追加できるよ。</p>
+      <button type="button" id="inapp-open">ブラウザで開く</button>
+      <button type="button" class="x" id="inapp-close" aria-label="閉じる">✕</button>
+    </div>
+  </div>
   <div class="wrap">
     <header>
       <div class="brand">
@@ -286,6 +319,14 @@ if (/^#move=/.test(location.hash)) location.replace("/starfall/" + location.hash
           <li><b>🎰 ガチャでチームづくり</b><span>レジェンド選手や監督を集めて、自分だけのチームに</span></li>
           <li><b>🧑 選手になりきる</b><span>一人称の目線でプレー。キャリアで世界をめざせ</span></li>
         </ul>
+        <details class="fs-home">
+          <summary>📱 ホーム画面に追加すると、アプリみたいに全画面で遊べる</summary>
+          <ol>
+            <li>Safari や Chrome で「今すぐ遊ぶ」を開く</li>
+            <li>iPhone：下の <b>共有ボタン</b>（□に↑）→「<b>ホーム画面に追加</b>」<br>Android：右上の <b>︙</b> →「<b>ホーム画面に追加</b>」（または「アプリをインストール」）</li>
+            <li>次からはホーム画面の FUTSAL のアイコンから開いてね</li>
+          </ol>
+        </details>
         <div class="fs-tags"><span>無料</span><span>スマホ・PC</span><span>登録なし</span><span>⏱ 1試合 5〜10分</span></div>
         <div class="btns">
           <a class="btn fs-play" href="/futsal/">⚽ 今すぐ遊ぶ</a>
@@ -312,6 +353,7 @@ if (/^#move=/.test(location.hash)) location.replace("/starfall/" + location.hash
         <li><a href="/dungeon/">ダンジョン・ダイブ</a></li>
         <li><a href="/quiz/">ひらめき60秒</a></li>
         <li><a href="/idle/">ぽこたま</a></li>
+        <li><a href="/hanabi/">ドドン花火</a></li>
       </ul>
     </noscript>
   </div>
@@ -601,6 +643,90 @@ chips.addEventListener("click", e => {
     i = (i + 1) % figs.length;
     figs[i].classList.add("on"); dots[i].classList.add("on");
   }, 4500);
+})();
+
+// ===== 検索エンジン向けの「構造化データ」 =====
+// Google に「このページはゲームの一覧で、こんなゲームがある」と伝える（VideoGame の ItemList）。
+// GAMES に足したゲームは、ここにも自動で入る。
+(function () {
+  const ORIGIN = "https://nixoroot.com";
+  const all = [{ url: "/starfall/", title: "STARFALL", genre: "アクション",
+    desc: "降ってくる隕石や敵の攻撃をよけて、20ステージをクリアするシューティング風アクション。" }].concat(GAMES);
+  const game = (g) => ({
+    "@type": "VideoGame", name: g.title, url: ORIGIN + g.url, description: g.desc,
+    genre: g.genre, inLanguage: "ja", gamePlatform: "Web browser",
+    applicationCategory: "Game", operatingSystem: "Any",
+    playMode: g.online ? ["SinglePlayer", "MultiPlayer"] : "SinglePlayer",
+    offers: { "@type": "Offer", price: "0", priceCurrency: "JPY" },
+    author: { "@type": "Organization", name: "nixoroot", url: ORIGIN + "/" },
+  });
+  const data = [
+    { "@context": "https://schema.org", "@type": "WebSite", name: "nixoroot GAMES", alternateName: "nixoroot", url: ORIGIN + "/", inLanguage: "ja" },
+    { "@context": "https://schema.org", "@type": "ItemList", name: "nixoroot GAMES のゲーム一覧",
+      itemListElement: all.map((g, i) => ({ "@type": "ListItem", position: i + 1, item: game(g) })) },
+  ];
+  const el = document.createElement("script");
+  el.type = "application/ld+json";
+  el.textContent = JSON.stringify(data);
+  document.head.appendChild(el);
+})();
+
+// ===== アプリの中のブラウザ（LINE・Instagram・X・Facebook・TikTok など）で開いたとき =====
+// アプリの中のブラウザは、セーブがアプリを閉じると消えたり、ホーム画面に追加できなかったりする。
+// だから「いつものブラウザ（Safari・Chrome）で開いてね」と案内して、できるときは自動で切りかえる。
+//   LINE    ：URL に ?openExternalBrowser=1 をつけると、外のブラウザで開いてくれる
+//   Android ：intent:// のリンクで、ふだん使うブラウザで開ける
+//   iPhone の Instagram・X など：自動ではできないので、「…」メニューから開く方法を出して、リンクをコピーできるようにする
+(function () {
+  const UA = navigator.userAgent || "";
+  const IS_LINE = /\bLine\//i.test(UA);
+  const IS_ANDROID = /Android/i.test(UA);
+  const IN_APP = IS_LINE || /FBAN|FBAV|FB_IAB|Instagram|Twitter|TikTok|BytedanceWebview|musical_ly|MicroMessenger|KAKAOTALK|YJApp|; wv\)/i.test(UA)
+    || /[?&]inapp=test\b/.test(location.search);   // テスト用：?inapp=test で案内を出す
+  if (!IN_APP) return;
+
+  // 外のブラウザで開くための URL（作れないときは null）
+  function externalURL(href) {
+    const u = new URL(href, location.href);
+    u.searchParams.delete("inapp");
+    if (IS_LINE) { u.searchParams.set("openExternalBrowser", "1"); return u.href; }
+    if (IS_ANDROID) return "intent://" + u.host + u.pathname + u.search + u.hash
+      + "#Intent;scheme=https;S.browser_fallback_url=" + encodeURIComponent(u.href) + ";end";
+    return null;
+  }
+
+  const bar = document.getElementById("inapp");
+  const msg = document.getElementById("inapp-msg");
+  const btn = document.getElementById("inapp-open");
+  let closed = false;
+  try { closed = sessionStorage.getItem("nixo-inapp-closed") === "1"; } catch (e) {}
+  if (!closed) bar.classList.add("on");
+  document.getElementById("inapp-close").onclick = () => {
+    bar.classList.remove("on");
+    try { sessionStorage.setItem("nixo-inapp-closed", "1"); } catch (e) {}
+  };
+
+  if (externalURL(location.href)) {
+    btn.onclick = () => { location.href = externalURL(location.href); };
+  } else {
+    // iPhone の Instagram・X など
+    msg.innerHTML = "アプリの中のブラウザだと、セーブが消えることがあるよ。<small>右上（または右下）の「…」→「<b>ブラウザで開く</b>」または「<b>Safari で開く</b>」を押してね。</small>";
+    btn.textContent = "リンクをコピー";
+    btn.onclick = async () => {
+      try { await navigator.clipboard.writeText("https://nixoroot.com/"); btn.textContent = "コピーしたよ！ Safari に貼りつけてね"; }
+      catch (e) { btn.textContent = "nixoroot.com を Safari で開いてね"; }
+    };
+  }
+
+  // ゲームのリンクを押したら、外のブラウザでそのゲームを開く（できるときだけ）
+  document.addEventListener("click", (e) => {
+    const a = e.target.closest("a[href]");
+    if (!a || a.target === "_blank") return;
+    const u = new URL(a.getAttribute("href"), location.href);
+    if (u.origin !== location.origin) return;
+    const ext = externalURL(u.href);
+    if (ext) { e.preventDefault(); location.href = ext; }
+  });
 })();
 
 // ===== STARFALL のきろく（このブラウザのセーブを「読むだけ」。書きかえない） =====
