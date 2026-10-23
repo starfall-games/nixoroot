@@ -381,6 +381,9 @@ if (/^#move=/.test(location.hash)) location.replace("/starfall/" + location.hash
 // =====================================================================
 const NEW_DAYS = 14;
 const GAMES = [
+  { id: "dodge", url: "/dodge/", title: "ドッジ・ヒーローズ",
+    desc: "6対6の3Dドッジボール！ よけて・キャッチして・必殺の一球で相手を外野へ。大会を勝ちぬいてヒーローになろう。",
+    genre: "3Dスポーツ", time: "3〜10分", tags: ["action", "versus"], added: "2026-10-23", emoji: "🔥", color: "#7c2d12" },
   { id: "hanabi", url: "/hanabi/", title: "ドドン花火",
     desc: "花火玉をタップすると、となりの同じ色に火がうつって大連鎖！ 祭りフィーバーで夜空をうめつくせ。",
     genre: "連鎖パズル", time: "5〜10分", tags: ["brain", "chill"], added: "2026-10-22", emoji: "🎆", color: "#1e1b4b" },
