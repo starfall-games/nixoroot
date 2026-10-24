@@ -98,6 +98,50 @@ h2{margin:6px 0 10px;font-size:26px;font-weight:900;letter-spacing:.04em;text-sh
 #toast{position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:60;display:flex;flex-direction:column;gap:6px;pointer-events:none}
 #toast div{background:linear-gradient(90deg,#ffcf3e,#ff8a00);color:#3a1d00;font-weight:900;padding:8px 16px;border-radius:14px;box-shadow:0 6px 16px #0008;animation:tin .35s}
 @keyframes tin{from{transform:translateY(-20px);opacity:0}}
+/* ===== 【ガチャ・マイチーム】 ===== */
+.btn.pink{background:linear-gradient(180deg,#ff7ad9,#d61f9e);box-shadow:0 5px 0 #8a0f63,0 8px 16px #0006}
+.badge.big{font-size:15px;padding:6px 12px;border-radius:12px}
+.myteam{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.myteam canvas{width:140px;height:140px}
+.myteam input{flex:1;min-width:120px;font:inherit;font-weight:800;font-size:17px;padding:8px 10px;border-radius:10px;border:2px solid #ffffff55;background:#0006;color:#fff;user-select:text;-webkit-user-select:text}
+.sw{display:flex;gap:6px;flex-wrap:wrap}
+.sw i{width:28px;height:28px;border-radius:8px;border:3px solid #fff4;cursor:pointer;display:inline-block}
+.sw i.on{border-color:#fff;box-shadow:0 0 0 2px #ffd23f}
+.gc{position:relative;text-align:center;border-radius:14px;padding:6px;background:linear-gradient(180deg,#1b2a66,#0b1640);border:3px solid var(--rc,#9aa3b5);box-shadow:0 0 12px var(--rg,transparent);cursor:pointer}
+.gc img{width:100%;display:block;border-radius:10px}
+.gc .rr{position:absolute;top:8px;left:10px;font-weight:900;font-size:16px;color:var(--rc);text-shadow:0 2px 0 #000}
+.gc .lv{position:absolute;top:8px;right:10px;font-weight:900;font-size:13px;background:#000a;padding:1px 6px;border-radius:8px}
+.gc .new{position:absolute;top:-8px;right:-6px;background:#ff3b3b;color:#fff;font-weight:900;font-size:12px;padding:2px 8px;border-radius:10px;transform:rotate(8deg)}
+.gc.ur{--rc:#ff5ad1;--rg:#ff5ad1aa;background:linear-gradient(135deg,#3b1060,#0b1640 50%,#5a1040)}
+.gc.ur::after{content:'';position:absolute;inset:-3px;border-radius:14px;padding:3px;background:linear-gradient(90deg,#ff5a5a,#ffb000,#fff34d,#5eff8a,#5ee2ff,#9b6bff,#ff5ad1);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+.gc.sr{--rc:#ffd23f;--rg:#ffd23f88}
+.gc.r{--rc:#4db8ff}
+.gc.no{filter:grayscale(1) brightness(.5)}
+.gc .bar{height:6px;border-radius:3px;background:#0007;overflow:hidden;margin-top:4px}
+.gc .bar i{display:block;height:100%;background:linear-gradient(90deg,#7dff8a,#16a34a)}
+.gres{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-top:12px}
+.gres .gc{animation:gin .45s backwards}
+@keyframes gin{from{transform:rotateY(90deg) scale(.6);opacity:0}}
+/* ガチャの演出（ドッジボールがふるえて光る → レアならカットイン） */
+#gfx{position:fixed;inset:0;z-index:70;display:none;align-items:center;justify-content:center;background:radial-gradient(circle,#1a2a6c,#03061a 75%);overflow:hidden}
+#gfx.on{display:flex}
+#gfx .ball{width:150px;height:150px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff8 0 12%,transparent 13%),repeating-linear-gradient(90deg,#e8352a 0 36px,#fff 36px 46px);box-shadow:0 0 40px 10px var(--gc,#7fd3ff),0 0 120px 40px var(--gc,#7fd3ff);animation:gshake .12s infinite alternate;transition:box-shadow .3s}
+@keyframes gshake{from{transform:translate(-4px,2px) rotate(-6deg)}to{transform:translate(4px,-2px) rotate(6deg)}}
+#gfx.rb .ball{animation:gshake .08s infinite alternate,grb .6s linear infinite}
+@keyframes grb{0%{filter:hue-rotate(0)}100%{filter:hue-rotate(360deg)}}
+#gfx .rays{position:absolute;width:200vmax;height:200vmax;background:repeating-conic-gradient(var(--gc,#7fd3ff) 0 6deg,transparent 6deg 18deg);opacity:.18;animation:gspin 6s linear infinite}
+@keyframes gspin{to{transform:rotate(360deg)}}
+#gfx .flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+#gfx.boom .flash{animation:gflash .5s}
+@keyframes gflash{0%{opacity:1}100%{opacity:0}}
+#gfx .cut{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%) skewY(-6deg);padding:18px 0;display:none;align-items:center;justify-content:center;gap:20px;background:linear-gradient(90deg,transparent,var(--gc) 20%,var(--gc) 80%,transparent);animation:gcut .35s}
+#gfx.showcut .cut{display:flex}
+#gfx.showcut .ball{display:none}
+#gfx .cut img{width:min(34vw,200px);border-radius:16px;border:4px solid #fff;box-shadow:0 0 30px #fff8}
+#gfx .cut .t1{font-size:clamp(28px,6vw,56px);font-weight:900;color:#fff;text-shadow:0 4px 0 #0008}
+#gfx .cut .t2{font-size:clamp(18px,3.5vw,30px);font-weight:900;color:#fff;text-shadow:0 3px 0 #0008}
+@keyframes gcut{from{transform:translateY(-50%) skewY(-6deg) translateX(100%)}}
+#gfx .tap{position:absolute;bottom:18px;font-weight:800;opacity:.75}
 .tip{font-size:14px;line-height:1.6}
 .tip b{color:#ffe066}
 </style>
@@ -111,9 +155,10 @@ h2{margin:6px 0 10px;font-size:26px;font-weight:900;letter-spacing:.04em;text-sh
 <div id="title" class="scr">
   <div class="logo">ドッジ・ヒーローズ<small>DODGE HEROES</small></div>
   <div class="tmenu">
-    <button class="btn big orange" style="grid-column:span 3" data-go="cupsel">🏆 大会にでる</button>
+    <button class="btn big orange" style="grid-column:span 2" data-go="cupsel">🏆 大会にでる</button>
+    <button class="btn big pink" data-go="gacha">🎰 ガチャ</button>
     <button class="btn" data-go="quick">⚡ クイック試合</button>
-    <button class="btn green" data-go="team">👥 チーム</button>
+    <button class="btn green" data-go="team">🛡 マイチーム</button>
     <button class="btn" data-go="tut">📖 あそびかた</button>
     <button class="btn gray" data-go="records">📊 記録・実績</button>
     <button class="btn gray" data-go="howto">❓ ルール</button>
@@ -156,8 +201,22 @@ h2{margin:6px 0 10px;font-size:26px;font-weight:900;letter-spacing:.04em;text-sh
 <!-- チーム -->
 <div id="team" class="scr hide"><div class="box">
   <button class="btn gray back" data-go="title">← もどる</button>
-  <h2>👥 チーム（6人をえらぶ）</h2>
-  <p class="small" style="margin-top:-4px">えらんだ順に ①〜⑤ が内野、⑥ が外野スタート。カードを押すと入れる／外す。</p>
+  <h2>🛡 マイチーム</h2>
+  <!-- 【マイチーム】チームの名前・色・エンブレム -->
+  <div class="card myteam" style="margin-bottom:12px">
+    <canvas id="myemb" width="240" height="240"></canvas>
+    <div style="flex:1;min-width:220px">
+      <div class="row"><b>チーム名</b><input id="myname" maxlength="10" placeholder="ヒーローズ"><button class="btn" id="mynameok">決定</button></div>
+      <div class="small" id="mynamemsg">10文字まで。本名や学校の名前は入れないでね</div>
+      <div class="row" style="margin-top:6px"><b style="width:60px">メイン</b><div class="sw" id="myc1"></div></div>
+      <div class="row"><b style="width:60px">サブ</b><div class="sw" id="myc2"></div></div>
+      <div class="row"><b style="width:60px">形</b><div class="seg" id="myshape"></div></div>
+      <div class="row"><b style="width:60px">マーク</b><div class="seg" id="myicon"></div></div>
+    </div>
+  </div>
+  <h2 style="font-size:20px">👥 試合に出る6人をえらぶ</h2>
+  <p class="small" style="margin-top:-4px">えらんだ順に ①〜⑤ が内野、⑥ が外野スタート。カードを押すと入れる／外す。下の「くわしく」で強化できるよ。</p>
+  <div class="seg" id="rfilter" style="margin-bottom:8px"></div>
   <div class="grid" id="roster"></div>
   <div class="card" id="rdetail" style="margin:12px 0 30px"></div>
 </div></div>
@@ -237,6 +296,28 @@ h2{margin:6px 0 10px;font-size:26px;font-weight:900;letter-spacing:.04em;text-sh
   </div>
 </div></div>
 
+<!-- 【ガチャ】 -->
+<div id="gacha" class="scr hide"><div class="box">
+  <button class="btn gray back" data-go="title">← もどる</button>
+  <h2>🎰 ヒーローガチャ</h2>
+  <div class="row" style="gap:8px;margin-bottom:8px"><span class="badge big" id="gcoins"></span><span class="badge big" id="gmedals"></span><span class="badge big" id="gpity"></span></div>
+  <div class="card" style="text-align:center">
+    <canvas id="gbanner" width="900" height="300" style="width:100%;max-width:900px;border-radius:14px;display:block;margin:0 auto"></canvas>
+    <div class="row" style="justify-content:center;margin-top:12px">
+      <button class="btn big pink" id="g1">1回 🪙100</button>
+      <button class="btn big pink" id="g10">10回 🪙900<small style="display:block;font-size:12px">10回目は SR 以上がかならず出る</small></button>
+    </div>
+    <div class="small" style="margin-top:8px">出る確率：<b style="color:#ff5ad1">UR 3%</b>／<b style="color:#ffd23f">SR 12%</b>／<b style="color:#4db8ff">R 35%</b>／N 50%（同じレア度の中はどの選手も同じ確率）</div>
+    <div class="small">天井：UR が出ないまま 50回引くと、好きな UR を1人もらえる。同じ選手が出たら「かけら」（強化に使う）と「メダル」（交換に使う）になる</div>
+    <div class="small">コインは 試合・大会・実績・毎日のボーナス でたまるよ</div>
+  </div>
+  <div id="gres" class="gres"></div>
+  <h2 style="font-size:20px;margin-top:14px">🏅 メダル交換所</h2>
+  <p class="small" style="margin-top:-4px">メダルで、好きな選手をもらえる（持っている選手なら、かけら 30 個）。N 50・R 120・SR 300・UR 700 メダル</p>
+  <div class="grid" id="gshop" style="margin-bottom:30px"></div>
+</div></div>
+<div id="gfx"></div>
+
 <div id="rotate" class="hide">
   <div class="phone">📱</div>
   <div style="font-size:20px;font-weight:900">スマホを横にしてね</div>
@@ -283,6 +364,7 @@ const OPT = {
   fast: QS.has('fast') ? Math.max(1, +QS.get('fast') || 4) : 1, // 1コマで何回分すすめるか
   diff: QS.has('diff') ? +QS.get('diff') : null,
   p0: QS.has('p0') ? +QS.get('p0') : null,     // auto のときの自分側 CPU の強さ
+  mute: QS.has('mute'),                        // 音も実況の声も出さない（テスト用）
 };
 
 // ---------- 小さな道具 ----------
@@ -329,8 +411,37 @@ const HEROES = [
   { id: 'mio',    name: '七瀬ミオ',   pow: 6,  spd: 9,  cat: 7,  sp: 'bound',   hair: '#ff8fb1', style: 3, skin: '#fde3cf', desc: '身軽なムードメーカー', unlock: 'silver' },
   { id: 'kira',   name: '星川キラ',   pow: 8,  spd: 8,  cat: 8,  sp: 'spiral',  hair: '#ffe28a', style: 4, skin: '#fbe2cc', desc: 'なんでも上手なスター', unlock: 'gold' },
   { id: 'leo',    name: '王城レオ',   pow: 10, spd: 8,  cat: 9,  sp: 'king',    hair: '#f5d36b', style: 2, skin: '#efc59f', desc: '伝説のキャプテン', unlock: 'heroes' },
+  // ---- 【ガチャ】ガチャで出る選手（2026-10-24 追加。名前はすべて架空） gacha:true は最初は持っていない ----
+  { id: 'n_taku',  name: '山田タク',   pow: 5, spd: 5, cat: 5, sp: 'meteor',  hair: '#3b2a1a', style: 0, skin: '#f3cfa9', desc: 'まじめな努力家', gacha: true },
+  { id: 'n_yui',   name: '小川ユイ',   pow: 4, spd: 6, cat: 6, sp: 'curve',   hair: '#5a3a22', style: 3, skin: '#fbe0c8', desc: 'すばしっこい', gacha: true },
+  { id: 'n_kenta', name: '大森ケンタ', pow: 7, spd: 3, cat: 5, sp: 'bazooka', hair: '#222222', style: 1, skin: '#e2b086', desc: '力じまん', gacha: true },
+  { id: 'n_saki',  name: '春野サキ',   pow: 5, spd: 5, cat: 6, sp: 'drop',    hair: '#c46a3a', style: 4, skin: '#fde6d2', desc: 'おだやかな守り', gacha: true },
+  { id: 'n_riku',  name: '海野リク',   pow: 5, spd: 6, cat: 4, sp: 'zigzag',  hair: '#1b3a6b', style: 2, skin: '#f0cfae', desc: 'いつも元気いっぱい', gacha: true },
+  { id: 'n_mana',  name: '森マナ',     pow: 4, spd: 5, cat: 7, sp: 'mirage',  hair: '#2b4a2a', style: 5, skin: '#fbe2cc', desc: 'キャッチが得意', gacha: true },
+  { id: 'n_sota',  name: '石田ソウタ', pow: 6, spd: 4, cat: 6, sp: 'drill',   hair: '#4a3020', style: 1, skin: '#d9a77c', desc: 'どっしり構える', gacha: true },
+  { id: 'n_kaho',  name: '桜井カホ',   pow: 5, spd: 6, cat: 5, sp: 'bound',   hair: '#e68aa8', style: 3, skin: '#fde3cf', desc: '笑顔のムードメーカー', gacha: true },
+  { id: 'r_shin',  name: '神崎シン',   pow: 7, spd: 6, cat: 6, sp: 'boost',   hair: '#7a1f1f', style: 2, skin: '#f0cfae', desc: '負けずぎらいのストライカー', gacha: true },
+  { id: 'r_aoi',   name: '青山アオイ', pow: 5, spd: 7, cat: 7, sp: 'spiral',  hair: '#3a7bd5', style: 4, skin: '#fde3cf', desc: 'くるくる回る技巧派', gacha: true },
+  { id: 'r_gen',   name: '鉄田ゲン',   pow: 8, spd: 4, cat: 7, sp: 'drill',   hair: '#444444', style: 1, skin: '#d9a77c', desc: '鉄の守り', gacha: true },
+  { id: 'r_hina',  name: '日向ヒナ',   pow: 6, spd: 8, cat: 5, sp: 'bound',   hair: '#ffb000', style: 3, skin: '#fbe0c8', desc: 'ひまわりみたいに明るい', gacha: true },
+  { id: 'r_kou',   name: '白鳥コウ',   pow: 6, spd: 6, cat: 7, sp: 'stealth', hair: '#e9e9e9', style: 5, skin: '#f7d5b5', desc: 'しずかな狙撃手', gacha: true },
+  { id: 'r_nami',  name: '波多野ナミ', pow: 7, spd: 7, cat: 5, sp: 'curve',   hair: '#2aa198', style: 4, skin: '#f3cfa9', desc: '波のようなカーブ', gacha: true },
+  { id: 'sr_tsubasa', name: '天野ツバサ', pow: 8, spd: 8, cat: 6, sp: 'meteor',  hair: '#1f2a6b', style: 2, skin: '#f7d5b5', desc: '空をかける天才', gacha: true },
+  { id: 'sr_rin',  name: '氷川リン',   pow: 6, spd: 7, cat: 9, sp: 'mirage',  hair: '#bfe3ff', style: 4, skin: '#fde6d2', desc: '氷のように冷静', gacha: true },
+  { id: 'sr_gouki', name: '獅堂ゴウキ', pow: 10, spd: 5, cat: 7, sp: 'bazooka', hair: '#5a2a0a', style: 1, skin: '#c98f63', desc: '大地をゆらす怪力', gacha: true },
+  { id: 'sr_yamato', name: '疾風ヤマト', pow: 7, spd: 10, cat: 6, sp: 'zigzag', hair: '#111111', style: 2, skin: '#f0cfae', desc: 'いなずまの足', gacha: true },
+  { id: 'ur_hikaru', name: '光堂ヒカル', pow: 9, spd: 9, cat: 8, sp: 'spiral',  hair: '#fff7d6', style: 2, skin: '#f7d5b5', desc: '伝説の光をまとう', gacha: true },
+  { id: 'ur_kuroe', name: '闇月クロエ', pow: 9, spd: 8, cat: 9, sp: 'stealth', hair: '#2a0a3a', style: 4, skin: '#fde6d2', desc: '影をあやつる女王', gacha: true },
 ];
 const HERO = Object.fromEntries(HEROES.map(h => [h.id, h]));
+// レア度：1=N 2=R 3=SR 4=UR（レアが高いほど少し強く、必殺の演出が派手。育てればふつうの選手も戦える）
+const RARITY = {
+  sora: 3, daichi: 2, hayate: 2, kasumi: 2, raika: 2, luna: 2, homura: 2, jin: 3, gou: 3, mio: 3, kira: 4, leo: 4,
+  n_taku: 1, n_yui: 1, n_kenta: 1, n_saki: 1, n_riku: 1, n_mana: 1, n_sota: 1, n_kaho: 1,
+  r_shin: 2, r_aoi: 2, r_gen: 2, r_hina: 2, r_kou: 2, r_nami: 2,
+  sr_tsubasa: 3, sr_rin: 3, sr_gouki: 3, sr_yamato: 3, ur_hikaru: 4, ur_kuroe: 4,
+};
+const RAR = { 1: { n: 'N', star: '★', col: '#9aa3b5' }, 2: { n: 'R', star: '★★', col: '#4db8ff' }, 3: { n: 'SR', star: '★★★', col: '#ffd23f' }, 4: { n: 'UR', star: '★★★★', col: '#ff5ad1' } };
 const MY_TEAM = { id: 'heroes', name: 'ヒーローズ', c1: '#2f6bff', c2: '#ffffff', c3: '#ffd23f' };
 
 // ---------- 相手チーム（7チーム） ----------
@@ -430,9 +541,9 @@ const ACHS = [
 const SAVE_KEY = 'dodge-heroes-save-v1';
 function newSave() {
   return { v: 1, rp: 0, wins: 0, losses: 0, streak: 0, bestStreak: 0, cups: {}, cupWins: {},
-    unlocked: HEROES.filter(h => !h.unlock).map(h => h.id), team: ['sora', 'daichi', 'kasumi', 'raika', 'homura', 'hayate'],
+    unlocked: HEROES.filter(h => !h.unlock && !h.gacha).map(h => h.id), team: ['sora', 'daichi', 'kasumi', 'raika', 'homura', 'hayate'],
     ach: {}, tot: { hits: 0, catches: 0, just: 0, sp: 0, outs: 0 },
-    set: { se: 1, bgm: 1, voice: 0, swap: 0, size: 1 }, tutorial: false, quick: { diff: 1, opp: 'winds', stage: 'gym' }, run: null };
+    set: { se: 1, bgm: 1, voice: 1, swap: 0, size: 1 }, tutorial: false, quick: { diff: 1, opp: 'winds', stage: 'gym' }, run: null };
 }
 let SAVE = newSave();
 function loadSave() {
@@ -471,7 +582,7 @@ function audioInit() {
     roomInit();
   } catch (e) { AC = null; }
 }
-function applyVol() { if (!AC) return; SEBUS.gain.value = SAVE.set.se ? 0.8 : 0; BGMBUS.gain.value = SAVE.set.bgm ? 0.32 : 0; }
+function applyVol() { if (!AC) return; SEBUS.gain.value = SAVE.set.se && !OPT.mute ? 0.8 : 0; BGMBUS.gain.value = SAVE.set.bgm && !OPT.mute ? 0.32 : 0; }
 
 // ---------- 会場のひびき（リバーブ）と観客のざわざわ 2026-10-23 音担当 ----------
 // 効果音（SEBUS）の一部を「ひびき（ROOM.rev）」に送る。体育館はよくひびき、外の校庭はほとんどひびかない
@@ -723,7 +834,7 @@ function newMatch(opt) {
     stats: { sets: [] }, ended: false, result: null,
   };
   // 自分のチーム
-  let my = SAVE.team.map(id => HERO[id]).filter(Boolean);
+  let my = SAVE.team.map(id => playerData(id)).filter(Boolean);   // 【ガチャ】育てた分（レベル）の強さを入れる
   if (opt.tutorial) my = ['sora', 'kasumi', 'daichi', 'hayate'].map(id => HERO[id]);
   my.forEach((d, i) => M.players.push(mkPlayer(0, d, i < my.length - 1, (OPT.auto || opt.demo) ? AI_LV[OPT.p0 ?? 1] : null)));
   // 相手
@@ -2449,7 +2560,16 @@ function styleHead(root, d) {
 }
 // 1人分の3Dの選手を作る
 const MESHES = new Map();   // 試合の選手 → 3D
-function teamKit(t) { const T = M.teams[t]; return { shirt: T.c1, shorts: T.c3 || T.c2, trim: T.c2, sock: T.c2 }; }
+function teamKit(t) {
+  const T = M.teams[t];
+  // 【マイチーム】相手のシャツの色が自分のチームとにていたら、相手は2番目の色のユニフォームにする
+  if (t === 1 && colorNear(M.teams[0].c1, T.c1)) return { shirt: T.c2, shorts: T.c1, trim: T.c1, sock: T.c1 };
+  return { shirt: T.c1, shorts: T.c3 || T.c2, trim: T.c2, sock: T.c2 };
+}
+function colorNear(a, b) {
+  const h = c => { c = String(c).replace('#', ''); if (c.length === 3) c = c.split('').map(x => x + x).join(''); const n = parseInt(c, 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
+  const x = h(a), y = h(b); return Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]) < 110;
+}
 function buildPlayer3D(p, num) {
   const kit = teamKit(p.team);
   const outer = new THREE.Group();
@@ -2831,7 +2951,7 @@ const COMM = {
     if (!M || M.demo || M.sim) return;   // タイトルの背景・一気に計算のときは実況しない
     if (!important && this.t > 0.9) return;
     this.text = text; this.t = 2.4;
-    if (SAVE.set.voice && window.speechSynthesis) {
+    if (SAVE.set.voice && !OPT.mute && !OPT.auto && window.speechSynthesis) {   // ?mute・?auto ではしゃべらない
       try {
         const v = this.jaVoice();
         if (!v && speechSynthesis.getVoices().length) return;   // 日本語の声が入っていない機械ではしゃべらない（英語の声で変に読むので）
@@ -3017,11 +3137,16 @@ function drawHUD(dt) {
     // ななめの帯
     g.save(); g.translate(VW / 2, VH * 0.72); g.rotate(-0.08);
     const bw = VW * 1.3 * k;
-    const gr = g.createLinearGradient(-bw / 2, 0, bw / 2, 0); gr.addColorStop(0, T.c1); gr.addColorStop(0.5, S.color); gr.addColorStop(1, T.c1);
+    const rar = RARITY[C.p.d.id] || 0;   // 【ガチャ】レア度が高いほど派手（SR＝金のふち、UR＝にじ色の帯）
+    const gr = g.createLinearGradient(-bw / 2, 0, bw / 2, 0);
+    if (rar >= 4) ['#ff5a5a', '#ffb000', '#fff34d', '#5eff8a', '#5ee2ff', '#9b6bff', '#ff5ad1'].forEach((c, i) => gr.addColorStop(((i / 6) + C.t * 0.8) % 1, c));
+    else { gr.addColorStop(0, T.c1); gr.addColorStop(0.5, S.color); gr.addColorStop(1, T.c1); }
     g.fillStyle = gr; g.fillRect(-bw / 2, -46 * s, bw, 92 * s);
+    if (rar >= 3) { g.fillStyle = rar >= 4 ? '#ffffff' : '#ffd23f'; g.fillRect(-bw / 2, -52 * s, bw, 6 * s); g.fillRect(-bw / 2, 46 * s, bw, 6 * s); }
     g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(-bw / 2, 30 * s, bw, 16 * s);
     txt(g, S.name, (1 - k) * -300, -6 * s, 46 * s, '#fff', 'center', '#000', 10 * s);
     txt(g, C.p.d.name + ' の必殺の一球', (1 - k) * 300, 38 * s, 15 * s, '#fff', 'center', null);
+    if (rar >= 3) txt(g, RAR[rar].n + ' ' + RAR[rar].star, -bw / 2 + 80 * s + (1 - k) * -200, -36 * s, 18 * s, RAR[rar].col, 'center', '#000', 4 * s);
     g.restore(); g.globalAlpha = 1;
   }
   // ---- 実況 ----
@@ -3120,7 +3245,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) reset
    【メニュー】画面の切りかえ
    ========================================================= */
 const GAME = { screen: 'title', paused: false, rotOK: false, lastQuick: null };
-const SCREENS = ['title', 'quick', 'cupsel', 'bracket', 'team', 'records', 'howto', 'settings', 'pause', 'result', 'share'];
+const SCREENS = ['title', 'quick', 'cupsel', 'bracket', 'team', 'records', 'howto', 'settings', 'pause', 'result', 'share', 'gacha'];
 function showScreen(id) {
   resetTouchInput();   // 画面が変わるときは、スティック・ボタンをはなした状態にもどす
   SCREENS.forEach(s => $(s).classList.toggle('hide', s !== id));
@@ -3128,6 +3253,7 @@ function showScreen(id) {
   if (id === 'title') { renderTitle(); if (!M || !M.demo) startDemo(); bgmPlay('title'); }
   if (id === 'quick') renderQuick(); if (id === 'cupsel') renderCups(); if (id === 'bracket') renderBracket();
   if (id === 'team') renderTeam(); if (id === 'records') renderRecords(); if (id === 'settings') renderSettings();
+  if (id === 'gacha') renderGacha();
   checkRotate();
 }
 document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => {
@@ -3185,7 +3311,8 @@ function teamEmblem(T, w = 300, h = 170) {
 function renderTitle() {
   const r = rankOf(SAVE.rp), R = RANKS[r], N = RANKS[r + 1];
   const pct = N ? (SAVE.rp - R.rp) / (N.rp - R.rp) * 100 : 100;
-  $('rankline').innerHTML = `${R.icon} ランク：${R.name}（${SAVE.rp} RP）　${SAVE.wins}勝 ${SAVE.losses}敗<div class="rbar"><i style="width:${pct}%"></i></div>` + (SAVE.tutorial ? '' : '<div class="small" style="margin-top:6px">はじめての人は 📖あそびかた から！</div>');
+  dailyBonus();   // 【ガチャ】毎日のボーナス
+  $('rankline').innerHTML = `${R.icon} ランク：${R.name}（${SAVE.rp} RP）　${SAVE.wins}勝 ${SAVE.losses}敗　🪙${SAVE.coins}<div class="rbar"><i style="width:${pct}%"></i></div>` + (SAVE.tutorial ? '' : '<div class="small" style="margin-top:6px">はじめての人は 📖あそびかた から！</div>');
 }
 function segButtons(el, items, cur, onPick) {
   el.innerHTML = '';
@@ -3283,39 +3410,54 @@ function advanceCup(win) {
   else if (next.length === 1) {
     SAVE.cups[C.id] = 4; SAVE.cupWins[C.id] = (SAVE.cupWins[C.id] || 0) + 1;
     unlockAch('cup_' + C.id);
-    if (!SAVE.unlocked.includes(C.prize)) { SAVE.unlocked.push(C.prize); info = `👑 ${C.name} 優勝！ ${HERO[C.prize].name} が仲間になった！`; }
-    else info = `👑 ${C.name} 優勝！`;
+    const cupCoins = [300, 500, 800, 1200][C.diff] || 300; addCoins(cupCoins);   // 【ガチャ】優勝のごほうびコイン
+    if (!owns(C.prize)) { grantPlayer(C.prize); info = `👑 ${C.name} 優勝！ ${HERO[C.prize].name} が仲間になった！ 🪙+${cupCoins}`; }
+    else { const g = grantPlayer(C.prize); info = `👑 ${C.name} 優勝！ 🪙+${cupCoins}（${HERO[C.prize].name}のかけら +${g.sh}）`; }
   }
   writeSave(); return info;
 }
 
 /* ---------- チーム ---------- */
-let teamPick = null;
+let teamPick = null, teamFilter = 'all';
+// 【マイチーム】持っている選手からえらぶ。持っていない選手は「どこで手に入るか」を出す
 function renderTeam() {
+  renderMyTeamEditor();
+  segButtons($('rfilter'), [['all', 'ぜんぶ'], ['own', '持っている'], [4, 'UR'], [3, 'SR'], [2, 'R'], [1, 'N']], teamFilter, v => { teamFilter = v; renderTeam(); });
   const box = $('roster'); box.innerHTML = '';
-  HEROES.forEach(h => {
-    const lock = !SAVE.unlocked.includes(h.id), idx = SAVE.team.indexOf(h.id);
-    const d = document.createElement('div'); d.className = 'card opp' + (idx >= 0 ? ' sel' : '') + (lock ? ' lock' : '');
-    const cv = document.createElement('canvas'); cv.width = 200; cv.height = 150; const g = cv.getContext('2d');
-    const gr = g.createLinearGradient(0, 0, 0, 150); gr.addColorStop(0, '#3b6cff'); gr.addColorStop(1, '#0b1640'); g.fillStyle = gr; g.fillRect(0, 0, 200, 150);
-    drawFace(g, h, 100, 72, 42, '#ffffff');
-    d.appendChild(cv);
-    if (idx >= 0) d.insertAdjacentHTML('beforeend', `<div class="num">${'①②③④⑤⑥'[idx]}</div>`);
-    d.insertAdjacentHTML('beforeend', `<div style="font-weight:900;margin-top:4px">${lock ? '？？？' : h.name}</div><div class="small">${lock ? CUPS.find(c => c.id === h.unlock).name + '優勝で仲間に' : '⚡' + SPECIALS[h.sp].name}</div>`);
+  const list = HEROES.slice().sort((a, b) => (owns(b.id) - owns(a.id)) || (RARITY[b.id] - RARITY[a.id]) || (heroLv(b.id) - heroLv(a.id)));
+  list.forEach(h => {
+    const have = owns(h.id), idx = SAVE.team.indexOf(h.id), r = RARITY[h.id];
+    if (teamFilter === 'own' && !have) return; if (typeof teamFilter === 'number' && r !== teamFilter) return;
+    const d = charCard(h.id, { sel: idx >= 0, num: idx, dim: !have });
     d.onclick = () => {
-      SFX.click(); teamPick = h.id; if (lock) { renderTeam(); return; }
+      SFX.click(); teamPick = h.id;
+      if (!have) { renderTeam(); $('rdetail').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); return; }
       if (idx >= 0) SAVE.team.splice(idx, 1); else if (SAVE.team.length < 6) SAVE.team.push(h.id); else { SAVE.team[5] = h.id; }
       writeSave(); renderTeam();
     };
     box.appendChild(d);
   });
-  const h = HERO[teamPick || SAVE.team[0] || 'sora'], lock = !SAVE.unlocked.includes(h.id);
-  const bar = (n, v) => `<div class="stat"><b>${n}</b><span><i style="width:${v * 10}%"></i></span>${v}</div>`;
-  $('rdetail').innerHTML = (SAVE.team.length < 6 ? `<div style="color:#ff9a9a;font-weight:800">あと${6 - SAVE.team.length}人えらんでね（6人そろわないと試合で自動で入るよ）</div>` : '') +
-    (lock ? `<b>？？？</b> ${CUPS.find(c => c.id === h.unlock).name}で優勝すると仲間になる` :
-      `<div style="font-size:20px;font-weight:900">${h.name}　<span class="small">${h.desc}</span></div>${bar('パワー', h.pow)}${bar('はやさ', h.spd)}${bar('キャッチ', h.cat)}<div style="margin-top:6px">⚡ 必殺：<b>${SPECIALS[h.sp].name}</b> — ${SPECIALS[h.sp].desc}</div>`);
+  renderDetail();
 }
-function fixTeam() { const u = SAVE.unlocked.filter(id => !SAVE.team.includes(id)); while (SAVE.team.length < 6 && u.length) SAVE.team.push(u.shift()); }
+function renderDetail() {
+  const h = HERO[teamPick || SAVE.team[0] || 'sora'], have = owns(h.id), r = RARITY[h.id], o = SAVE.owned[h.id] || { lv: 1, sh: 0 };
+  const pd = playerData(h.id) || h, bonus = lvBonus(o.lv);
+  const bar = (n, v, b) => `<div class="stat"><b>${n}</b><span><i style="width:${Math.min(100, v * 10)}%"></i></span>${v.toFixed(1).replace('.0', '')}${b ? `<small style="color:#7dff8a"> (+${b.toFixed(1)})</small>` : ''}</div>`;
+  const how = h.unlock ? `${CUPS.find(c => c.id === h.unlock).name}で優勝するか、🎰ガチャで手に入る` : '🎰ガチャで手に入る';
+  const cost = lvCost(o.lv);
+  $('rdetail').innerHTML = (SAVE.team.length < 6 ? `<div style="color:#ff9a9a;font-weight:800">あと${6 - SAVE.team.length}人えらんでね（6人そろわないと試合で自動で入るよ）</div>` : '') +
+    `<div style="font-size:20px;font-weight:900"><span style="color:${RAR[r].col}">${RAR[r].n} ${RAR[r].star}</span>　${h.name}　<span class="small">${h.desc}</span></div>` +
+    (have ? `<div style="font-weight:800">Lv ${o.lv} / ${LV_MAX}　かけら ${o.sh}${o.lv < LV_MAX ? ` / ${cost}` : ''}</div>` : `<div style="color:#ffd23f;font-weight:800">まだ持っていない：${how}</div>`) +
+    bar('パワー', pd.pow, have ? bonus : 0) + bar('はやさ', pd.spd, have ? bonus : 0) + bar('キャッチ', pd.cat, have ? bonus : 0) +
+    `<div style="margin-top:6px">⚡ 必殺：<b>${SPECIALS[h.sp].name}</b> — ${SPECIALS[h.sp].desc}</div>` +
+    (have ? `<div class="row" style="margin-top:8px"><button class="btn green" id="lvup" ${o.lv >= LV_MAX || o.sh < cost ? 'disabled' : ''}>⬆ 強化する（かけら ${o.lv >= LV_MAX ? 'MAX' : cost}）</button><span class="small">強化すると、パワー・はやさ・キャッチが +${LV_STEP} ずつ上がる（Lv${LV_MAX} まで）。かけらは同じ選手がガチャで出るともらえる</span></div>` : '');
+  const b = $('lvup'); if (b) b.onclick = () => { if (levelUp(h.id)) { SFX.ach(); toast(`⬆ ${h.name} が Lv${SAVE.owned[h.id].lv} になった！`); renderTeam(); } };
+}
+function fixTeam() {
+  SAVE.team = SAVE.team.filter(id => owns(id));
+  const u = Object.keys(SAVE.owned).filter(id => !SAVE.team.includes(id)).sort((a, b) => RARITY[b] - RARITY[a]);
+  while (SAVE.team.length < 6 && u.length) SAVE.team.push(u.shift());
+}
 
 /* ---------- 記録・せってい ---------- */
 function renderRecords() {
@@ -3330,7 +3472,7 @@ function renderSettings() {
   const S = SAVE.set;
   segButtons($('setse'), [[1, 'ON'], [0, 'OFF']], S.se, v => { S.se = v; applyVol(); writeSave(); renderSettings(); });
   segButtons($('setbgm'), [[1, 'ON'], [0, 'OFF']], S.bgm, v => { S.bgm = v; applyVol(); writeSave(); renderSettings(); });
-  segButtons($('setvoice'), [[1, 'ON'], [0, 'OFF']], S.voice ? 1 : 0, v => { S.voice = v; if (!v && window.speechSynthesis) speechSynthesis.cancel(); writeSave(); renderSettings(); });
+  segButtons($('setvoice'), [[1, 'ON'], [0, 'OFF']], S.voice ? 1 : 0, v => { S.voice = v; S.voiceSet = 1; if (!v && window.speechSynthesis) speechSynthesis.cancel(); writeSave(); renderSettings(); });
   segButtons($('setswap'), [[0, 'ボタン右'], [1, 'ボタン左']], S.swap, v => { S.swap = v; writeSave(); renderSettings(); });
   segButtons($('setsize'), [[0, '小'], [1, '中'], [2, '大']], S.size ?? 1, v => { S.size = v; writeSave(); renderSettings(); });
 }
@@ -3390,6 +3532,9 @@ function onMatchEnd() {
     if (SAVE.rp >= RANKS[3].rp) unlockAch('rank_gold'); if (SAVE.rp >= RANKS[6].rp) unlockAch('rank_legend');
     if (SAVE.tot.catches >= 10) unlockAch('catch10'); if (SAVE.tot.catches >= 100) unlockAch('catch100'); if (SAVE.tot.just >= 20) unlockAch('just20');
     if (SAVE.tot.hits >= 50) unlockAch('hit50'); if (SAVE.tot.hits >= 300) unlockAch('hit300');
+    // 【ガチャ】試合のコイン（勝つと多い・強いCPUほど多い・内野が多く残るとボーナス）
+    const coin = (win ? [60, 80, 110, 150] : [20, 25, 30, 40])[diff] + (win ? innerOf(0).length * 5 : 0);
+    addCoins(coin); info.push(`🪙 +${coin} コイン（いま ${SAVE.coins}）`);
     if (M.opt.cup) { const c = advanceCup(win); if (c) info.push(c); }
     writeSave();
   }
@@ -3419,6 +3564,7 @@ function makeCard() {
   g.fillStyle = 'rgba(255,255,255,.08)'; for (let i = 0; i < 14; i++) { g.save(); g.translate(i * 110 - 200, 0); g.rotate(0.35); g.fillRect(0, -100, 40, 900); g.restore(); }
   const T = (s, x, y, size, col, al = 'center') => { g.font = `900 ${size}px "M PLUS Rounded 1c",sans-serif`; g.textAlign = al; g.textBaseline = 'middle'; g.lineWidth = size * 0.18; g.strokeStyle = 'rgba(0,0,0,.55)'; g.strokeText(s, x, y); g.fillStyle = col; g.fillText(s, x, y); };
   T('ドッジ・ヒーローズ', 40, 50, 40, '#ffe066', 'left');
+  try { g.drawImage(emblemCanvas(240), 1050, 14, 120, 120); T(MY_TEAM.name, 1110, 150, 22, '#fff'); } catch (e) { }   // 【マイチーム】エンブレム
   T(R.win ? 'WIN!' : 'LOSE…', 860, 150, 130, R.win ? '#ffe066' : '#c7d2fe');
   T(`VS ${M.teams[1].name}`, 860, 260, 40, '#fff');
   T(`セット ${M.setWins[0]} - ${M.setWins[1]}`, 860, 320, 44, '#fff');
@@ -3444,6 +3590,257 @@ $('shshare').onclick = async () => {
     else { await navigator.clipboard.writeText(cardText); toast('📋 文字をコピーしたよ（画像は長おしで保存）'); }
   } catch (e) { }
 };
+
+/* =========================================================
+   【ガチャ・マイチーム】2026-10-24 追加
+   ・コインは 試合・大会・実績・毎日のボーナス でたまる（お金での課金は今はなし）
+   ・確率：UR 3%／SR 12%／R 35%／N 50%。10回目は SR 以上。天井：UR なしで 50回 → 好きな UR を1人
+   ・同じ選手 →「かけら」（その選手の強化）＋「メダル」（交換所で好きな選手と交換）
+   ・強化：Lv1〜10。1つ上がるごとに パワー・はやさ・キャッチ が +0.3（N でも育てれば戦える）
+   ・セーブは今までの dodge-heroes-save-v1 のまま。今の仲間は最初から持っている扱い
+   ========================================================= */
+const LV_MAX = 10, LV_STEP = 0.3;
+const GACHA_COST = { 1: 100, 10: 900 }, PITY_MAX = 50;
+const DUP_SHARD = { 1: 10, 2: 15, 3: 30, 4: 60 }, DUP_MEDAL = { 1: 5, 2: 10, 3: 30, 4: 80 }, MEDAL_PRICE = { 1: 50, 2: 120, 3: 300, 4: 700 };
+// あとで itch.io のコインパック（コインコード）を足すときは、ここに入れる（課金担当・家の人と相談してから）
+const COIN_PACKS = [];
+const lvBonus = lv => (Math.max(1, lv) - 1) * LV_STEP;
+const lvCost = lv => lv * 10;   // Lv1→2 は かけら10、Lv9→10 は 90
+function ensureGacha() {
+  if (SAVE.owned) return;
+  SAVE.owned = {};
+  (SAVE.unlocked || []).forEach(id => { if (HERO[id]) SAVE.owned[id] = { lv: 1, sh: 0 }; });
+  if (SAVE.coins == null) { SAVE.coins = 1000; SAVE.welcome = 1; }   // ガチャができた記念に 1000 コイン
+  SAVE.medals = SAVE.medals || 0; SAVE.pity = SAVE.pity || 0; SAVE.pulls = SAVE.pulls || 0;
+  if (!SAVE.myTeam) SAVE.myTeam = { name: 'ヒーローズ', c1: '#2f6bff', c2: '#ffffff', shape: 0, icon: 0 };
+  writeSave();
+}
+function applyMyTeam() {
+  ensureGacha();
+  const T = SAVE.myTeam;
+  Object.assign(MY_TEAM, { name: T.name || 'ヒーローズ', c1: T.c1, c2: T.c2, c3: shade(T.c1, -0.45) });
+}
+function shade(c, k) {
+  c = c.replace('#', ''); const n = parseInt(c, 16), f = v => clamp(Math.round(k < 0 ? v * (1 + k) : v + (255 - v) * k), 0, 255);
+  return '#' + [n >> 16 & 255, n >> 8 & 255, n & 255].map(f).map(v => v.toString(16).padStart(2, '0')).join('');
+}
+const owns = id => { ensureGacha(); return !!SAVE.owned[id]; };
+const heroLv = id => (SAVE.owned && SAVE.owned[id] ? SAVE.owned[id].lv : 0);
+// 試合で使う選手のデータ（レベルの分だけ強い）
+function playerData(id) {
+  const h = HERO[id]; if (!h) return null;
+  const b = lvBonus(heroLv(id));
+  return b ? Object.assign({}, h, { pow: h.pow + b, spd: h.spd + b, cat: h.cat + b, lv: heroLv(id) }) : h;
+}
+function addCoins(n) { ensureGacha(); if (OPT.auto) return; SAVE.coins = Math.max(0, (SAVE.coins || 0) + n); writeSave(); }
+// 選手を手に入れる（もう持っていたら、かけら＋メダル）
+function grantPlayer(id) {
+  ensureGacha(); const r = RARITY[id] || 1;
+  if (!SAVE.owned[id]) { SAVE.owned[id] = { lv: 1, sh: 0 }; if (!SAVE.unlocked.includes(id)) SAVE.unlocked.push(id); writeSave(); return { isNew: true, sh: 0, md: 0 }; }
+  const o = SAVE.owned[id];
+  let sh = DUP_SHARD[r], md = DUP_MEDAL[r];
+  if (o.lv >= LV_MAX) { md += sh; sh = 0; }   // もう MAX なら、かけらの分もメダルに
+  o.sh += sh; SAVE.medals += md; writeSave();
+  return { isNew: false, sh, md };
+}
+function levelUp(id) {
+  const o = SAVE.owned[id]; if (!o || o.lv >= LV_MAX) return false;
+  const c = lvCost(o.lv); if (o.sh < c) return false;
+  o.sh -= c; o.lv++; writeSave(); return true;
+}
+// 毎日のボーナス（その日はじめてタイトルを開いたとき）
+function dailyBonus() {
+  ensureGacha(); applyMyTeam();
+  if (OPT.auto) return;
+  if (SAVE.welcome) { SAVE.welcome = 0; writeSave(); setTimeout(() => toast('🎰 ガチャができたよ！ 🪙1000 プレゼント'), 400); }
+  const today = new Date().toLocaleDateString('ja-JP');
+  if (SAVE.daily !== today) { SAVE.daily = today; addCoins(150); setTimeout(() => toast('📅 毎日のボーナス 🪙+150'), 900); }
+}
+// 実績を取ったら 100 コイン・あそびかたクリアで 300 コイン（もとの関数をつつむ）
+{
+  const _ach = unlockAch;
+  unlockAch = function (id) { const had = SAVE.ach[id]; _ach(id); if (!had && SAVE.ach[id]) addCoins(100); };
+  const _fin = TUT.finish;
+  TUT.finish = function () { const first = !SAVE.tutorial; _fin.call(this); if (first && SAVE.tutorial) { addCoins(300); toast('📖 あそびかたクリア 🪙+300'); } };
+}
+
+/* ---------- 選手のカード（顔の絵は1回描いたら覚えておく） ---------- */
+const FACE_CACHE = {};
+function faceURL(id) {
+  const key = id + MY_TEAM.c1; if (FACE_CACHE[key]) return FACE_CACHE[key];
+  const h = HERO[id], r = RARITY[id] || 1, cv = document.createElement('canvas'); cv.width = 200; cv.height = 170; const g = cv.getContext('2d');
+  const bg = { 1: ['#59627a', '#1f2533'], 2: ['#2b6cd8', '#0b1a4a'], 3: ['#e0a100', '#5a3a00'], 4: ['#c0269a', '#2a0a4a'] }[r];
+  const gr = g.createLinearGradient(0, 0, 0, 170); gr.addColorStop(0, bg[0]); gr.addColorStop(1, bg[1]); g.fillStyle = gr; g.fillRect(0, 0, 200, 170);
+  if (r >= 3) { g.fillStyle = 'rgba(255,255,255,.18)'; for (let i = 0; i < 12; i++) { g.save(); g.translate(100, 80); g.rotate(i * Math.PI / 6); g.fillRect(-6, 0, 12, 160); g.restore(); } }
+  drawFace(g, h, 100, 82, 46, MY_TEAM.c1);
+  return FACE_CACHE[key] = cv.toDataURL();
+}
+function charCard(id, o = {}) {
+  const h = HERO[id], r = RARITY[id] || 1, own = SAVE.owned && SAVE.owned[id];
+  const d = document.createElement('div');
+  d.className = 'gc ' + ['', '', 'r', 'sr', 'ur'][r] + (o.dim ? ' no' : '') + (o.sel ? ' sel' : '');
+  if (o.sel) d.style.outline = '3px solid #ffe066';
+  d.innerHTML = `<img src="${faceURL(id)}" alt=""><div class="rr">${RAR[r].n}</div>` +
+    (own && !o.noLv ? `<div class="lv">Lv${own.lv}</div>` : '') + (o.isNew ? '<div class="new">NEW!</div>' : '') +
+    (o.num >= 0 && o.sel ? `<div class="num" style="top:30px">${'①②③④⑤⑥'[o.num]}</div>` : '') +
+    `<div style="font-weight:900;margin-top:4px;font-size:15px">${o.dim && !o.showName ? h.name : h.name}</div>` +
+    `<div class="small">${o.sub != null ? o.sub : '⚡' + SPECIALS[h.sp].name}</div>` +
+    (own && !o.noLv && own.lv < LV_MAX ? `<div class="bar"><i style="width:${Math.min(100, own.sh / lvCost(own.lv) * 100)}%"></i></div>` : '');
+  return d;
+}
+
+/* ---------- エンブレム ---------- */
+const EMB_SHAPES = ['盾', '丸', '星', '六角'], EMB_ICONS = ['⚡', '🔥', '⭐', '🦁', '🐉', '🌊', '🍀', '👑', '🌙', '💥'];
+const MY_COLORS = ['#2f6bff', '#e8352a', '#16a34a', '#ffd23f', '#ff7a00', '#7c3aed', '#ff5ad1', '#14b8a6', '#0ea5e9', '#111827', '#ffffff', '#8b5a2b'];
+function emblemCanvas(S = 240) {
+  const T = SAVE.myTeam || { c1: '#2f6bff', c2: '#fff', shape: 0, icon: 0 };
+  const cv = document.createElement('canvas'); cv.width = cv.height = S; const g = cv.getContext('2d'), c = S / 2;
+  const path = () => {
+    g.beginPath();
+    if (T.shape === 1) g.arc(c, c, S * 0.44, 0, Math.PI * 2);
+    else if (T.shape === 2) for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? S * 0.22 : S * 0.47; g.lineTo(c + Math.cos(a) * r, c + Math.sin(a) * r); }
+    else if (T.shape === 3) for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3 - Math.PI / 2; g.lineTo(c + Math.cos(a) * S * 0.45, c + Math.sin(a) * S * 0.45); }
+    else { g.moveTo(S * 0.12, S * 0.12); g.lineTo(S * 0.88, S * 0.12); g.lineTo(S * 0.88, S * 0.5); g.quadraticCurveTo(S * 0.86, S * 0.82, c, S * 0.95); g.quadraticCurveTo(S * 0.14, S * 0.82, S * 0.12, S * 0.5); }
+    g.closePath();
+  };
+  path(); const gr = g.createLinearGradient(0, 0, 0, S); gr.addColorStop(0, shade(T.c1, 0.25)); gr.addColorStop(1, shade(T.c1, -0.35)); g.fillStyle = gr; g.fill();
+  g.lineWidth = S * 0.06; g.strokeStyle = T.c2; g.stroke();
+  g.save(); path(); g.clip(); g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(0, 0, S, S * 0.38); g.restore();
+  g.font = `${S * 0.42}px sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(EMB_ICONS[T.icon || 0], c, c * (T.shape === 2 ? 1.04 : 0.98));
+  return cv;
+}
+const BAD_WORDS = ['死', '殺', 'ころす', 'しね', 'バカ', 'ばか', 'アホ', 'あほ', 'うんこ', 'ちんこ', 'まんこ', 'fuck', 'shit', 'sex', 'http', 'www'];
+function renderMyTeamEditor() {
+  ensureGacha(); applyMyTeam();
+  const T = SAVE.myTeam, ec = $('myemb'), g = ec.getContext('2d');
+  g.clearRect(0, 0, 240, 240); g.drawImage(emblemCanvas(240), 0, 0);
+  if (document.activeElement !== $('myname')) $('myname').value = T.name;
+  $('mynameok').onclick = () => {
+    const v = $('myname').value.trim().slice(0, 10);
+    if (!v) { $('mynamemsg').textContent = '名前を入れてね'; return; }
+    if (BAD_WORDS.some(w => v.toLowerCase().includes(w))) { $('mynamemsg').textContent = 'その名前は使えないよ。ほかの名前にしてね'; return; }
+    T.name = v; writeSave(); applyMyTeam(); SFX.click(); $('mynamemsg').textContent = `「${v}」にしたよ！`;
+  };
+  const sw = (el, key) => { el.innerHTML = MY_COLORS.map(c => `<i style="background:${c}" class="${T[key] === c ? 'on' : ''}" data-c="${c}"></i>`).join(''); el.querySelectorAll('i').forEach(i => i.onclick = () => { T[key] = i.dataset.c; writeSave(); applyMyTeam(); SFX.click(); for (const k in FACE_CACHE) delete FACE_CACHE[k]; renderTeam(); }); };
+  sw($('myc1'), 'c1'); sw($('myc2'), 'c2');
+  segButtons($('myshape'), EMB_SHAPES.map((n, i) => [i, n]), T.shape, v => { T.shape = v; writeSave(); renderMyTeamEditor(); });
+  segButtons($('myicon'), EMB_ICONS.map((n, i) => [i, n]), T.icon, v => { T.icon = v; writeSave(); renderMyTeamEditor(); });
+}
+
+/* ---------- ガチャを引く ---------- */
+function rollRarity(guarantee) {
+  const r = Math.random();
+  if (guarantee) return r < 0.03 ? 4 : 3;
+  return r < 0.03 ? 4 : r < 0.15 ? 3 : r < 0.50 ? 2 : 1;   // UR 3%／SR 12%／R 35%／N 50%
+}
+const POOL = r => HEROES.filter(h => RARITY[h.id] === r).map(h => h.id);
+function pull(n) {
+  ensureGacha(); audioInit();
+  const cost = GACHA_COST[n];
+  if (SAVE.coins < cost) { toast('🪙 コインが足りないよ。試合をしてコインを集めよう'); SFX.click(); return null; }
+  SAVE.coins -= cost;
+  const got = [];
+  for (let i = 0; i < n; i++) {
+    const rr = rollRarity(n === 10 && i === n - 1 && !got.some(g => g.r >= 3));
+    const id = pick(POOL(rr));
+    SAVE.pulls++; SAVE.pity = rr === 4 ? 0 : SAVE.pity + 1;
+    got.push(Object.assign({ id, r: rr }, grantPlayer(id)));
+  }
+  writeSave();
+  return got;
+}
+function doPull(n) {
+  const got = pull(n); if (!got) return;
+  renderGachaTop();
+  const el = $('gres'); el.innerHTML = '';
+  gachaFx(got, () => {
+    got.forEach((c, i) => {
+      const card = charCard(c.id, { isNew: c.isNew, sub: c.isNew ? '⚡' + SPECIALS[HERO[c.id].sp].name : `かけら+${c.sh}${c.md ? ' メダル+' + c.md : ''}` });
+      card.style.animationDelay = (i * 0.12) + 's'; el.appendChild(card);
+      setTimeout(() => { if (c.r >= 4) SFX.special && SFX.special(); else if (c.r === 3) SFX.just(); else SFX.click(); }, i * 120 + 150);
+    });
+    renderGacha(true);
+  });
+}
+// 演出：ドッジボールがふるえて光る（色＝いちばん良いレア。とちゅうで金→SR、にじ色→UR）→ SR・UR はカットイン
+const GFX_COL = { 1: '#7fd3ff', 2: '#7fd3ff', 3: '#ffd23f', 4: '#ff5ad1' };
+function gachaFx(got, done) {
+  const el = $('gfx'), best = Math.max(...got.map(c => c.r)), rares = got.filter(c => c.r >= 3).sort((a, b) => b.r - a.r);
+  const timers = [], later = (f, ms) => timers.push(setTimeout(f, ms));
+  let phase = 'ball', ci = 0;
+  el.style.setProperty('--gc', GFX_COL[2]);
+  el.className = 'on';
+  el.innerHTML = '<div class="rays"></div><div class="ball"></div><div class="cut"></div><div class="flash"></div><div class="tap">タップでスキップ</div>';
+  const boom = () => { el.classList.remove('boom'); void el.offsetWidth; el.classList.add('boom'); };
+  const finish = () => { timers.forEach(clearTimeout); el.className = ''; el.innerHTML = ''; el.onclick = null; done(); };
+  const showCut = () => {
+    phase = 'cut'; const c = rares[ci], h = HERO[c.id];
+    el.style.setProperty('--gc', GFX_COL[c.r]); el.classList.toggle('rb', c.r >= 4); el.classList.add('showcut'); boom();
+    const cut = el.querySelector('.cut'); cut.style.animation = 'none'; void cut.offsetWidth; cut.style.animation = '';
+    cut.innerHTML = `<img src="${faceURL(c.id)}"><div><div class="t1">${RAR[c.r].n} ${RAR[c.r].star}</div><div class="t2">${h.name}${c.isNew ? '　NEW!' : ''}</div><div class="t2" style="font-size:16px">⚡${SPECIALS[h.sp].name}</div></div>`;
+    el.querySelector('.tap').textContent = 'タップでつぎへ';
+    if (c.r >= 4) { SFX.special && SFX.special(); SFX.cheer && SFX.cheer(1); } else SFX.ach();
+    later(next, 2600);
+  };
+  const next = () => {
+    timers.forEach(clearTimeout); timers.length = 0;
+    if (phase === 'ball' && rares.length) { showCut(); return; }
+    if (phase === 'cut' && ++ci < rares.length) { showCut(); return; }
+    if (phase === 'ball') { boom(); phase = 'end'; later(finish, 250); return; }
+    finish();
+  };
+  el.onclick = () => { if (phase !== 'end') next(); };
+  [0, 1, 2, 3].forEach(i => later(() => SFX.charge && SFX.charge(0.25 + i * 0.25), i * 220));   // 0 をわたすと音のエラーになるので 0.25 から
+  if (best >= 3) later(() => { el.style.setProperty('--gc', GFX_COL[3]); SFX.just(); }, 650);
+  if (best >= 4) later(() => { el.classList.add('rb'); el.style.setProperty('--gc', GFX_COL[4]); }, 1150);
+  later(next, best >= 4 ? 1700 : best >= 3 ? 1300 : 950);
+}
+
+/* ---------- ガチャの画面 ---------- */
+function renderGachaTop() {
+  $('gcoins').textContent = `🪙 ${SAVE.coins}`; $('gmedals').textContent = `🏅 メダル ${SAVE.medals}`;
+  $('gpity').textContent = SAVE.pity >= PITY_MAX ? '🎉 天井！好きな UR をえらべる' : `天井まで あと ${PITY_MAX - SAVE.pity} 回`;
+  $('g1').disabled = SAVE.coins < GACHA_COST[1]; $('g10').disabled = SAVE.coins < GACHA_COST[10];
+}
+function renderGacha(keepResult) {
+  ensureGacha(); applyMyTeam(); renderGachaTop();
+  // バナー：UR の4人
+  const g = $('gbanner').getContext('2d');
+  const gr = g.createLinearGradient(0, 0, 900, 300); gr.addColorStop(0, '#5a1060'); gr.addColorStop(0.5, '#c0269a'); gr.addColorStop(1, '#1d1a6b'); g.fillStyle = gr; g.fillRect(0, 0, 900, 300);
+  g.fillStyle = 'rgba(255,255,255,.1)'; for (let i = 0; i < 16; i++) { g.save(); g.translate(450, 330); g.rotate(-Math.PI / 2 + (i - 7.5) * 0.14); g.fillRect(-10, 0, 20, -600); g.restore(); }
+  const urs = POOL(4);
+  urs.forEach((id, i) => { const x = 140 + i * 210; drawFace(g, HERO[id], x, 150, 62, '#ffd23f'); g.font = '900 22px "M PLUS Rounded 1c",sans-serif'; g.textAlign = 'center'; g.lineWidth = 5; g.strokeStyle = '#000'; g.strokeText(HERO[id].name, x, 262); g.fillStyle = '#fff'; g.fillText(HERO[id].name, x, 262); });
+  g.font = '900 46px "M PLUS Rounded 1c",sans-serif'; g.textAlign = 'left'; g.lineWidth = 9; g.strokeStyle = '#3a0030'; g.strokeText('ヒーローガチャ', 24, 50); g.fillStyle = '#fff34d'; g.fillText('ヒーローガチャ', 24, 50);
+  g.font = '900 22px "M PLUS Rounded 1c",sans-serif'; g.lineWidth = 5; g.strokeText(`UR ${urs.length}人・ぜんぶで${HEROES.length}人`, 28, 86); g.fillStyle = '#fff'; g.fillText(`UR ${urs.length}人・ぜんぶで${HEROES.length}人`, 28, 86);
+  $('g1').onclick = () => doPull(1); $('g10').onclick = () => doPull(10);
+  if (!keepResult) $('gres').innerHTML = '';
+  // 天井：好きな UR をえらぶ
+  if (SAVE.pity >= PITY_MAX) {
+    const box = document.createElement('div'); box.className = 'card'; box.style.gridColumn = '1/-1';
+    box.innerHTML = '<div style="font-weight:900;font-size:18px;color:#ff5ad1">🎉 天井！ 好きな UR を1人えらんでね</div>';
+    const row = document.createElement('div'); row.className = 'grid'; row.style.marginTop = '8px';
+    urs.forEach(id => { const c = charCard(id, { sub: owns(id) ? `持っている（かけら+${DUP_SHARD[4]}）` : 'まだ持っていない' }); c.onclick = () => { if (!confirm(`${HERO[id].name} にする？`)) return; const r = grantPlayer(id); SAVE.pity = 0; writeSave(); SFX.ach(); toast(r.isNew ? `🎉 ${HERO[id].name} が仲間になった！` : `${HERO[id].name} のかけら +${r.sh}`); renderGacha(); }; row.appendChild(c); });
+    box.appendChild(row); $('gres').prepend(box);
+  }
+  // メダル交換所
+  const shop = $('gshop'); shop.innerHTML = '';
+  HEROES.slice().sort((a, b) => RARITY[b.id] - RARITY[a.id]).forEach(h => {
+    const r = RARITY[h.id], price = MEDAL_PRICE[r], have = owns(h.id);
+    const c = charCard(h.id, { dim: SAVE.medals < price, noLv: true, sub: `🏅${price}　${have ? '→ かけら30' : '→ 仲間に'}` });
+    c.onclick = () => {
+      if (SAVE.medals < price) { toast('🏅 メダルが足りないよ'); return; }
+      if (!confirm(`🏅${price} で ${h.name} ${have ? 'のかけら30個' : 'を仲間に'}する？`)) return;
+      SAVE.medals -= price;
+      if (have) SAVE.owned[h.id].sh += 30; else grantPlayer(h.id);
+      writeSave(); SFX.ach(); toast(have ? `${h.name} のかけら +30` : `🎉 ${h.name} が仲間になった！`); renderGacha(true);
+    };
+    shop.appendChild(c);
+  });
+}
+// はじめに：セーブの引きつぎ・実況の声は「最初からオン」（まだ自分で変えていない人も ON に。2026-10-24 ユーザーが決めた）
+ensureGacha();
+if (!SAVE.set.voiceSet && !SAVE.set.voice) { SAVE.set.voice = 1; writeSave(); }
+applyMyTeam();
 
 /* =========================================================
    【ループ】メインループ（1秒60コマ。本当の時間で進む）
