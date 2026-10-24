@@ -5,7 +5,16 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#0a1430">
-<title>VOLLEY BLAST（バレーブラスト）</title>
+<title>VOLLEY BLAST（バレーブラスト）｜6人制バレーボールの無料ブラウザゲーム</title>
+<!-- 検索とSNS向けの紹介文（公開担当 2026-10-24） -->
+<meta name="description" content="タイミングでつなげ！ スワイプでたたきこめ！ レシーブ・トス・スパイク・ブロックで戦う6人制バレーボールゲーム。大会で優勝をめざし、ガチャで選手を集めよう。スマホでもPCでも無料で遊べる。">
+<meta property="og:title" content="VOLLEY BLAST（バレーブラスト）｜6人制バレーボールの無料ブラウザゲーム">
+<meta property="og:description" content="タイミングでつなげ！ スワイプでたたきこめ！ 6人制バレーボールゲーム。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://nixoroot.com/volley/">
+<meta property="og:site_name" content="nixoroot GAMES">
+<link rel="canonical" href="https://nixoroot.com/volley/">
+<meta name="apple-mobile-web-app-title" content="VOLLEY BLAST">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=M+PLUS+Rounded+1c:wght@500;800&display=swap" rel="stylesheet">
 <style>
@@ -89,6 +98,38 @@ img.card{width:100%;border-radius:12px;display:block}
 input.tx{font:inherit;font-size:16px;padding:8px 10px;border-radius:10px;border:2px solid rgba(255,255,255,.3);background:rgba(0,0,0,.3);color:#fff;width:220px}
 .sw8{display:flex;gap:8px;flex-wrap:wrap}.sw8 button{width:46px;height:46px;border-radius:12px;border:3px solid transparent;cursor:pointer}.sw8 button.on{border-color:#fff}
 .sw8 button[disabled]{opacity:.3}
+/* マイチーム・ガチャ（[16]） */
+.vcards{display:flex;flex-wrap:wrap;gap:8px}
+.vc-wrap{display:flex;flex-direction:column;gap:3px;width:104px}
+.vc-wrap.reveal,.vcard.reveal{animation:vcin .45s both}
+@keyframes vcin{from{transform:scale(.3) rotateY(90deg);opacity:0}to{transform:none;opacity:1}}
+.vcard{position:relative;width:104px;border-radius:10px;padding:5px;background:linear-gradient(170deg,#1b2a52,#0d1530);border:3px solid #9aa5b1;font-size:11px;line-height:1.25;box-shadow:0 3px 8px rgba(0,0,0,.4)}
+.vcard.r1{border-color:#4dabf7}.vcard.r2{border-color:#b197fc;box-shadow:0 0 10px #b197fc88}.vcard.r3{border-color:#ffd43b;box-shadow:0 0 14px #ffd43baa;background:linear-gradient(170deg,#4a3a0a,#1b1405)}
+.vcard.sel{outline:3px solid #fff}.vcard.locked{opacity:.45}
+.vc-top{display:flex;justify-content:space-between;font-weight:800}
+.vc-face{height:46px;border-radius:7px;display:grid;place-items:center;margin:3px 0;font-family:'Dela Gothic One',sans-serif;font-size:24px}
+.vc-ovr{position:absolute;right:7px;top:24px;font-family:'Dela Gothic One',sans-serif;font-size:18px;color:#ffd166;text-shadow:0 2px 3px #000}
+.vc-name{font-weight:800;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vc-st{color:#cfe0ff;font-size:10px}
+.vc-lv{position:absolute;left:6px;top:24px;background:#2ec4b6;border-radius:6px;padding:0 4px;font-weight:800}
+#gfx{position:fixed;inset:0;z-index:40;display:none;place-items:center;background:radial-gradient(circle,#1a2350,#05070f);overflow:hidden;cursor:pointer}
+#gfx.on{display:grid}
+#gfx .g-ball{width:120px;height:120px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,var(--gc) 45%,#000 120%);box-shadow:0 0 40px var(--gc),0 0 90px var(--gc);animation:gshake .25s infinite alternate;transition:background .3s,box-shadow .3s}
+#gfx.up .g-ball{transform:scale(1.15)}#gfx.gold .g-ball{width:150px;height:150px}
+@keyframes gshake{from{translate:-4px 0}to{translate:4px 0}}
+#gfx .g-rays{position:absolute;inset:-50%;background:repeating-conic-gradient(from 0deg,transparent 0 10deg,color-mix(in srgb,var(--gc) 35%,transparent) 10deg 20deg);opacity:0;animation:grot 6s linear infinite}
+#gfx.up .g-rays{opacity:.5}#gfx.gold .g-rays{opacity:.9}
+@keyframes grot{to{transform:rotate(360deg)}}
+#gfx .g-flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+#gfx.flash .g-flash{animation:gfl .5s}
+#gfx.flash .g-ball{display:none}
+@keyframes gfl{0%{opacity:0}20%{opacity:1}100%{opacity:0}}
+#gfx .g-big{position:absolute;text-align:center;display:none}
+#gfx.big .g-big{display:block;animation:pop .4s cubic-bezier(.2,1.6,.4,1)}
+#gfx .g-ssr{font-family:'Dela Gothic One',sans-serif;font-size:clamp(60px,14vw,120px);color:#ffd43b;text-shadow:0 0 30px #ffb300,0 6px 0 #7a4b00;transform:skewX(-8deg)}
+#gfx .g-name{font-size:clamp(24px,5vw,40px);font-weight:800;text-shadow:0 3px 6px #000}
+#gfx .g-role{color:#ffe8a3;font-weight:800}
+#gfx .g-tap{position:absolute;bottom:14px;right:16px;font-size:12px;opacity:.7}
 </style>
 </head>
 <body>
@@ -125,6 +166,7 @@ input.tx{font:inherit;font-size:16px;padding:8px 10px;border-radius:10px;border:
 <div class="scr" id="s-cups"><div class="box" id="b-cups"></div></div>
 <div class="scr" id="s-bracket"><div class="box" id="b-bracket"></div></div>
 <div class="scr" id="s-team"><div class="box" id="b-team"></div></div>
+<div class="scr" id="s-gacha"><div class="box" id="b-gacha"></div></div>
 <div class="scr" id="s-rec"><div class="box" id="b-rec"></div></div>
 <div class="scr" id="s-set"><div class="box" id="b-set"></div></div>
 <div class="scr" id="s-result"><div class="box" id="b-result"></div></div>
@@ -1424,12 +1466,12 @@ function makeTeam(side, def) {
   const t = { side, id: def.id, name: def.name, kit: def.kit, players: [], rot: [0, 1, 5, 3, 4, 2] };
   for (let i = 0; i < 6; i++) {
     const pd = def.players[i];
-    t.players.push({ side, i, role: ROLES[i], name: pd.name, num: pd.num, x: 0, z: 0, y: 0, tx: 0, tz: 0, vx: 0, vz: 0, spd: 5.5, fx: dirOf(side), fz: 0, act: null, actT0: 0, actUntil: 0, jump: null, mesh: null, diveSide: 1, st: { k: 0, b: 0, a: 0, d: 0 } });
+    t.players.push({ side, i, role: ROLES[i], name: pd.name, num: pd.num, x: 0, z: 0, y: 0, tx: 0, tz: 0, vx: 0, vz: 0, spd: 5.5, fx: dirOf(side), fz: 0, act: null, actT0: 0, actUntil: 0, jump: null, mesh: null, diveSide: 1, st: { k: 0, b: 0, a: 0, d: 0 }, stat: pd.stat || null });
   }
   return t;
 }
 function cpuPlayers() { const used = new Set(); return [1, 2, 3, 4, 5, 6].map(i => { let n; do { n = pick(FAM) + ' ' + pick(GIV); } while (used.has(n)); used.add(n); return { name: n, num: [1, 3, 6, 8, 10, 11, 12, 14][(Math.random() * 8) | 0] + i * 0 }; }).map((p, i) => ({ ...p, num: [1, 4, 2, 5, 7, 9][i] + (Math.random() < 0.5 ? 10 : 0) })); }
-function myTeamDef() { return { id: 'me', name: S.teamName, kit: KITS[S.color] || KITS[0], players: MY_PLAYERS }; }
+function myTeamDef() { return { id: 'me', name: S.teamName, kit: KITS[S.color] || KITS[0], players: rosterPlayers() }; }   // マイチームの6人（[16]）
 function oppTeamDef(td) { return { id: td.id, name: td.name, kit: { shirt: td.shirt, shorts: td.shorts, num: td.num }, players: cpuPlayers() }; }
 function aiFor(tier, mods = {}) { const a = Object.assign({}, DIFF[DIFF_KEY[tier]]); for (const k in mods) a[k] = clamp((a[k] || 0) + mods[k], 0, 1.2); return a; }
 
@@ -1547,7 +1589,7 @@ function serveHit(g) {
   if (G.tut) fault = null;
   if (fault === 'out') { if (Math.random() < 0.6) tgt.d = 9.4 + rnd(0.2, 1.2); else tgt.l = Math.sign(tgt.l || 1) * (4.7 + rnd(0.1, 0.9)); }
   if (!fault) { tgt.l = clamp(tgt.l, -4.9, 4.9); tgt.d = clamp(tgt.d, 1.5, 9.9); }
-  const str = human ? G.myStr : 0.9 + ai.srv * 0.15;
+  const str = human ? G.myStr * statMul(p, 'srv') : 0.9 + ai.srv * 0.15;
   const spd = (type === 'jump' ? 17 + 7 * gq : 12.5 + 3 * gq) * str * (G.tut ? 0.78 : 1);
   const from = ballNow(); R.last = sv; G.lastToucher = p;
   if (fault === 'net') { SFX.serve(gq); netFault(sv, from, spd); R.reason = { k: 'snet', side: sv }; return; }
@@ -1597,7 +1639,7 @@ function receivePlan(side, kind, info = {}) {
   const hv = Math.hypot(ball.vx, ball.vz), sp = clamp((hv - 9) / 15, 0, 1), far = clamp((bd - 1.5) / 3.5, 0, 1);
   if (isHuman(side)) {
     const mult = kind === 'free' || kind === 'touch' ? 1.35 : clamp(1 - 0.32 * sp - 0.22 * far, 0.55, 1);
-    addPend({ type: 'receive', kind, side, t: tC, pos: P, player: best, win: winBase(mult * (G.tut ? 1.4 : 1)), lead: clamp(tC - G.t, 0.45, 1.0), resolve: g => doReceive(side, best, g, kind) });
+    addPend({ type: 'receive', kind, side, t: tC, pos: P, player: best, win: winBase(mult * statWin(best, 'rec') * (G.tut ? 1.4 : 1)), lead: clamp(tC - G.t, 0.45, 1.0), resolve: g => doReceive(side, best, g, kind) });
   } else at(tC, () => doReceive(side, best, cpuRecvGrade(side, kind, sp, far, info), kind));
 }
 function nearestTo(list, P) { let b = null, bd = 1e9; for (const p of list) { const d = Math.hypot(p.x - P.x, p.z - P.z); if (d < bd) { bd = d; b = p; } } return b; }
@@ -1646,7 +1688,7 @@ function pass(side, cp, q, from) {
   if (isHuman(side)) {
     const rec = recommendOpt(side, opts);
     showToss(opts, rec, q);
-    addPend({ type: 'toss', side, t: tS, pos: to, player: setter, win: winBase(G.tut ? 1.5 : 1.1), lead: Math.min(1.1, T), resolve: (g, key) => doToss(side, setter, key || rec, g) });
+    addPend({ type: 'toss', side, t: tS, pos: to, player: setter, win: winBase(statWin(setter, 'set') * (G.tut ? 1.5 : 1.1)), lead: Math.min(1.1, T), resolve: (g, key) => doToss(side, setter, key || rec, g) });
   } else at(tS, () => doToss(side, setter, cpuChooseOpt(side, opts), cpuGrade(aiOf(side).set)));
 }
 // ----- トス -----
@@ -1724,7 +1766,7 @@ function doAttack(side, atk, g, inp) {
   const kind = inp.kind || 'spike', power = inp.power ?? 0.8;
   const tgt = { l: inp.target.l + gauss() * noise, d: inp.target.d + gauss() * noise * 0.8 };
   const netErr = inp.netErr || (human && g === 'BAD' && Math.random() < 0.16 && !G.tut);
-  const str = human ? G.myStr : 0.92 + ai.atk * 0.12;
+  const str = human ? G.myStr * statMul(atk, 'atk') : 0.92 + ai.atk * 0.12;
   R.cross++;
   if (netErr) { SFX.spike(0.6); netFault(side, from, 14); R.reason = { k: 'anet', side }; return; }
   let to, T;
@@ -1757,7 +1799,7 @@ function resolveBlock(aside, atk, g, kind, power) {
     for (const p of B.blockers) { if (!p.jump) continue; const top = 2.3 + p.y + 0.08; if (bp.y < top && Math.abs(bp.z - p.z) < 0.42 * wide) { hitB = p; break; } }
   }
   if (!hitB) { receivePlan(dside, kind === 'feint' ? 'feint' : 'spike', { g, power }); return; }
-  const gf = { PERFECT: 1, GREAT: .8, GOOD: .55, BAD: .3 }[B.g], skill = isHuman(dside) ? 0.62 * G.myStr : aiOf(dside).blk;
+  const gf = { PERFECT: 1, GREAT: .8, GOOD: .55, BAD: .3 }[B.g], skill = isHuman(dside) ? 0.62 * G.myStr * statMul(hitB, 'blk') : aiOf(dside).blk;
   let ps = clamp(0.75 * gf * skill * (1 - 0.3 * power), 0, 0.85);
   if (G.force.myBlockTouch && isHuman(dside)) ps = 0;
   const r = Math.random();
@@ -2213,7 +2255,7 @@ function updateReplay(rdt) {
 // =====================================================================
 //  [13] 画面（メニュー・大会・結果カード など）
 // =====================================================================
-const SCREENS = ['s-title', 's-menu', 's-free', 's-cups', 's-bracket', 's-team', 's-rec', 's-set', 's-result', 's-pause'];
+const SCREENS = ['s-title', 's-menu', 's-free', 's-cups', 's-bracket', 's-team', 's-gacha', 's-rec', 's-set', 's-result', 's-pause'];
 function show(id) { for (const s of SCREENS) $('#' + s).classList.toggle('on', s === id); }
 function hideAll() { show(null); }
 function toast(t, ms = 1800) { const e = $('#toast'); e.innerHTML = t; e.style.display = 'block'; clearTimeout(toast.h); toast.h = setTimeout(() => e.style.display = 'none', ms); }
@@ -2223,7 +2265,7 @@ function showBanner(t, s, col, ms = 1400) {
 }
 function updateHud() {
   const m = G.match; if (!m) return;
-  $('#nmA').textContent = S.teamName; $('#nmB').textContent = m.oppName;
+  $('#nmA').innerHTML = (G.match.kind === 'demo' ? '' : emblemHTML(18) + ' ') + esc(S.teamName); $('#nmB').textContent = m.oppName;
   $('#swA').style.background = TM(0).kit.shirt; $('#swB').style.background = TM(1).kit.shirt;
   $('#ptA').textContent = m.score[0]; $('#ptB').textContent = m.score[1]; $('#setA').textContent = m.sets[0]; $('#setB').textContent = m.sets[1];
   $('#srvA').classList.toggle('on', m.serving === 0); $('#srvB').classList.toggle('on', m.serving === 1);
@@ -2231,8 +2273,8 @@ function updateHud() {
 }
 function unlock(id) {
   if (G.human < 0 || NOSAVE && !AUTO) return;
-  if (S.ach[id]) return; S.ach[id] = Date.now(); save();
-  const a = ACH.find(x => x[0] === id); if (a && !AUTO) { toast(`🏅 実績「${a[1]}」`); }
+  if (S.ach[id]) return; S.ach[id] = Date.now(); addCoins(100); save();
+  const a = ACH.find(x => x[0] === id); if (a && !AUTO) { toast(`🏅 実績「${a[1]}」 🪙+100`); }
   if (G.match) (G.match.newAch = G.match.newAch || []).push(id);
 }
 // ----- 試合を始める -----
@@ -2292,8 +2334,9 @@ function endMatch() {
     if (won) { run.round++; if (run.round >= 3) { const c = CUPS.find(x => x.id === run.cup); S.cups[run.cup] = (S.cups[run.cup] || 0) + 1; unlock('cup_' + run.cup); cupMsg = `${c.icon} ${c.name} 優勝！`; run.done = 'win'; } }
     else run.done = 'lose';
   }
+  const coins = (won ? 100 + 50 * m.tier : 40) + (cupMsg ? 500 : 0); addCoins(coins);   // コイン（ガチャ用）
   save();
-  showResult({ won, gain, exp, before, cupMsg });
+  showResult({ won, gain, exp, before, cupMsg, coins });
 }
 function showResult(r) {
   const m = G.match, st = m.st;
@@ -2316,7 +2359,7 @@ function showResult(r) {
       <tr><td>ディグ（スパイクレシーブ）</td><td>${st.digs}</td></tr><tr><td>PERFECT</td><td>${st.perfect}</td></tr><tr><td>いちばん長いラリー</td><td>${st.maxRally}</td></tr></table></div>
     <div class="card"><b>MVP</b><div style="font-size:18px;font-weight:800;margin:4px 0">#${mvp.num} ${esc(mvp.name)}</div><div class="sub">${ROLE_JP[mvp.role]}・${mvp.st.k + mvp.st.b + mvp.st.a}点</div>
       <div style="margin-top:8px"><b>ランク</b> ${rk[2]} ${rk[1]}（${S.rp}pt <span style="color:${r.gain >= 0 ? '#80ffdb' : '#ff8fa3'}">${r.gain >= 0 ? '+' : ''}${r.gain}</span>）</div>
-      <div class="sub">チームレベル ${S.lv}（経験値 +${r.exp}）${S.lv > r.before.lv ? ' ⬆ レベルアップ！' : ''}</div>
+      <div style="margin-top:4px">🪙 コイン <b style="color:#ffd166">+${r.coins || 0}</b>（いま ${S.coins}）</div><div class="sub">チームレベル ${S.lv}（経験値 +${r.exp}）${S.lv > r.before.lv ? ' ⬆ レベルアップ！' : ''}</div>
       ${achs.length ? `<div style="margin-top:6px">🏅 ${achs.map(a => a[1]).join('・')}</div>` : ''}</div>
   </div>
   <img class="card" id="rCard" src="${card}" alt="結果カード">
@@ -2347,7 +2390,7 @@ function makeCard(r, mvp) {
   g.textAlign = 'left'; g.fillStyle = '#ffd166'; g.font = '900 46px "Dela Gothic One",sans-serif'; g.fillText('VOLLEY BLAST', 50, 80);
   g.fillStyle = r.won ? '#ffd166' : '#a9b8e0'; g.font = '900 120px "Dela Gothic One",sans-serif'; g.textAlign = 'right'; g.fillText(r.won ? 'WIN!' : 'LOSE', 1150, 130);
   g.textAlign = 'center'; g.fillStyle = '#fff'; g.font = '800 40px sans-serif';
-  g.fillText(S.teamName, 300, 260); g.fillText(m.oppName, 900, 260);
+  g.fillText((S.emblem ? S.emblem.icon + ' ' : '') + S.teamName, 300, 260); g.fillText(m.oppName, 900, 260);
   g.font = '900 130px "Dela Gothic One",sans-serif'; g.fillText(`${m.sets[0]}`, 300, 400); g.fillText(`${m.sets[1]}`, 900, 400); g.fillStyle = '#ffd166'; g.fillText('-', 600, 395);
   g.font = '700 30px sans-serif'; g.fillStyle = '#cfe0ff'; g.fillText(m.setScores.map(s => s.join('-')).join('  /  '), 600, 455);
   g.fillStyle = 'rgba(255,255,255,.1)'; g.fillRect(50, 490, 1100, 100);
@@ -2365,7 +2408,7 @@ function showMenu() {
   <div style="max-width:560px">
     <div class="logo" style="font-size:40px">VOLLEY BLAST</div>
     <div class="card" style="margin:8px 0">
-      <div class="row" style="justify-content:space-between"><b style="font-size:17px">${RANKS[rk][2]} ${RANKS[rk][1]}</b><span class="sub">${esc(S.teamName)}・Lv ${S.lv}・${S.wins}勝 ${S.games - S.wins}敗</span></div>
+      <div class="row" style="justify-content:space-between"><b style="font-size:17px">${RANKS[rk][2]} ${RANKS[rk][1]}</b><span class="sub">${emblemHTML(24)} ${esc(S.teamName)}・Lv ${S.lv}・${S.wins}勝 ${S.games - S.wins}敗・🪙${S.coins}</span></div>
       <div class="bar" style="margin-top:6px"><i style="width:${prog * 100}%"></i></div>
       <div class="sub" style="margin-top:3px">${nx ? `つぎの「${nx[1]}」まで ${nx[0] - S.rp}pt` : '最高ランク！'}</div>
     </div>
@@ -2373,7 +2416,8 @@ function showMenu() {
       <button class="btn or mbtn" id="mCup"><b>🏆 大会</b><span>トーナメントで優勝をめざせ</span></button>
       <button class="btn mbtn" id="mFree"><b>⚡ フリー対戦</b><span>相手と強さをえらんで1試合</span></button>
       <button class="btn gn mbtn" id="mTut"><b>🎓 チュートリアル</b><span>操作をコーチがおしえるよ</span></button>
-      <button class="btn mbtn" id="mTeam"><b>👕 チーム</b><span>チーム名・ユニフォーム・選手</span></button>
+      <button class="btn mbtn" id="mTeam"><b>👕 マイチーム</b><span>チーム力 ${teamPower()}・エンブレム・入れかえ</span></button>
+      <button class="btn mbtn" id="mGacha" style="background:linear-gradient(180deg,#f06595,#c2255c);box-shadow:0 4px 0 #861d44"><b>🎰 ガチャ</b><span>🪙${S.coins}・天井 ${S.pity % PITY}/${PITY}</span></button>
       <button class="btn gr mbtn" id="mRec"><b>📊 記録・実績</b><span>${Object.keys(S.ach).length}/${ACH.length} 実績</span></button>
       <button class="btn gr mbtn" id="mSet"><b>⚙ 設定</b><span>音・試合の長さ</span></button>
     </div>
@@ -2383,6 +2427,7 @@ function showMenu() {
   $('#mFree').onclick = () => { SFX.click(); if (!S.tut) return askTut(showFree); showFree(); };
   $('#mTut').onclick = () => { SFX.click(); startTutorial(); };
   $('#mTeam').onclick = () => { SFX.click(); showTeam(); };
+  $('#mGacha').onclick = () => { SFX.click(); gachaTab = 'pull'; showGacha(); };
   $('#mRec').onclick = () => { SFX.click(); showRec(); };
   $('#mSet').onclick = () => { SFX.click(); showSet(); };
 }
@@ -2466,18 +2511,7 @@ function showBracket() {
   if ($('#bEnd')) $('#bEnd').onclick = () => { SFX.click(); S.cupRun = null; save(); showCups(); };
 }
 // ----- チーム -----
-function showTeam() {
-  $('#b-team').innerHTML = `
-  <div class="row" style="justify-content:space-between"><h2>👕 チーム</h2><button class="btn gr sm" id="tBack">← もどる</button></div>
-  <div class="card"><b>チーム名</b>（本名や学校名は書かないでね）<div class="row" style="margin-top:6px"><input class="tx" id="tName" maxlength="10" value="${esc(S.teamName)}"><button class="btn sm" id="tSave">決定</button></div></div>
-  <div class="card" style="margin-top:10px"><b>ユニフォーム</b><div class="sw8" style="margin-top:6px">${KITS.map((k, i) => { const ok = !k.need || S.ach[k.need]; return `<button data-k="${i}" class="${S.color === i ? 'on' : ''}" ${ok ? '' : 'disabled'} title="${k.name}" style="background:linear-gradient(135deg,${k.shirt} 55%,${k.shorts} 55%)"></button>`; }).join('')}</div>
-  <div class="sub" style="margin-top:4px">🔒 は実績で解放（くろ金：はじめての勝利／むらさき：さくらカップ優勝／しろ金：ブルーオーシャン杯優勝／ほのお：王者決定戦優勝／さくら：ランク エース）</div></div>
-  <div class="card" style="margin-top:10px"><b>選手</b>（チームレベル ${S.lv}：アタック・サーブの強さ ${Math.round((0.93 + 0.007 * (S.lv - 1)) * 100)}%）<table class="st" style="margin-top:4px">${MY_PLAYERS.map((p, i) => `<tr><td>#${p.num}</td><td>${p.name}</td><td>${ROLE_JP[ROLES[i]]}</td></tr>`).join('')}</table></div>`;
-  show('s-team');
-  $('#tBack').onclick = () => { SFX.click(); showMenu(); };
-  $('#tSave').onclick = () => { const v = $('#tName').value.trim().slice(0, 10); if (v) { S.teamName = v; save(); toast('チーム名を変えたよ'); } };
-  document.querySelectorAll('#b-team [data-k]').forEach(b => b.onclick = () => { if (b.disabled) return; SFX.click(); S.color = +b.dataset.k; save(); showTeam(); });
-}
+// （チームの画面は [16] マイチーム・ガチャ の showTeam）
 function showRec() {
   const rows = [['試合', S.games], ['勝ち', S.wins], ['スパイク決定', S.kills], ['ブロック', S.blocks], ['サービスエース', S.aces], ['ディグ', S.digs], ['PERFECT', S.perfects], ['いちばん長いラリー', S.bestRally]];
   $('#b-rec').innerHTML = `
@@ -2488,7 +2522,7 @@ function showRec() {
   <div class="grid">${ACH.map(a => `<div class="ach ${S.ach[a[0]] ? '' : 'no'}">${S.ach[a[0]] ? '🏅' : '🔒'}<div><b>${a[1]}</b><div class="sub">${a[2]}</div></div></div>`).join('')}</div>`;
   show('s-rec'); $('#rBack').onclick = () => { SFX.click(); showMenu(); };
 }
-if (S.voice === undefined) { S.voice = false; save(); }   // 実況は最初は OFF（せっていで ON にできる）
+if (!S.voiceOn1) { S.voice = true; S.voiceOn1 = 1; save(); }   // 実況は最初から ON（2026-10-24 ユーザーが決めた。1回だけ全員 ON に。?mute・?auto・デモではしゃべらない）
 function showSet() {
   const tg = (k, on, off) => `<button class="chip ${S[k] ? 'on' : ''}" data-s="${k}">${S[k] ? on : off}</button>`;
   $('#b-set').innerHTML = `
@@ -2513,6 +2547,217 @@ $('#pauseB').addEventListener('pointerdown', e => { e.stopPropagation(); SFX.cli
 $('#resumeB').onclick = () => { SFX.click(); togglePause(); };
 $('#quitB').onclick = () => { SFX.click(); quitToMenu(); };
 document.addEventListener('visibilitychange', () => { if (document.hidden && !AUTO && !Q.has('nopause') && G.match && G.human >= 0 && !G.paused && !G.tut) togglePause(); });
+
+// =====================================================================
+//  [16] マイチーム・ガチャ（2026-10-24 バレー担当）
+//  遊んでたまるコインで引く。お金の課金はなし（あとで itch.io のコインパックなどを足すときは addCoins を使う）
+//  セーブ：S.coins コイン・S.cards 持っている選手 [{id, lv}]・S.frags かけら・S.pity 天井のカウント・S.roster 試合に出る6人・S.emblem エンブレム
+// =====================================================================
+const RARS = [{ n: 'N', c: '#9aa5b1' }, { n: 'R', c: '#4dabf7' }, { n: 'SR', c: '#b197fc' }, { n: 'SSR', c: '#ffd43b' }];
+const RATE = [0.50, 0.35, 0.12, 0.03];          // 出る確率：N 50%・R 35%・SR 12%・SSR 3%
+const PITY = 50;                                 // 天井：50回引くと、好きな SSR を1人えらべる
+const FRAG_DUP = [1, 3, 10, 30];                 // 同じ選手がまた出たら かけら に
+const LV_MAX = 5;                                // 強化は +5 まで（1回で全部の数字 +2）
+const lvCost = (rar, lv) => [3, 6, 12, 25][rar] * (lv + 1);   // 強化に使う かけら
+const EXCH = { 2: 120, 3: 400 };                 // かけらで、好きな SR / SSR と交換
+const GACHA_COST = { 1: 100, 10: 900 };
+// 役わりで得意な数字（atk アタック・rec レシーブ・blk ブロック・srv サーブ・set トス）
+const ROLE_W = { S: { set: 10, srv: 2, atk: -4, blk: -3, rec: 0 }, OH: { atk: 6, rec: 5, blk: 0, srv: 1, set: -4 }, MB: { blk: 9, atk: 3, rec: -4, srv: 0, set: -4 }, OP: { atk: 9, srv: 4, blk: 2, rec: -4, set: -5 } };
+const STAT_JP = { atk: 'アタック', rec: 'レシーブ', blk: 'ブロック', srv: 'サーブ', set: 'トス' };
+// 選手（すべて架空）。[名前, 役わり, レア(0N 1R 2SR 3SSR), 背番号]。はじめの6人はみんな持っている
+const POOL_SRC = [
+  ['早瀬 ユウキ', 'S', 0, 1], ['風間 リク', 'OH', 0, 4], ['大城 タイガ', 'MB', 0, 2], ['七海 コウ', 'OP', 0, 5], ['桜井 ハル', 'OH', 0, 7], ['岩田 ジン', 'MB', 0, 9],
+  ['田村 ショウ', 'OH', 0, 11], ['小野 ケイ', 'MB', 0, 12], ['西野 アユム', 'S', 0, 13], ['松井 ダイ', 'OP', 0, 14], ['堀 カズマ', 'OH', 0, 15], ['水野 リョウ', 'MB', 0, 16],
+  ['神田 ソラ', 'OH', 1, 3], ['宮本 ハヤテ', 'OH', 1, 8], ['北原 ユウ', 'MB', 1, 10], ['新井 タクミ', 'MB', 1, 6], ['朝倉 セナ', 'S', 1, 17], ['白石 コタロウ', 'OP', 1, 18], ['柴田 ライ', 'OP', 1, 19], ['日野 カナタ', 'S', 1, 20],
+  ['鳴海 ジュン', 'OH', 2, 21], ['天城 レオ', 'OH', 2, 22], ['黒崎 ガク', 'MB', 2, 23], ['久遠 トキ', 'S', 2, 24], ['真田 アラタ', 'OP', 2, 25], ['氷室 シン', 'MB', 2, 26],
+  ['雷堂 カイ', 'OH', 3, 27], ['星宮 ツバサ', 'OH', 3, 28], ['鉄島 ゴウ', 'MB', 3, 29], ['月城 アオイ', 'S', 3, 30], ['紅林 リュウ', 'OP', 3, 31], ['蒼井 ヒカル', 'OP', 3, 32],
+];
+function srnd(a, b) { const x = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453; return x - Math.floor(x); }   // いつも同じになる乱数
+const POOL = POOL_SRC.map((a, i) => {
+  const [name, role, rar, num] = a, base = [58, 64, 70, 76][rar], w = ROLE_W[role], st = {};
+  Object.keys(STAT_JP).forEach((k, j) => st[k] = Math.round(base + w[k] + (srnd(i + 1, j + 1) - 0.5) * 6));
+  return { id: 'v' + i, name, role, rar, num, st };
+});
+const poolById = id => POOL.find(p => p.id === id);
+function cardStat(c) { const p = poolById(c.id), st = {}; for (const k in p.st) st[k] = p.st[k] + (c.lv || 0) * 2; return st; }
+// 総合力：役わりで大事な数字を重く
+function ovrOf(c) { const p = poolById(c.id), st = cardStat(c), w = ROLE_W[p.role]; let s = 0, t = 0; for (const k in st) { const ww = 1 + Math.max(0, w[k]) / 4; s += st[k] * ww; t += ww; } return Math.round(s / t); }
+// 試合での強さ（差はつけすぎない：いちばん弱い〜強いで 1割くらい）
+function statMul(p, k) { return p && p.stat ? clamp(0.95 + (p.stat[k] - 65) / 100 * 0.25, 0.9, 1.04) : 1; }
+function statWin(p, k) { return p && p.stat ? clamp(0.92 + (p.stat[k] - 60) / 100 * 0.4, 0.9, 1.06) : 1; }
+// セーブのじゅんび（前のセーブもそのまま使える：はじめての人には 300 コイン＋今までの勝ち数×50）
+function myInit() {
+  if (!Array.isArray(S.cards) || !S.cards.length) { S.cards = POOL.slice(0, 6).map(p => ({ id: p.id, lv: 0 })); S.coins = (S.coins || 0) + 300 + (S.wins || 0) * 50; }
+  if (!(S.coins >= 0)) S.coins = 0; if (!(S.frags >= 0)) S.frags = 0; if (!(S.pity >= 0)) S.pity = 0;
+  S.cards = S.cards.filter(c => poolById(c.id));
+  if (!S.emblem) S.emblem = { shape: 0, icon: '🏐', c1: (KITS[S.color] || KITS[0]).shirt, c2: '#ffd166' };
+  if (!Array.isArray(S.roster) || S.roster.length !== 6) S.roster = POOL.slice(0, 6).map(p => p.id);
+  const used = new Set();
+  S.roster = S.roster.map((id, i) => {
+    let ok = S.cards.some(c => c.id === id) && poolById(id).role === ROLES[i] && !used.has(id);
+    if (!ok) id = (S.cards.find(c => poolById(c.id).role === ROLES[i] && !used.has(c.id) && !S.roster.includes(c.id)) || S.cards.find(c => poolById(c.id).role === ROLES[i] && !used.has(c.id)) || { id: POOL[i].id }).id;
+    used.add(id); return id;
+  });
+}
+function addCoins(n) { S.coins = (S.coins || 0) + n; }
+// 試合に出る6人（ROLES の順：S OH MB OP OH MB）
+function rosterPlayers() {
+  myInit();
+  return S.roster.map(id => { const c = S.cards.find(x => x.id === id) || { id, lv: 0 }, p = poolById(id); return { name: p.name, num: p.num, stat: cardStat(c), rar: p.rar }; });
+}
+function teamPower() { myInit(); return Math.round(S.roster.reduce((a, id) => a + ovrOf(S.cards.find(c => c.id === id) || { id, lv: 0 }), 0) / 6); }
+// ----- エンブレム -----
+const EMB_SHAPES = ['polygon(50% 0,100% 12%,95% 60%,50% 100%,5% 60%,0 12%)', 'circle(50% at 50% 50%)', 'polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 92%,50% 70%,21% 92%,32% 57%,2% 35%,39% 35%)', 'polygon(25% 3%,75% 3%,100% 50%,75% 97%,25% 97%,0 50%)'];
+const EMB_SHAPE_JP = ['たて', 'まる', 'ほし', 'ろっかく'];
+const EMB_ICONS = ['🏐', '⚡', '🔥', '🌊', '⭐', '🦅', '🐉', '🌸', '👑', '🍀', '🦁', '🐺'];
+const EMB_COLS = ['#2f80ed', '#e63946', '#2a9d8f', '#1d1d1f', '#7b2cbf', '#ff6d00', '#ffd166', '#ffffff', '#ff8fab', '#06d6a0'];
+function emblemHTML(size = 40, e = S.emblem) {
+  if (!e) return '';
+  return `<span style="display:inline-grid;place-items:center;width:${size}px;height:${size}px;vertical-align:middle;position:relative"><span style="position:absolute;inset:0;background:${e.c2};clip-path:${EMB_SHAPES[e.shape] || EMB_SHAPES[0]}"></span><span style="position:absolute;inset:${Math.max(2, size * 0.08)}px;background:${e.c1};clip-path:${EMB_SHAPES[e.shape] || EMB_SHAPES[0]}"></span><span style="position:relative;font-size:${size * 0.48}px;line-height:1">${e.icon}</span></span>`;
+}
+// ----- 選手カード -----
+function cardHTML(p, c, extra = '') {
+  const st = c ? cardStat(c) : p.st, ov = ovrOf(c || { id: p.id, lv: 0 }), kit = KITS[S.color] || KITS[0];
+  return `<div class="vcard r${p.rar} ${extra}" data-id="${p.id}"><div class="vc-top"><span>${RARS[p.rar].n}</span><span>${ROLE_JP[p.role]}</span></div>
+  <div class="vc-face" style="background:linear-gradient(160deg,${kit.shirt},${kit.shorts})"><b style="color:${kit.num}">${p.num}</b></div>
+  <div class="vc-ovr">${ov}</div><div class="vc-name">${esc(p.name)}</div>
+  <div class="vc-st">ア${st.atk} レ${st.rec} ブ${st.blk}<br>サ${st.srv} ト${st.set}</div>${c && c.lv ? `<div class="vc-lv">+${c.lv}</div>` : ''}</div>`;
+}
+// ----- ガチャを引く -----
+function rollRar(guarantee) { const r = Math.random(); if (guarantee) return r < 0.2 ? 3 : 2; return r < RATE[3] ? 3 : r < RATE[3] + RATE[2] ? 2 : r < RATE[3] + RATE[2] + RATE[1] ? 1 : 0; }
+function getPlayer(p) { // 選手を1人もらう（持っていたら かけら）
+  const have = S.cards.find(c => c.id === p.id);
+  if (have) { S.frags += FRAG_DUP[p.rar]; return { p, dup: true, frag: FRAG_DUP[p.rar] }; }
+  S.cards.push({ id: p.id, lv: 0 }); return { p, isNew: true };
+}
+function pull(n) {
+  myInit(); const cost = GACHA_COST[n];
+  if (S.coins < cost) { toast('コインが足りないよ。試合をしてコインを集めよう'); SFX.click(); return; }
+  S.coins -= cost; const got = [];
+  for (let i = 0; i < n; i++) {
+    const rar = rollRar(n === 10 && i === n - 1 && !got.some(g => g.p.rar >= 2));   // 10回なら SR 以上が1人かならず
+    S.pity++;
+    got.push(getPlayer(pick(POOL.filter(p => p.rar === rar))));
+  }
+  save();
+  gachaFx(got, () => showGacha(got));
+}
+// ----- ガチャの演出：光る玉 → 色が変わる（SR むらさき・SSR 金）→ パッと光る → カード。SSR は名前がドーンと出る -----
+function gachaFx(got, done) {
+  let el = $('#gfx'); if (!el) { el = document.createElement('div'); el.id = 'gfx'; document.body.appendChild(el); }
+  const best = Math.max(...got.map(g => g.p.rar)), ssr = got.filter(g => g.p.rar === 3);
+  const timers = [], later = (f, ms) => timers.push(setTimeout(f, AUTO ? 1 : ms));
+  el.className = 'on'; el.style.setProperty('--gc', RARS[1].c);
+  el.innerHTML = '<div class="g-rays"></div><div class="g-ball"></div><div class="g-big"></div><div class="g-flash"></div><div class="g-tap">タップでスキップ</div>';
+  SFX.toss && SFX.toss();
+  let finished = false;
+  const finish = () => { if (finished) return; finished = true; timers.forEach(clearTimeout); el.className = ''; el.innerHTML = ''; done(); };
+  if (best >= 2) later(() => { el.style.setProperty('--gc', RARS[2].c); el.classList.add('up'); SFX.good(); }, 900);
+  if (best >= 3) later(() => { el.style.setProperty('--gc', RARS[3].c); el.classList.add('gold'); SFX.perfect(); vib(60); }, 1500);
+  const tFlash = best >= 3 ? 2100 : best >= 2 ? 1500 : 1000;
+  later(() => { el.classList.add('flash'); best >= 2 ? SFX.cheer(best >= 3 ? 1 : 0.5) : SFX.bump(); }, tFlash);
+  if (ssr.length) { // SSR：名前をドーンと
+    ssr.forEach((g, i) => later(() => { el.querySelector('.g-big').innerHTML = `<div class="g-ssr">SSR</div><div class="g-name">${esc(g.p.name)}</div><div class="g-role">${ROLE_JP[g.p.role]}・#${g.p.num}</div>`; el.classList.add('big'); }, tFlash + 300 + i * 1600));
+    later(finish, tFlash + 300 + ssr.length * 1600 + 600);
+  } else later(finish, tFlash + 450);
+  el.onclick = finish;
+}
+// ----- ガチャの画面 -----
+let gachaTab = 'pull';
+function showGacha(got) {
+  myInit();
+  const tickets = Math.floor(S.pity / PITY);
+  const head = `<div class="row" style="justify-content:space-between"><h2>🎰 選手ガチャ</h2><div class="row"><span class="tag" style="font-size:15px">🪙 ${S.coins}</span><span class="tag" style="font-size:15px">💎 かけら ${S.frags}</span><button class="btn gr sm" id="gBack">← もどる</button></div></div>
+  <div class="row" style="margin:4px 0 10px"><button class="chip ${gachaTab === 'pull' ? 'on' : ''}" data-tab="pull">ガチャ</button><button class="chip ${gachaTab === 'ex' ? 'on' : ''}" data-tab="ex">かけら交換</button><button class="chip ${gachaTab === 'list' ? 'on' : ''}" data-tab="list">選手ずかん ${S.cards.length}/${POOL.length}</button></div>`;
+  let body = '';
+  if (gachaTab === 'pull') {
+    body = `<div class="card" style="text-align:center;border:2px solid #ffd43b55">
+      <b style="font-size:18px">⭐ 選手ガチャ</b><div class="sub">コインは試合・大会・実績・チュートリアルでたまるよ</div>
+      <div class="row" style="justify-content:center;margin:8px 0"><button class="btn or" id="g1">1回 🪙${GACHA_COST[1]}</button><button class="btn or" id="g10">10回 🪙${GACHA_COST[10]}<span style="font-size:11px;display:block;font-weight:500">SR以上が1人かならず</span></button></div>
+      <div class="sub">出る確率：SSR ${RATE[3] * 100}%・SR ${RATE[2] * 100}%・R ${RATE[1] * 100}%・N ${RATE[0] * 100}%（同じレアの中はみんな同じ確率）</div>
+      <div class="sub">同じ選手がまた出たら 💎かけら（N1・R3・SR10・SSR30）。かけらで強化や交換ができるよ</div>
+      <div style="margin-top:8px"><b>天井</b> ${S.pity % PITY}/${PITY} 回 <div class="bar" style="margin:4px auto;max-width:320px"><i style="width:${(S.pity % PITY) / PITY * 100}%"></i></div><div class="sub">${PITY}回引くたびに、好きな SSR を1人えらべる</div>
+      ${tickets ? `<button class="btn" id="gPity" style="margin-top:6px;background:linear-gradient(180deg,#ffd43b,#f08c00)">🎁 天井！ 好きな SSR をえらぶ（${tickets}回分）</button>` : ''}</div>
+    </div>`;
+    if (got) body += `<h3 style="margin-top:10px">結果</h3><div class="vcards">${got.map((g, i) => `<div class="vc-wrap" style="animation-delay:${i * 0.08}s">${cardHTML(g.p, S.cards.find(c => c.id === g.p.id), 'reveal')}<div class="sub" style="text-align:center">${g.isNew ? '<b style="color:#80ffdb">NEW!</b>' : g.dup ? `💎+${g.frag}` : g.up ? '<b style="color:#ffd166">強化 +1</b>' : ''}</div></div>`).join('')}</div>
+      <div class="row" style="justify-content:center;margin-top:8px"><button class="btn" id="gTeam">👕 マイチームに入れる</button></div>`;
+  } else if (gachaTab === 'ex') {
+    body = `<div class="sub" style="margin-bottom:6px">💎かけらで、好きな選手と交換できるよ（SR ${EXCH[2]}・SSR ${EXCH[3]}）。持っている選手をえらぶと「強化 +1」になる</div>
+    <div class="vcards">${POOL.filter(p => p.rar >= 2).map(p => { const c = S.cards.find(x => x.id === p.id), price = EXCH[p.rar], ok = S.frags >= price && !(c && c.lv >= LV_MAX); return `<div class="vc-wrap">${cardHTML(p, c)}<button class="btn sm ${ok ? '' : 'gr'}" data-ex="${p.id}" ${ok ? '' : 'disabled'} style="width:100%">💎${price} ${c ? (c.lv >= LV_MAX ? 'MAX' : '強化') : '交換'}</button></div>`; }).join('')}</div>`;
+  } else {
+    body = `<div class="vcards">${POOL.map(p => { const c = S.cards.find(x => x.id === p.id); return c ? `<div class="vc-wrap">${cardHTML(p, c)}</div>` : `<div class="vc-wrap"><div class="vcard r${p.rar} locked"><div class="vc-top"><span>${RARS[p.rar].n}</span><span>${ROLE_JP[p.role]}</span></div><div class="vc-face" style="background:#222"><b>?</b></div><div class="vc-name">？？？</div></div></div>`; }).join('')}</div>`;
+  }
+  $('#b-gacha').innerHTML = head + body;
+  show('s-gacha');
+  $('#gBack').onclick = () => { SFX.click(); showMenu(); };
+  document.querySelectorAll('#b-gacha [data-tab]').forEach(b => b.onclick = () => { SFX.click(); gachaTab = b.dataset.tab; showGacha(); });
+  if ($('#g1')) { $('#g1').onclick = () => pull(1); $('#g10').onclick = () => pull(10); }
+  if ($('#gTeam')) $('#gTeam').onclick = () => { SFX.click(); showTeam(); };
+  if ($('#gPity')) $('#gPity').onclick = () => { SFX.click(); pickSSR(); };
+  document.querySelectorAll('#b-gacha [data-ex]').forEach(b => b.onclick = () => {
+    const p = poolById(b.dataset.ex), price = EXCH[p.rar]; if (S.frags < price) return;
+    const c = S.cards.find(x => x.id === p.id); if (c && c.lv >= LV_MAX) return;
+    S.frags -= price; if (c) c.lv++; else S.cards.push({ id: p.id, lv: 0 }); save(); SFX.perfect(); toast(`${p.name} ${c ? 'を強化したよ' : 'と交換したよ'}`); showGacha();
+  });
+}
+// 天井：好きな SSR をえらぶ（持っていたら強化 +1、MAX ならかけら）
+function pickSSR() {
+  $('#b-gacha').innerHTML = `<div class="row" style="justify-content:space-between"><h2>🎁 好きな SSR をえらんでね</h2><button class="btn gr sm" id="gBack">← もどる</button></div>
+  <div class="vcards">${POOL.filter(p => p.rar === 3).map(p => { const c = S.cards.find(x => x.id === p.id); return `<div class="vc-wrap">${cardHTML(p, c)}<button class="btn sm or" data-pk="${p.id}" style="width:100%">${c ? (c.lv >= LV_MAX ? '💎30 にする' : '強化 +1') : 'この選手にする'}</button></div>`; }).join('')}</div>`;
+  $('#gBack').onclick = () => { SFX.click(); showGacha(); };
+  document.querySelectorAll('[data-pk]').forEach(b => b.onclick = () => {
+    if (S.pity < PITY) return; S.pity -= PITY;
+    const p = poolById(b.dataset.pk), c = S.cards.find(x => x.id === p.id); let g;
+    if (!c) g = getPlayer(p); else if (c.lv < LV_MAX) { c.lv++; g = { p, up: true }; } else { S.frags += FRAG_DUP[3]; g = { p, dup: true, frag: FRAG_DUP[3] }; }
+    save(); gachaTab = 'pull'; gachaFx([g], () => showGacha([g]));
+  });
+}
+// ----- マイチームの画面 -----
+let teamPickSlot = -1;
+function showTeam() {
+  myInit();
+  const e = S.emblem, slotName = ['セッター', 'アウトサイド①', 'ミドル①', 'オポジット', 'アウトサイド②', 'ミドル②'];
+  const slots = S.roster.map((id, i) => { const c = S.cards.find(x => x.id === id), p = poolById(id); return `<div class="vc-wrap"><div class="sub" style="text-align:center">${slotName[i]}</div><div data-slot="${i}" style="cursor:pointer">${cardHTML(p, c, teamPickSlot === i ? 'sel' : '')}</div></div>`; }).join('');
+  let picker = '';
+  if (teamPickSlot >= 0) {
+    const role = ROLES[teamPickSlot], cands = S.cards.filter(c => poolById(c.id).role === role).sort((a, b) => ovrOf(b) - ovrOf(a));
+    picker = `<div class="card" style="margin-top:8px"><b>${slotName[teamPickSlot]}に入れる選手をタップ</b>（${ROLE_JP[role]}の選手）<div class="vcards" style="margin-top:6px">${cands.map(c => { const p = poolById(c.id), at = S.roster.indexOf(c.id); return `<div class="vc-wrap"><div data-put="${c.id}" style="cursor:pointer">${cardHTML(p, c)}</div><div class="sub" style="text-align:center">${at >= 0 ? (at === teamPickSlot ? '出場中' : '入れかえ') : ''}</div>${c.lv < LV_MAX ? `<button class="btn sm ${S.frags >= lvCost(p.rar, c.lv) ? 'gn' : 'gr'}" data-up="${c.id}" style="width:100%">強化 💎${lvCost(p.rar, c.lv)}</button>` : '<div class="sub" style="text-align:center">強化 MAX</div>'}</div>`; }).join('')}</div></div>`;
+  }
+  $('#b-team').innerHTML = `
+  <div class="row" style="justify-content:space-between"><h2>👕 マイチーム</h2><div class="row"><span class="tag" style="font-size:15px">🪙 ${S.coins}</span><span class="tag" style="font-size:15px">💎 ${S.frags}</span><button class="btn or sm" id="tGacha">🎰 ガチャ</button><button class="btn gr sm" id="tBack">← もどる</button></div></div>
+  <div class="card"><div class="row">${emblemHTML(64)}<div><b style="font-size:20px">${esc(S.teamName)}</b><div class="sub">チーム力 <b style="color:#ffd166;font-size:16px">${teamPower()}</b>・チームレベル ${S.lv}</div></div></div></div>
+  <div class="card" style="margin-top:10px"><b>試合に出る6人</b><span class="sub">（カードをタップして入れかえ・強化）</span><div class="vcards" style="margin-top:6px">${slots}</div>${picker}</div>
+  <div class="card" style="margin-top:10px"><b>チーム名</b>（本名や学校名は書かないでね）<div class="row" style="margin-top:6px"><input class="tx" id="tName" maxlength="10" value="${esc(S.teamName)}"><button class="btn sm" id="tSave">決定</button></div></div>
+  <div class="card" style="margin-top:10px"><b>エンブレム</b>
+    <div class="row" style="margin-top:6px">${EMB_SHAPE_JP.map((n, i) => `<button class="chip ${e.shape === i ? 'on' : ''}" data-es="${i}">${emblemHTML(22, { ...e, shape: i })} ${n}</button>`).join('')}</div>
+    <div class="row" style="margin-top:6px">${EMB_ICONS.map(ic => `<button class="chip ${e.icon === ic ? 'on' : ''}" data-ei="${ic}">${ic}</button>`).join('')}</div>
+    <div class="sub" style="margin-top:6px">なかの色</div><div class="sw8">${EMB_COLS.map(c => `<button class="${e.c1 === c ? 'on' : ''}" data-e1="${c}" style="background:${c};width:36px;height:36px"></button>`).join('')}</div>
+    <div class="sub" style="margin-top:6px">ふちの色</div><div class="sw8">${EMB_COLS.map(c => `<button class="${e.c2 === c ? 'on' : ''}" data-e2="${c}" style="background:${c};width:36px;height:36px"></button>`).join('')}</div></div>
+  <div class="card" style="margin-top:10px"><b>ユニフォーム</b><div class="sw8" style="margin-top:6px">${KITS.map((k, i) => { const ok = !k.need || S.ach[k.need]; return `<button data-k="${i}" class="${S.color === i ? 'on' : ''}" ${ok ? '' : 'disabled'} title="${k.name}" style="background:linear-gradient(135deg,${k.shirt} 55%,${k.shorts} 55%)"></button>`; }).join('')}</div>
+  <div class="sub" style="margin-top:4px">🔒 は実績で解放（くろ金：はじめての勝利／むらさき：さくらカップ優勝／しろ金：ブルーオーシャン杯優勝／ほのお：王者決定戦優勝／さくら：ランク エース）</div></div>`;
+  show('s-team');
+  const T = $('#b-team');
+  $('#tBack').onclick = () => { SFX.click(); teamPickSlot = -1; showMenu(); };
+  $('#tGacha').onclick = () => { SFX.click(); teamPickSlot = -1; gachaTab = 'pull'; showGacha(); };
+  $('#tSave').onclick = () => { const v = $('#tName').value.trim().slice(0, 10); if (v) { S.teamName = v; save(); toast('チーム名を変えたよ'); showTeam(); } };
+  T.querySelectorAll('[data-slot]').forEach(b => b.onclick = () => { SFX.click(); teamPickSlot = teamPickSlot === +b.dataset.slot ? -1 : +b.dataset.slot; showTeam(); });
+  T.querySelectorAll('[data-put]').forEach(b => b.onclick = () => {
+    const id = b.dataset.put, at = S.roster.indexOf(id);
+    if (at >= 0 && at !== teamPickSlot) S.roster[at] = S.roster[teamPickSlot];   // 同じ役わりのもう1つのわくと入れかえ
+    S.roster[teamPickSlot] = id; teamPickSlot = -1; save(); SFX.good(); showTeam();
+  });
+  T.querySelectorAll('[data-up]').forEach(b => b.onclick = () => {
+    const c = S.cards.find(x => x.id === b.dataset.up), p = poolById(c.id), cost = lvCost(p.rar, c.lv);
+    if (c.lv >= LV_MAX) return; if (S.frags < cost) { toast('💎かけらが足りないよ'); return; }
+    S.frags -= cost; c.lv++; save(); SFX.perfect(); toast(`${p.name} を強化したよ（+${c.lv}）`); showTeam();
+  });
+  T.querySelectorAll('[data-es]').forEach(b => b.onclick = () => { S.emblem.shape = +b.dataset.es; save(); SFX.click(); showTeam(); });
+  T.querySelectorAll('[data-ei]').forEach(b => b.onclick = () => { S.emblem.icon = b.dataset.ei; save(); SFX.click(); showTeam(); });
+  T.querySelectorAll('[data-e1]').forEach(b => b.onclick = () => { S.emblem.c1 = b.dataset.e1; save(); SFX.click(); showTeam(); });
+  T.querySelectorAll('[data-e2]').forEach(b => b.onclick = () => { S.emblem.c2 = b.dataset.e2; save(); SFX.click(); showTeam(); });
+  T.querySelectorAll('[data-k]').forEach(b => b.onclick = () => { if (b.disabled) return; SFX.click(); S.color = +b.dataset.k; save(); showTeam(); });
+}
+myInit(); save();
 
 // =====================================================================
 //  [14] チュートリアル（ミナト コーチがひとつずつ教える）
@@ -2560,7 +2805,7 @@ function tutPoint(win) {
   const T = G.tut; G.rallyOn = false;
   if (win === 0) {
     if (T.step < 3) after(2.0, () => coach(T.step === 1 ? 'ナイス！ 3回つないで点がとれたね！ つぎは<b>守り</b>。相手のアタックを止めよう！' : 'すごい！ ブロックとディグもバッチリ！ さいごは<b>サーブ</b>だ！', () => tutStart(T.step + 1)));
-    else after(2.0, () => { S.tut = true; unlock('tut'); save(); coach('🎉 チュートリアル クリア！ これで基本はOK。<b>フリー対戦</b>や<b>大会</b>で、ランクを上げていこう！', () => { G.tut = null; quitToMenu(); }); });
+    else after(2.0, () => { S.tut = true; unlock('tut'); addCoins(300); save(); coach('🎉 チュートリアル クリア！ ごほうびに 🪙300 コイン！ <b>ガチャ</b>で選手を集めて、<b>マイチーム</b>を作ろう。<b>フリー対戦</b>や<b>大会</b>でランクも上げていこう！', () => { G.tut = null; quitToMenu(); }); });
   } else after(2.0, () => coach('おしい！ 輪が<b>白い円と重なる瞬間</b>をよく見て、もう一回やってみよう！', () => tutStart(T.step)));
 }
 
