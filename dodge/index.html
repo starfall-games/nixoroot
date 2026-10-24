@@ -5,7 +5,15 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#0b1640">
 <meta name="description" content="キャッチのタイミング・ためて投げる・外野パス・必殺の一球！6対6のドッジボールゲーム。スマホで遊べる。">
-<title>ドッジ・ヒーローズ</title>
+<title>ドッジ・ヒーローズ｜6対6のドッジボール無料ブラウザゲーム</title>
+<!-- 検索とSNS向けの紹介文（公開担当 2026-10-24） -->
+<meta property="og:title" content="ドッジ・ヒーローズ｜6対6のドッジボール無料ブラウザゲーム">
+<meta property="og:description" content="キャッチのタイミング・ためて投げる・外野パス・必殺の一球！ 8チームの大会で優勝をめざせ。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://nixoroot.com/dodge/">
+<meta property="og:site_name" content="nixoroot GAMES">
+<link rel="canonical" href="https://nixoroot.com/dodge/">
+<meta name="apple-mobile-web-app-title" content="ドッジ・ヒーローズ">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800;900&display=swap" rel="stylesheet">
@@ -3068,11 +3076,15 @@ cvEl.addEventListener('pointerdown', e => {
   if (!M || M.demo || GAME.screen !== 'match') return;
   if (M.replay) { endReplay(); return; }
   const L = padLayout(), k = hitBtn(L, e.clientX, e.clientY);
-  if (k === 'P') { togglePause(); return; }
+  if (k === 'P') { resetTouchInput(); togglePause(); return; }
   if (k === 'A') { IN.a = true; IN.aP = true; touches.set(e.pointerId, 'A'); }
   else if (k === 'B') { IN.bP = true; IN.btn.B = true; touches.set(e.pointerId, 'B'); }
   else if (k === 'C') { IN.cP = true; IN.btn.C = true; touches.set(e.pointerId, 'C'); }
-  else if ((e.clientX < VW * 0.55) === L.left && !IN.stick) { IN.stick = { id: e.pointerId, ox: e.clientX, oy: e.clientY }; touches.set(e.pointerId, 'S'); }
+  else if ((e.clientX < VW * 0.55) === L.left) {
+    // スティックの側に新しい指が置かれたら、前の指（はなしたお知らせが来なかった指）は忘れて、新しい指をスティックにする
+    if (IN.stick && IN.stick.id !== e.pointerId) touches.delete(IN.stick.id);
+    IN.stick = { id: e.pointerId, ox: e.clientX, oy: e.clientY, t: performance.now() }; IN.mx = IN.my = 0; touches.set(e.pointerId, 'S');
+  }
   try { cvEl.setPointerCapture(e.pointerId); } catch (er) { }
 });
 cvEl.addEventListener('pointermove', e => {
@@ -3088,7 +3100,21 @@ function upTouch(e) {
   if (k === 'B') IN.btn.B = false; if (k === 'C') IN.btn.C = false;
   if (k === 'S' || (IN.stick && IN.stick.id === e.pointerId)) { IN.stick = null; IN.mx = IN.my = 0; keyStick(); }
 }
-cvEl.addEventListener('pointerup', upTouch); cvEl.addEventListener('pointercancel', upTouch);
+// 【操作】スティックが固まるバグの直し（2026-10-24）
+// 指をはなしたお知らせを キャンバスだけでなく 画面ぜんたい で受け取る（とちゅうでリプレイ・結果・一時停止の画面が出ても取りこぼさない）
+['pointerup', 'pointercancel'].forEach(t => addEventListener(t, upTouch, true));
+cvEl.addEventListener('lostpointercapture', e => { if (e.pointerType !== 'mouse' || !(e.buttons & 1)) upTouch(e); });
+// タッチの入力をぜんぶ はなした状態にもどす
+function resetTouchInput() {
+  touches.clear(); IN.stick = null; IN.btn.B = IN.btn.C = false;
+  if (IN.a) { IN.a = false; IN.aR = true; }
+  IN.mx = IN.my = 0; keyStick();
+}
+// 画面にさわっている指が1本もないのに、スティックやボタンが入ったまま → もどす（通知・アプリ切りかえ・画面の外で指をはなした など）
+['touchend', 'touchcancel'].forEach(t => addEventListener(t, e => { if (!e.touches || e.touches.length === 0) resetTouchInput(); }, true));
+addEventListener('blur', resetTouchInput);
+addEventListener('pagehide', resetTouchInput);
+document.addEventListener('visibilitychange', () => { if (document.hidden) resetTouchInput(); });
 
 /* =========================================================
    【メニュー】画面の切りかえ
@@ -3096,6 +3122,7 @@ cvEl.addEventListener('pointerup', upTouch); cvEl.addEventListener('pointercance
 const GAME = { screen: 'title', paused: false, rotOK: false, lastQuick: null };
 const SCREENS = ['title', 'quick', 'cupsel', 'bracket', 'team', 'records', 'howto', 'settings', 'pause', 'result', 'share'];
 function showScreen(id) {
+  resetTouchInput();   // 画面が変わるときは、スティック・ボタンをはなした状態にもどす
   SCREENS.forEach(s => $(s).classList.toggle('hide', s !== id));
   if (id && id !== 'pause') GAME.screen = id;
   if (id === 'title') { renderTitle(); if (!M || !M.demo) startDemo(); bgmPlay('title'); }
@@ -3333,7 +3360,7 @@ function startDemo() {
 function endDemo() { if (M && M.demo) { clearPlayers3D(); M = null; } }
 function togglePause() {
   if (!M || M.demo) return;
-  GAME.paused = !GAME.paused;
+  GAME.paused = !GAME.paused; resetTouchInput();
   $('pause').classList.toggle('hide', !GAME.paused);
   $('pnote').textContent = M.opt.cup ? '大会の試合をやめると「負け」になるよ' : '';
 }
