@@ -381,6 +381,9 @@ if (/^#move=/.test(location.hash)) location.replace("/starfall/" + location.hash
 // =====================================================================
 const NEW_DAYS = 14;
 const GAMES = [
+  { id: "volley", url: "/volley/", title: "VOLLEY BLAST（バレーブラスト）",
+    desc: "6人制の3Dバレーボール！ レシーブ・トス・アタックをつないで、ブロックを打ちやぶれ。大会で優勝をめざそう。",
+    genre: "3Dスポーツ", time: "4〜12分", tags: ["action", "versus"], added: "2026-10-24", emoji: "🏐", color: "#0e7490" },
   { id: "dodge", url: "/dodge/", title: "ドッジ・ヒーローズ",
     desc: "6対6の3Dドッジボール！ よけて・キャッチして・必殺の一球で相手を外野へ。大会を勝ちぬいてヒーローになろう。",
     genre: "3Dスポーツ", time: "3〜10分", tags: ["action", "versus"], added: "2026-10-23", emoji: "🔥", color: "#7c2d12" },
