@@ -21,7 +21,7 @@
 /* =====================================================================
    [見た目のスタイル]  画面・ボタン・スコアボードなど
    ===================================================================== */
-:root{--bg:#0a1430;--card:rgba(19,34,74,.92);--acc:#ffb703;--acc2:#fb5607;--blue:#3a86ff;--txt:#fff;--sub:#a9b8e0;--good:#2ec4b6;--bad:#ef476f}
+:root{--vw:1vw;--vh:1vh;--bg:#0a1430;--card:rgba(19,34,74,.92);--acc:#ffb703;--acc2:#fb5607;--blue:#3a86ff;--txt:#fff;--sub:#a9b8e0;--good:#2ec4b6;--bad:#ef476f}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
 html,body{margin:0;height:100%;background:#050a1a;color:var(--txt);font-family:'M PLUS Rounded 1c',system-ui,sans-serif;overflow:hidden;touch-action:none;overscroll-behavior:none}
 #gl,#ov{position:fixed;inset:0;width:100%;height:100%;display:block}
@@ -33,7 +33,7 @@ html,body{margin:0;height:100%;background:#050a1a;color:var(--txt);font-family:'
 .box{margin:auto;width:min(860px,100%)}
 h1,h2,h3{margin:.2em 0 .4em;font-weight:800}
 h2{font-size:22px}
-.logo{font-family:'Dela Gothic One','M PLUS Rounded 1c',sans-serif;font-size:clamp(34px,8vw,72px);line-height:1;letter-spacing:.02em;background:linear-gradient(180deg,#fff 0%,#ffd166 45%,#fb5607 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 4px 0 rgba(0,0,0,.45)) drop-shadow(0 0 18px rgba(255,140,0,.35));transform:skewX(-8deg)}
+.logo{font-family:'Dela Gothic One','M PLUS Rounded 1c',sans-serif;font-size:clamp(34px,calc(8*var(--vw)),72px);line-height:1;letter-spacing:.02em;background:linear-gradient(180deg,#fff 0%,#ffd166 45%,#fb5607 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 4px 0 rgba(0,0,0,.45)) drop-shadow(0 0 18px rgba(255,140,0,.35));transform:skewX(-8deg)}
 .logo small{display:block;font-size:.3em;letter-spacing:.3em;color:#cfe0ff;-webkit-text-fill-color:#cfe0ff;margin-top:.35em}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:11px 18px;border-radius:14px;border:none;font:inherit;font-weight:800;font-size:16px;color:#fff;background:linear-gradient(180deg,#4b93ff,#2557c9);box-shadow:0 4px 0 #173a8a,0 6px 14px rgba(0,0,0,.3);cursor:pointer;min-height:46px}
 .btn:active{transform:translateY(3px);box-shadow:0 1px 0 #173a8a}
@@ -55,7 +55,7 @@ h2{font-size:22px}
 /* 試合中の表示 */
 #hud{position:fixed;top:max(6px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);display:none;z-index:10;pointer-events:none}
 #sb{display:flex;align-items:stretch;background:linear-gradient(180deg,rgba(10,18,40,.92),rgba(5,10,26,.92));border:1px solid rgba(255,255,255,.18);border-radius:12px;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,.4);font-weight:800}
-#sb .tm{display:flex;align-items:center;gap:6px;padding:4px 10px;font-size:13px;max-width:30vw;white-space:nowrap}
+#sb .tm{display:flex;align-items:center;gap:6px;padding:4px 10px;font-size:13px;max-width:calc(30*var(--vw));white-space:nowrap}
 #sb .tm .nm{overflow:hidden;text-overflow:ellipsis}
 #sb .sw{width:8px;height:22px;border-radius:3px}
 #sb .sets{background:rgba(255,255,255,.14);border-radius:6px;padding:0 6px;font-size:13px}
@@ -76,10 +76,10 @@ h2{font-size:22px}
 #serveBar.on{display:flex}
 #banner{position:fixed;left:0;right:0;top:34%;text-align:center;z-index:13;pointer-events:none;display:none}
 #banner.on{display:block;animation:pop .35s cubic-bezier(.2,1.6,.4,1)}
-#banT{font-family:'Dela Gothic One',sans-serif;font-size:clamp(30px,7vw,64px);transform:skewX(-8deg);text-shadow:0 4px 0 rgba(0,0,0,.5),0 0 24px rgba(0,0,0,.5);color:#fff}
+#banT{font-family:'Dela Gothic One',sans-serif;font-size:clamp(30px,calc(7*var(--vw)),64px);transform:skewX(-8deg);text-shadow:0 4px 0 rgba(0,0,0,.5),0 0 24px rgba(0,0,0,.5);color:#fff}
 #banS{font-weight:800;font-size:16px;text-shadow:0 2px 4px #000;margin-top:4px}
 @keyframes pop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
-#coach{position:fixed;left:50%;top:max(54px,env(safe-area-inset-top));transform:translateX(-50%);width:min(620px,94vw);z-index:25;display:none;gap:10px;align-items:center;background:rgba(255,255,255,.96);color:#13224a;border-radius:16px;padding:10px 12px;box-shadow:0 10px 30px rgba(0,0,0,.45)}
+#coach{position:fixed;left:50%;top:max(54px,env(safe-area-inset-top));transform:translateX(-50%);width:min(620px,calc(94*var(--vw)));z-index:25;display:none;gap:10px;align-items:center;background:rgba(255,255,255,.96);color:#13224a;border-radius:16px;padding:10px 12px;box-shadow:0 10px 30px rgba(0,0,0,.45)}
 #coach.on{display:flex}
 #coach .cface{font-size:34px}
 #coach .ctxt{flex:1;font-size:15px;line-height:1.45}
@@ -126,10 +126,13 @@ input.tx{font:inherit;font-size:16px;padding:8px 10px;border-radius:10px;border:
 @keyframes gfl{0%{opacity:0}20%{opacity:1}100%{opacity:0}}
 #gfx .g-big{position:absolute;text-align:center;display:none}
 #gfx.big .g-big{display:block;animation:pop .4s cubic-bezier(.2,1.6,.4,1)}
-#gfx .g-ssr{font-family:'Dela Gothic One',sans-serif;font-size:clamp(60px,14vw,120px);color:#ffd43b;text-shadow:0 0 30px #ffb300,0 6px 0 #7a4b00;transform:skewX(-8deg)}
-#gfx .g-name{font-size:clamp(24px,5vw,40px);font-weight:800;text-shadow:0 3px 6px #000}
+#gfx .g-ssr{font-family:'Dela Gothic One',sans-serif;font-size:clamp(60px,calc(14*var(--vw)),120px);color:#ffd43b;text-shadow:0 0 30px #ffb300,0 6px 0 #7a4b00;transform:skewX(-8deg)}
+#gfx .g-name{font-size:clamp(24px,calc(5*var(--vw)),40px);font-weight:800;text-shadow:0 3px 6px #000}
 #gfx .g-role{color:#ffe8a3;font-weight:800}
 #gfx .g-tap{position:absolute;bottom:14px;right:16px;font-size:12px;opacity:.7}
+/* 横画面で固定（iPhone）：たて向きのときは、ゲームの画面ぜんぶを90度回す */
+body.forceLand{position:fixed;top:0;left:0;overflow:hidden;transform-origin:0 0}
+#land-note{max-width:420px;font-size:14px;margin-top:8px;display:none}
 </style>
 </head>
 <body>
@@ -159,6 +162,8 @@ input.tx{font:inherit;font-size:16px;padding:8px 10px;border-radius:10px;border:
   <div class="logo">VOLLEY<br>BLAST<small>バレーブラスト</small></div>
   <div class="sub" style="margin:10px 0 16px;font-size:14px">タイミングでつなげ！ スワイプでたたきこめ！ 6人制バレーボール</div>
   <button class="btn or" id="startB" style="font-size:20px;padding:14px 34px">▶ スタート</button>
+  <div class="row" style="margin-top:10px"><button class="btn gr sm" id="land-btn">🔓 横画面で固定：オフ</button></div>
+  <div class="card" id="land-note"></div>
   <div id="loadMsg"></div>
 </div></div>
 <div class="scr clear" id="s-menu"><div class="box" id="b-menu"></div></div>
@@ -516,9 +521,22 @@ const camera = new THREE.PerspectiveCamera(30, 2, 0.1, 200);
 let VW = 1, VH = 1, DPR = 1;
 // カメラ：ふだんはテレビ中継のように横から。CAM.dist は画面の形に合わせて自動で決める
 const CAM = { dist: 19, look: new THREE.Vector3(0, 1.35, -0.4), pos: new THREE.Vector3(), lookX: 0, mode: 'main', zoom: 0, zoomP: new THREE.Vector3(), shake: 0, rp: null };
+// 横画面で固定（FUTSAL STRIKE と同じしくみ）：iPhone はロックできないので、たて向きのときはゲームの画面を90度回して横向きに見せる
+var FORCE = false;
+const LW = () => FORCE ? innerHeight : innerWidth, LH = () => FORCE ? innerWidth : innerHeight;   // 回したあとの はば・高さ
+const ptOf = e => FORCE ? { x: e.clientY, y: innerWidth - e.clientX } : { x: e.clientX, y: e.clientY };   // 指の場所（回した画面の中の場所）
+function applyForce() {
+  FORCE = !!(S.lockLand && (IS_TOUCH || Q.has('forceland')) && innerHeight > innerWidth);
+  const b = document.body; b.classList.toggle('forceLand', FORCE);
+  if (FORCE) { b.style.width = innerHeight + 'px'; b.style.height = innerWidth + 'px'; b.style.transform = `translate(${innerWidth}px,0) rotate(90deg)`; }
+  else { b.style.width = b.style.height = b.style.transform = ''; }
+  const rs = document.documentElement.style;   // 字の大きさ（vw・vh）も回したあとの大きさで
+  rs.setProperty('--vw', FORCE ? innerHeight / 100 + 'px' : '1vw'); rs.setProperty('--vh', FORCE ? innerWidth / 100 + 'px' : '1vh');
+}
 function onResize() {
   if (!innerWidth || !innerHeight) return;   // 大きさ0（アプリ切りかえなど）のときは何もしない（0でわると NaN になる）
-  VW = innerWidth; VH = innerHeight; DPR = Math.min(devicePixelRatio || 1, 2);
+  applyForce();
+  VW = LW(); VH = LH(); DPR = Math.min(devicePixelRatio || 1, 2);
   renderer.setSize(VW, VH, false);
   ov.width = VW * DPR; ov.height = VH * DPR; ox.setTransform(DPR, 0, 0, DPR, 0, 0);
   camera.aspect = VW / VH; camera.updateProjectionMatrix();
@@ -2019,8 +2037,9 @@ hitEl.addEventListener('pointerdown', e => {
   if (G.replay) { G.replay.skip = true; return; }
   if (G.paused || !G.match || G.human < 0) return;
   const t = nowGame();
-  PT = { id: e.pointerId, x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, t, pend: null };
-  if (G.state === 'serveAim') { const f = floorAt(e.clientX, e.clientY); if (f && f.x > 0.3 && f.x < 10 && Math.abs(f.z) < 5.2) { PT.aim = true; setServeTarget(f); } return; }
+  const q = ptOf(e);   // 横画面で固定のときは、回した画面の中の場所にする
+  PT = { id: e.pointerId, x: q.x, y: q.y, x0: q.x, y0: q.y, t, pend: null };
+  if (G.state === 'serveAim') { const f = floorAt(q.x, q.y); if (f && f.x > 0.3 && f.x < 10 && Math.abs(f.z) < 5.2) { PT.aim = true; setServeTarget(f); } return; }
   const p = activePend(t);
   if (!p) return;
   if (p.type === 'attack') { PT.pend = p; p.gesture = PT; if (t > p.t - 0.35) slowMo(0.3, 0.6); return; }   // スワイプのあいだ、時間がゆっくりになる
@@ -2029,8 +2048,8 @@ hitEl.addEventListener('pointerdown', e => {
 });
 hitEl.addEventListener('pointermove', e => {
   if (!PT || PT.id !== e.pointerId) return;
-  PT.x = e.clientX; PT.y = e.clientY;
-  if (PT.aim) { const f = floorAt(e.clientX, e.clientY); if (f && f.x > 0.3) setServeTarget(f); }
+  const q = ptOf(e); PT.x = q.x; PT.y = q.y;
+  if (PT.aim) { const f = floorAt(q.x, q.y); if (f && f.x > 0.3) setServeTarget(f); }
 });
 const endPT = e => {
   if (!PT || PT.id !== e.pointerId) return;
@@ -2188,7 +2207,7 @@ function camReset() {
   if (G.replay) { G.replay.look = null; G.replay.camInit = false; }
 }
 function updateCamera(rdt) {
-  if (innerWidth !== VW || innerHeight !== VH) onResize();   // 毎コマ、画面の大きさと合わせる
+  if (LW() !== VW || LH() !== VH || FORCE !== !!(S.lockLand && (IS_TOUCH || Q.has('forceland')) && innerHeight > innerWidth)) onResize();   // 毎コマ、画面の大きさと合わせる
   if (!VW || !VH || !innerWidth || !innerHeight) return;
   if (camBad(camera.position) || (CAM.lookV && camBad(CAM.lookV)) || !isFinite(CAM.lookX) || !isFinite(CAM.zoom) || (G.replay && G.replay.look && camBad(G.replay.look))) camReset();
   if (!isFinite(rdt) || rdt < 0) rdt = 0;
@@ -2298,7 +2317,7 @@ function startMatch(o) {
   G.match.firstServe = G.match.serving = o.kind === 'demo' ? (Math.random() < 0.5 ? 0 : 1) : 0;
   ARENA.excite = 0.3; ARENA.ledMsg = o.kind === 'demo' ? 'VOLLEY BLAST' : `${S.teamName} VS ${opp.name}`;
   crowdLevel(0.3);
-  if (o.kind !== 'demo') { hideAll(); bgmStop(); $('#hud').style.display = 'block'; $('#pauseB').style.display = 'block'; showBanner('試合開始', `${S.teamName} vs ${opp.name}（${TIER_NAME[o.tier]}）`, '#ffd166', 1600); SFX.whistle(true); portraitHint(); }
+  if (o.kind !== 'demo') { hideAll(); bgmStop(); $('#hud').style.display = 'block'; $('#pauseB').style.display = 'block'; showBanner('試合開始', `${S.teamName} vs ${opp.name}（${TIER_NAME[o.tier]}）`, '#ffd166', 1600); SFX.whistle(true); tryLand(); portraitHint(); }
   else { $('#hud').style.display = 'none'; $('#pauseB').style.display = 'none'; }
   updateHud();
   G.gen++; G.events = []; G.pend = [];
@@ -2308,7 +2327,35 @@ function startMatch(o) {
   if (o.kind === 'tut') return;
   after(o.kind === 'demo' ? 0.5 : 1.8, newRally);
 }
-function portraitHint() { if (innerHeight > innerWidth * 1.1 && G.human >= 0) toast('📱 スマホを横にすると大きく遊べるよ', 2600); }
+function portraitHint() { if (!FORCE && innerHeight > innerWidth * 1.1 && G.human >= 0) toast('📱 スマホを横にすると大きく遊べるよ（タイトルの「🔒 横画面で固定」もあるよ）', 2600); }
+// ----- 横画面で固定（FUTSAL STRIKE と同じ。S.lockLand に保存） -----
+function tryLand() { // 試合の始まり：Android などは全画面＋横にロック（iPhone は画面を回して表示）
+  if (!S.lockLand) return;
+  const el = document.documentElement;
+  if (IS_TOUCH && !document.fullscreenElement && el.requestFullscreen) el.requestFullscreen().then(() => lockLandscape(true)).catch(() => { onResize(); });
+  else lockLandscape(true);
+}
+async function lockLandscape(quiet) {
+  S.lockLand = true; save();
+  let native = false;
+  try {
+    const el = document.documentElement;
+    if (IS_TOUCH && !document.fullscreenElement && el.requestFullscreen) await el.requestFullscreen();
+    if (IS_TOUCH && screen.orientation && screen.orientation.lock) { await screen.orientation.lock('landscape'); native = true; }
+  } catch (e) { }
+  onResize(); landLabel();
+  if (!quiet) landNote(native ? '🔒 横画面で固定したよ（Android）' : '🔒 固定したよ。<b>画面の回転ロックをオン</b>にして、スマホを横にして遊んでね');
+  return native;
+}
+function unlockLandscape() {
+  S.lockLand = false; save();
+  try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) { }
+  onResize(); landLabel(); landNote('🔓 横画面の固定をやめたよ');
+}
+function landLabel() { const b = $('#land-btn'); if (b) b.textContent = S.lockLand ? '🔒 横画面で固定：オン' : '🔓 横画面で固定：オフ'; }
+function landNote(html) { const n = $('#land-note'); if (!n) return; n.innerHTML = html; n.style.display = 'block'; clearTimeout(landNote.t); landNote.t = setTimeout(() => n.style.display = 'none', 6000); }
+$('#land-btn').onclick = () => { auInit(); SFX.click(); if (S.lockLand) unlockLandscape(); else lockLandscape(false); };
+landLabel();
 addEventListener('orientationchange', () => setTimeout(portraitHint, 400));
 function startDemo() { G.paused = false; startMatch({ kind: 'demo', team: pick(TEAMS), tier: 1, need: 99, pts: 15 }); }
 function quitToMenu() { G.paused = false; G.tut = null; $('#coach').classList.remove('on'); hideToss(); showServeUI(false); setHint(''); startDemo(); showMenu(); }
@@ -2527,13 +2574,13 @@ function showSet() {
   const tg = (k, on, off) => `<button class="chip ${S[k] ? 'on' : ''}" data-s="${k}">${S[k] ? on : off}</button>`;
   $('#b-set').innerHTML = `
   <div class="row" style="justify-content:space-between"><h2>⚙ 設定</h2><button class="btn gr sm" id="sBack">← もどる</button></div>
-  <div class="card"><div class="row">${tg('sound', '🔊 音 ON', '🔇 音 OFF')}${tg('bgm', '🎵 BGM ON', '🎵 BGM OFF')}${tg('vib', '📳 ふるえる ON', '📳 ふるえる OFF')}${tg('voice', '🎙 実況 ON', '🎙 実況 OFF')}</div></div>
+  <div class="card"><div class="row">${tg('sound', '🔊 音 ON', '🔇 音 OFF')}${tg('bgm', '🎵 BGM ON', '🎵 BGM OFF')}${tg('vib', '📳 ふるえる ON', '📳 ふるえる OFF')}${tg('voice', '🎙 実況 ON', '🎙 実況 OFF')}${tg('lockLand', '🔒 横画面で固定 ON', '🔓 横画面で固定 OFF')}</div></div>
   <div class="card" style="margin-top:10px"><b>試合の長さ</b><div class="row" style="margin-top:6px"><button class="chip ${S.len === 1 ? 'on' : ''}" data-l="1">1セット（15点）</button><button class="chip ${S.len === 2 ? 'on' : ''}" data-l="2">2セット先取</button></div></div>
   <div class="card" style="margin-top:10px"><b>そうさのしかた</b><div class="sub" style="line-height:1.7">・輪が小さくなって白い円と重なったら タップ（レシーブ・ブロック・サーブ）<br>・トスは、打つ人のボタンをタイミングよく（光っているのがおすすめ）<br>・アタックは相手コートへスワイプ。上下でコース、長さで強さ。タップだけでフェイント<br>・紫のかげは相手のブロック。かげの外をねらおう<br>・パソコン：スペース／Enter＝タップ、1〜4＝トス、↑↓→＝アタック、F＝フェイント、Esc＝ひと休み</div></div>
   <div class="card" style="margin-top:10px"><button class="btn gr sm" id="sReset">データを消す</button></div>`;
   show('s-set');
   $('#sBack').onclick = () => { SFX.click(); showMenu(); };
-  document.querySelectorAll('#b-set [data-s]').forEach(b => b.onclick = () => { S[b.dataset.s] = !S[b.dataset.s]; save(); auSetVolume(); crowdLevel(0.3); SFX.click(); showSet(); });
+  document.querySelectorAll('#b-set [data-s]').forEach(b => b.onclick = () => { if (b.dataset.s === 'lockLand') { SFX.click(); S.lockLand ? unlockLandscape() : lockLandscape(true); showSet(); return; } S[b.dataset.s] = !S[b.dataset.s]; save(); auSetVolume(); crowdLevel(0.3); SFX.click(); showSet(); });
   document.querySelectorAll('#b-set [data-l]').forEach(b => b.onclick = () => { S.len = +b.dataset.l; save(); SFX.click(); showSet(); });
   $('#sReset').onclick = () => { if (confirm('ほんとうに記録をぜんぶ消す？（もとにもどせないよ）') && confirm('さいごの確認：消していい？')) { S = DEF_SAVE(); save(); toast('消したよ'); showSet(); } };
 }
