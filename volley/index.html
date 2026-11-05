@@ -2301,7 +2301,28 @@ function unlock(id) {
 // ----- 試合を始める -----
 // 2チームのシャツの色がにているか
 function kitClash(a, b) { const c1 = new THREE.Color(a.shirt), c2 = new THREE.Color(b.shirt); return Math.abs(c1.r - c2.r) + Math.abs(c1.g - c2.g) + Math.abs(c1.b - c2.b) < 0.55; }
-function clearTeams() { for (const t of G.teams) for (const p of t.players) if (p.mesh) scene.remove(p.mesh.outer); G.teams = []; }
+// 試合を作りなおすとき、前の選手の形・材料・テクスチャ・骨（skeleton）をすてる（すてないとメモリがふえ続けて落ちる）
+// みんなで使っているもの（realMat・clothMat・背番号・足もとのかげのテクスチャ）はすてない
+function disposePlayerMesh(m) {
+  if (!m) return;
+  scene.remove(m.outer);
+  if (m.mixer) { m.mixer.stopAllAction(); if (m.root) m.mixer.uncacheRoot(m.root); }
+  const keepMat = new Set([realMat, typeof clothMat !== 'undefined' ? clothMat : null, ...Object.values(numTexCache)]);
+  const keepTex = new Set([blobTex, ...Object.values(numTexCache).map(x => x.map)]);
+  const skels = new Set();
+  m.outer.traverse(o => {
+    if (o.isSkinnedMesh && o.skeleton) skels.add(o.skeleton);
+    if (!o.isMesh) return;
+    if (o.geometry) o.geometry.dispose();
+    for (const mt of Array.isArray(o.material) ? o.material : [o.material]) {
+      if (!mt || keepMat.has(mt)) continue;
+      for (const k of ['map', 'alphaMap', 'normalMap', 'emissiveMap']) if (mt[k] && !keepTex.has(mt[k])) mt[k].dispose();
+      mt.dispose();
+    }
+  });
+  for (const sk of skels) sk.dispose();   // 骨のテクスチャ（boneTexture）
+}
+function clearTeams() { for (const t of G.teams) for (const p of t.players) { disposePlayerMesh(p.mesh); p.mesh = null; } G.teams = []; }
 function startMatch(o) {
   clearTeams();
   const myDef = o.kind === 'demo' ? oppTeamDef(TEAMS[(Math.random() * 4) | 0]) : myTeamDef();
