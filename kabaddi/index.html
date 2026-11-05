@@ -1470,8 +1470,19 @@ function newMatch(cfg) {
 }
 function disposeMatch() {
   const M = G.M; if (!M) return;
-  for (const t of M.T) for (const p of t.players) scene.remove(p.B.root);
+  for (const t of M.T) for (const p of t.players) { scene.remove(p.B.root); freeBody(p.B); }
   G.M = null; SND.chant(false); SND.drums(false);
+}
+// 選手の体をメモリから消す（試合を作りなおすたびに、形・ほね・絵がたまっていかないように）
+// 形と絵は、使い回しのものでも消してよい（次に使うときに three.js が自動で作りなおす）。材料（マテリアル）は使い回しが多いので消さない
+function freeBody(B) {
+  if (B.mixer) { B.mixer.stopAllAction(); B.mixer.uncacheRoot(B.mixer.getRoot()); }
+  const seen = new Set();
+  B.root.traverse(o => {
+    if (o.isSkinnedMesh && o.skeleton && !seen.has(o.skeleton)) { seen.add(o.skeleton); o.skeleton.dispose(); }   // ほねの絵（ボーンテクスチャ）
+    if (o.geometry && !seen.has(o.geometry)) { seen.add(o.geometry); o.geometry.dispose(); }
+    for (const m of [].concat(o.material || [])) for (const k of ['map', 'normalMap', 'emissiveMap', 'alphaMap']) if (m[k] && !seen.has(m[k])) { seen.add(m[k]); m[k].dispose(); }
+  });
 }
 const active = t => t.players.filter(p => p.onMat);
 
