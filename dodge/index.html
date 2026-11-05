@@ -2001,7 +2001,8 @@ function stConfetti(team) {
 }
 function buildStage(id) {
   if (STAGE.id === id) return;
-  if (STAGE.group) { scene.remove(STAGE.group); STAGE.group.traverse(o => { if (o.geometry) o.geometry.dispose(); for (const mt of [].concat(o.material || [])) if (mt && mt.map && mt.map.isTexture && mt.map !== STAGE.boardTex) mt.map.dispose(); }); }
+  if (STAGE.group) { scene.remove(STAGE.group); disposeTree(STAGE.group); }   // 【メモリ】前の会場の形・材料・テクスチャ（得点板もふくむ）を捨てる
+  if (scene.background && scene.background.isTexture) { scene.background.dispose(); scene.background = null; }   // 夕やけの空のテクスチャ
   const G = new THREE.Group(); STAGE.group = G; STAGE.id = id; scene.add(G);
   Object.assign(STAGE, { flags: [], leds: [], beams: [], spin: [], flip: null, conf: null, crowd: null, crowdBase: [], cheer: [0, 0], flash: 0, prev: null });
   const indoor = id !== 'yard';
@@ -2555,6 +2556,7 @@ async function loadReal(onProgress) {
     const L = new THREE.FBXLoader();
     const base = await L.loadAsync(REAL_FILES.idle);
     REAL.base = base; addFace(base); REAL.clips.idle = prepClip(base.animations[0], 'idle');
+    base.traverse(o => { if (o.geometry) BASE_GEOS.add(o.geometry); });   // 【メモリ】もとの形は捨てない（選手を作るたびに使う）
     let n = 1; const all = Object.entries(REAL_FILES).filter(([k]) => k !== 'idle');
     await Promise.all(all.map(async ([k, f]) => {
       try { const o = await L.loadAsync(f); REAL.clips[k] = prepClip(o.animations[0], k); } catch (e) { console.warn('動きを読めなかった', k); }
@@ -2697,7 +2699,31 @@ function numberMat(num, color) {
   if (!matCache[key]) matCache[key] = new THREE.MeshBasicMaterial({ map: textTexture(64, 64, g => { g.fillStyle = color; g.font = 'bold 46px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(num, 32, 35); }), transparent: true });
   return matCache[key];
 }
-function clearPlayers3D() { MESHES.forEach(m => scene.remove(m.outer)); MESHES.clear(); }
+// 【メモリ】3Dの物を捨てる（形・材料・テクスチャ・骨のデータ）。2026-11-05：試合を作りなおすたびにメモリがふえていた直し
+// 捨ててはいけない物：みんなで使っている材料（matCache・realMat・clothMat）と、Y Bot のもとの形（BASE_GEOS）
+const BASE_GEOS = new Set();
+const TEX_KEYS = ['map', 'alphaMap', 'emissiveMap', 'normalMap', 'bumpMap', 'aoMap', 'lightMap', 'specularMap', 'envMap', 'roughnessMap', 'metalnessMap'];
+function isSharedMat(mt) { return mt === realMat || mt === clothMat || Object.values(matCache).includes(mt); }
+function disposeTree(root, keepTex) {
+  const shared = new Set(Object.values(matCache));
+  root.traverse(o => {
+    if (o.isSkinnedMesh && o.skeleton && o.skeleton.boneTexture) { o.skeleton.boneTexture.dispose(); o.skeleton.boneTexture = null; }
+    if (o.geometry && !BASE_GEOS.has(o.geometry)) o.geometry.dispose();
+    for (const mt of [].concat(o.material || [])) {
+      if (!mt || mt === realMat || mt === clothMat || shared.has(mt)) continue;
+      for (const k of TEX_KEYS) if (mt[k] && mt[k].isTexture && mt[k] !== keepTex) mt[k].dispose();
+      mt.dispose();
+    }
+  });
+}
+function clearPlayers3D() {
+  MESHES.forEach(m => {
+    scene.remove(m.outer);
+    if (m.mixer) { m.mixer.stopAllAction(); m.mixer.uncacheRoot(m.root); }
+    disposeTree(m.outer);
+  });
+  MESHES.clear();
+}
 function buildPlayers3D() {
   clearPlayers3D();
   [0, 1].forEach(t => M.players.filter(p => p.team === t).forEach((p, i) => MESHES.set(p, buildPlayer3D(p, i + 1))));
