@@ -487,8 +487,8 @@ const TIER_NAME = ['やさしい', 'ふつう', 'つよい'];
 const DIFF_KEY = ['easy', 'normal', 'hard'];
 // CPU の強さ（rec=サーブレシーブ dig=スパイクレシーブ blk=ブロック atk=アタックの強さ aim=ねらい err=ミス srv=サーブ jump=ジャンプサーブ set=トス read=ブロックの読み feint=フェイント）
 const DIFF = {
-  easy: { rec: .64, dig: .40, blk: .34, atk: .62, aim: .25, err: .11, srv: .45, jump: .1, set: .55, read: .42, feint: .14, quick: .15 },
-  normal: { rec: .77, dig: .53, blk: .52, atk: .80, aim: .55, err: .07, srv: .66, jump: .35, set: .72, read: .6, feint: .12, quick: .3 },
+  easy: { rec: .56, dig: .30, blk: .24, atk: .5, aim: .15, err: .17, srv: .36, jump: .04, set: .5, read: .34, feint: .18, quick: .1 },   // 2026-11-08 もっと弱く（ミスが多い・強打が少ない）
+  normal: { rec: .74, dig: .49, blk: .47, atk: .76, aim: .5, err: .085, srv: .62, jump: .3, set: .7, read: .56, feint: .12, quick: .28 },   // 2026-11-08 少しだけゆるめた
   hard: { rec: .87, dig: .64, blk: .68, atk: .94, aim: .82, err: .04, srv: .82, jump: .6, set: .88, read: .76, feint: .1, quick: .4 },
 };
 const RANKS = [[0, 'ビギナー', '🔰'], [60, 'ルーキー', '🌱'], [150, 'レギュラー', '🏐'], [300, 'エース', '🔥'], [500, 'キャプテン', '⭐'], [800, 'スター', '🌟'], [1200, 'スーパースター', '💫'], [1800, 'レジェンド', '👑']];
@@ -1658,7 +1658,7 @@ function receivePlan(side, kind, info = {}) {
   else at(Math.max(G.t, tC - 0.2), () => setAct(best, 'pass', 0.6));
   const hv = Math.hypot(ball.vx, ball.vz), sp = clamp((hv - 9) / 15, 0, 1), far = clamp((bd - 1.5) / 3.5, 0, 1);
   if (isHuman(side)) {
-    const mult = kind === 'free' || kind === 'touch' ? 1.35 : clamp(1 - 0.32 * sp - 0.22 * far, 0.55, 1);
+    const mult = kind === 'free' || kind === 'touch' ? 1.35 : clamp(1 - 0.16 * sp - 0.12 * far, 0.78, 1.05);   // 速い球でもせまくなりすぎない（前は 0.55 まで）
     addPend({ type: 'receive', kind, side, t: tC, pos: P, player: best, win: winBase(mult * statWin(best, 'rec') * (G.tut ? 1.4 : 1)), lead: clamp(tC - G.t, 0.45, 1.0), resolve: g => doReceive(side, best, g, kind) });
   } else at(tC, () => doReceive(side, best, cpuRecvGrade(side, kind, sp, far, info), kind));
 }
@@ -1983,7 +1983,7 @@ function autoAim(side, hit, kind) { const c = aimCandidates(side, kind, hit.z), 
 const GRADES = ['PERFECT', 'GREAT', 'GOOD', 'BAD', 'MISS'];
 const GRADE_COL = { PERFECT: '#ffd166', GREAT: '#80ffdb', GOOD: '#a0c4ff', BAD: '#ffadad', MISS: '#ff6b6b' };
 // 判定のはば（秒）：PERFECT・GREAT・GOOD・BAD
-function winBase(m = 1) { return { p: 0.055 * m, g: 0.1 * m, o: 0.17 * m, b: 0.3 * m }; }
+function winBase(m = 1) { return { p: 0.07 * m, g: 0.13 * m, o: 0.22 * m, b: 0.36 * m }; }   // 2026-11-08 広くした（前は 0.055/0.1/0.17/0.3）
 function gradeOf(dt, w) { const a = Math.abs(dt); return a <= w.p ? 'PERFECT' : a <= w.g ? 'GREAT' : a <= w.o ? 'GOOD' : a <= w.b ? 'BAD' : 'MISS'; }
 const PEND_HINT = { receive: 'ボールに合わせて タップ！', toss: '打つ人をえらんで タイミングよく！', attack: 'スワイプでアタック！（タップでフェイント）', block: '相手が打つ瞬間に タップでブロック！', serve: '輪に合わせて タップでサーブ！' };
 function addPend(p) {
@@ -2004,14 +2004,20 @@ function resolvePend(p, tTap, data) {
   p.done = true;
   let dt = tTap - p.t, g = gradeOf(dt, p.win);
   if (g === 'MISS' && dt < 0) g = 'BAD';      // 早すぎ
-  pendFeedback(p, g);
+  pendFeedback(p, g, dt);
   const run = () => p.resolve(g, data);
   if (p.immediate || dt >= 0 || g === 'MISS') run(); else at(p.t, run);
   if (!G.pend.some(x => !x.done && isHuman(x.side))) setHint('');
 }
-function pendFeedback(p, g) {
+function pendFeedback(p, g, dt) {
   const pos = p.pos;
   popup3(pos.x, pos.y + 0.55, pos.z, g, GRADE_COL[g], true);
+  // 何が悪かったか（早い／おそい）を、PERFECT 以外のときに小さく出す（2026-11-08）
+  if (isHuman(p.side) && g !== 'PERFECT') {
+    const why = g === 'MISS' ? (dt == null ? (p.type === 'attack' ? 'スワイプしてない！' : 'おそい！（押してない）') : 'おそい！') : dt < 0 ? 'ちょっと早い' : 'ちょっとおそい';
+    popup3(pos.x, pos.y + 0.05, pos.z, why, g === 'MISS' || g === 'BAD' ? '#ff8fa3' : '#cfe0ff');
+    if (G.tut && (g === 'MISS' || g === 'BAD')) G.tut.lastWhy = why;
+  }
   if (g === 'PERFECT') { SFX.perfect(); if (G.match) { G.match.st.perfect++; } sparks(pos, 14, '#ffd166'); }
   else if (g === 'GREAT') SFX.good(); else if (g === 'MISS') SFX.miss();
   if (G.match && G.rally) { G.rally.chain = g === 'PERFECT' ? (G.rally.chain || 0) + 1 : 0; if (G.rally.chain >= 3) popup3(pos.x, pos.y + 1.1, pos.z, `PERFECT ×${G.rally.chain}`, '#ffd166'); }
@@ -2021,7 +2027,7 @@ function checkPendMiss() {
   for (const p of G.pend) {
     if (p.done) continue;
     const extra = p.gesture ? 0.4 : 0;
-    if (G.t > p.t + p.win.b + extra) { p.done = true; if (isHuman(p.side)) pendFeedback(p, 'MISS'); p.resolve('MISS', null); }
+    if (G.t > p.t + p.win.b + extra) { p.done = true; if (isHuman(p.side)) pendFeedback(p, 'MISS', null); p.resolve('MISS', null); }
   }
 }
 // テスト用：自動で入力する
@@ -2071,7 +2077,7 @@ function swipeToAttack(p, dx, dy) {
   const fwd = Math.max(wx * d, 0.25 * mag);
   const ang = clamp(Math.atan2(wz, fwd), -1.05, 1.05);
   const power = clamp(len / (Math.min(VW, VH) * 0.42), 0.25, 1);
-  const depth = 2.6 + 5.7 * power, tz = clamp(hit.z + Math.tan(ang) * 0.75 * (depth + Math.abs(hit.x)), -4.2, 4.2);   // 横はコートのはしまで（画面では横がつぶれて見えるので、少しにぶくする）
+  const depth = 2.6 + 5.3 * power, tz = clamp(hit.z + Math.tan(ang) * 0.7 * (depth + Math.abs(hit.x)), -3.8, 3.8);   // ねらいの手助け：コートの中に入りやすく（前は 5.7・±4.2）   // 横はコートのはしまで（画面では横がつぶれて見えるので、少しにぶくする）
   const L = L2(dside, d * depth, tz);
   return { kind: 'spike', target: { l: L.l, d: L.d }, power };
 }
@@ -2104,7 +2110,7 @@ function showToss(opts, rec, q) {
   opts.forEach((o, i) => {
     const b = document.createElement('button'); b.className = 'tb' + (o.key === rec ? ' rec' : '');
     const d = OPTS[o.key], w = W2(o.atk.side, d.l, d.d), nb = blockersNear(o.atk.side, w.z);
-    b.innerHTML = `${d.lab}<small>${o.atk.name.split(' ')[1] || o.atk.name}・ブロック${nb}</small>`;
+    b.innerHTML = `${o.key === rec ? '<span style="display:block;font-size:10px;color:#ffd166">★おすすめ</span>' : ''}${d.lab}<small>${o.atk.name.split(' ')[1] || o.atk.name}・ブロック${nb}</small>`;
     b.addEventListener('pointerdown', ev => { ev.stopPropagation(); auInit(); const p = G.pend.find(x => x.type === 'toss' && !x.done); if (p) { resolvePend(p, nowGame(), o.key); hideToss(); } });
     bar.appendChild(b);
   });
@@ -2164,7 +2170,7 @@ function drawOverlay(rdt) {
     if (p.done || !isHuman(p.side) || G.replay) continue;
     const rem = p.t - G.t; if (rem > p.lead) continue;
     const c = scr(p.pos.x, p.pos.y, p.pos.z), k = pxPerM(p.pos.x, p.pos.y, p.pos.z), R0 = Math.max(20, k * 0.36);
-    const r = R0 + Math.max(0, rem) * R0 * 3.4, col = RING_COL[p.type], al = clamp(1.2 - rem / p.lead, 0.25, 1);
+    const r = R0 + Math.max(0, rem) * R0 * 2.6, col = RING_COL[p.type], al = clamp(1.2 - rem / p.lead, 0.25, 1);
     const near = Math.abs(rem) <= p.win.g;
     ox.globalAlpha = al;
     ox.lineWidth = 3; ox.strokeStyle = near ? '#ffffff' : 'rgba(255,255,255,.75)'; ox.beginPath(); ox.arc(c.x, c.y, R0, 0, Math.PI * 2); ox.stroke();
@@ -2876,7 +2882,7 @@ function tutPoint(win) {
   if (win === 0) {
     if (T.step < 3) after(2.0, () => coach(T.step === 1 ? 'ナイス！ 3回つないで点がとれたね！ つぎは<b>守り</b>。相手のアタックを止めよう！' : 'すごい！ ブロックとディグもバッチリ！ さいごは<b>サーブ</b>だ！', () => tutStart(T.step + 1)));
     else after(2.0, () => { S.tut = true; unlock('tut'); addCoins(300); save(); coach('🎉 チュートリアル クリア！ ごほうびに 🪙300 コイン！ <b>ガチャ</b>で選手を集めて、<b>マイチーム</b>を作ろう。<b>フリー対戦</b>や<b>大会</b>でランクも上げていこう！', () => { G.tut = null; quitToMenu(); }); });
-  } else after(2.0, () => coach('おしい！ 輪が<b>白い円と重なる瞬間</b>をよく見て、もう一回やってみよう！', () => tutStart(T.step)));
+  } else after(2.0, () => { const w = T.lastWhy; T.lastWhy = null; coach('おしい！ ' + (w ? `さっきは<b>「${w}」</b>だったよ。${w.includes('早い') ? 'もう少し<b>待って</b>から' : '<b>少し早めに</b>'}押してみよう。` : '') + '色の輪が<b>白い円とぴったり重なる瞬間</b>がねらい目。もう一回やってみよう！', () => tutStart(T.step)); });
 }
 
 // =====================================================================
