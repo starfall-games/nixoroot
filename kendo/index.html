@@ -240,7 +240,7 @@ input[type=text]{font-family:inherit;font-size:16px;padding:10px 12px;border-rad
   <div class="menu">
     <button class="mbtn main" data-go="quick"><span class="ic">🥋</span><span>個人戦<small>CPU と 1 試合（三本勝負）</small></span></button>
     <button class="mbtn main2" data-go="team5"><span class="ic">🎌</span><span>団体戦<small>5人ずつ戦う</small></span></button>
-    <button class="mbtn" data-go="rank"><span class="ic">🏅</span><span>ランク戦<small>勝って段を上げる</small></span></button>
+    <button class="mbtn" data-go="rank"><span class="ic">🏅</span><span>段位・審査<small>ランク戦と昇段審査</small></span></button>
     <button class="mbtn" data-go="cup"><span class="ic">🏆</span><span>大会<small>8校のトーナメント</small></span></button>
     <button class="mbtn" data-go="tut"><span class="ic">🎓</span><span>けいこ<small>はじめての人はここ</small></span></button>
     <button class="mbtn" data-go="team"><span class="ic">👥</span><span>マイチーム<small>5人・名前・色</small></span></button>
@@ -340,13 +340,46 @@ let SAVE = DEF_SAVE();
 try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (s && s.v === 1) SAVE = Object.assign(DEF_SAVE(), s, { opt: Object.assign(DEF_SAVE().opt, s.opt || {}), totals: Object.assign(DEF_SAVE().totals, s.totals || {}) }); } catch (e) { }
 function save() { if (URLQ.has('nosave')) return; try { localStorage.setItem(SAVE_KEY, JSON.stringify(SAVE)); } catch (e) { } }
 
-// ----- ランク（級・段） -----
-const RANKS = [
-  { n: '三級', ic: '🔰', rp: 0, lv: 0 }, { n: '二級', ic: '🟢', rp: 60, lv: 0 }, { n: '一級', ic: '🔵', rp: 140, lv: 1 }, { n: '初段', ic: '🥉', rp: 250, lv: 1 },
-  { n: '二段', ic: '🥈', rp: 400, lv: 2 }, { n: '三段', ic: '🥇', rp: 600, lv: 2 }, { n: '四段', ic: '💎', rp: 850, lv: 3 }, { n: '五段', ic: '👑', rp: 1150, lv: 3 },
+// ----- 段位（2026-11-08：本物の剣道のような「昇段審査」）-----
+// 三級 → 二級 → 一級 → 初段 → … → 八段。六段から「錬士」、七段「教士」、八段「範士」の称号
+// 上の段に進むには：前の段になってからの 試合数・勝ち数・ランク戦の勝ち数 の条件 → 昇段審査（CPU と立合い2回）に合格
+// rankDiff＝ランク戦の相手の強さ  examDiff＝その段の審査の相手の強さ  req＝受審の条件（b 試合数・w 勝ち・r ランク戦の勝ち）  line＝審査の合格点
+const DAN = [
+  { n: '三級', ic: '⬜', rankDiff: 0 },
+  { n: '二級', ic: '🟩', rankDiff: 0, examDiff: 0, req: { b: 2, w: 1, r: 0 }, line: 40 },
+  { n: '一級', ic: '🟦', rankDiff: 1, examDiff: 0, req: { b: 3, w: 1, r: 1 }, line: 45 },
+  { n: '初段', ic: '🥉', rankDiff: 1, examDiff: 1, req: { b: 4, w: 2, r: 1 }, line: 55 },
+  { n: '二段', ic: '🥈', rankDiff: 1, examDiff: 1, req: { b: 5, w: 2, r: 1 }, line: 60 },
+  { n: '三段', ic: '🥇', rankDiff: 2, examDiff: 2, req: { b: 6, w: 3, r: 2 }, line: 65 },
+  { n: '四段', ic: '💎', rankDiff: 2, examDiff: 2, req: { b: 7, w: 3, r: 2 }, line: 70 },
+  { n: '五段', ic: '👑', rankDiff: 3, examDiff: 3, req: { b: 8, w: 4, r: 3 }, line: 80 },
+  { n: '六段', ic: '🏯', title: '錬士', rankDiff: 4, examDiff: 4, req: { b: 10, w: 5, r: 3 }, line: 90 },
+  { n: '七段', ic: '🐉', title: '教士', rankDiff: 5, examDiff: 5, req: { b: 12, w: 6, r: 4 }, line: 100 },
+  { n: '八段', ic: '🌸', title: '範士', rankDiff: 6, examDiff: 6, req: { b: 15, w: 8, r: 5 }, line: 110 },
 ];
-function rankOf(rp) { let r = RANKS[0]; for (const k of RANKS) if (rp >= k.rp) r = k; return r; }
-function nextRank(rp) { return RANKS.find(k => k.rp > rp) || null; }
+const danLv = () => clamp((SAVE.dan && SAVE.dan.lv) | 0, 0, DAN.length - 1);
+const danName = (lv = danLv()) => DAN[lv].n + (DAN[lv].title ? '・' + DAN[lv].title : '');
+const danTxt = (lv = danLv()) => DAN[lv].ic + ' ' + danName(lv);
+// 前のセーブ（ランク戦の RP）から、はじめの段位を決める（三級0・二級60・一級140・初段250・二段400・三段600・四段850・五段1150）
+function initDan() {
+  if (SAVE.dan) return;
+  const rp = SAVE.rp || 0, old = [0, 60, 140, 250, 400, 600, 850, 1150];
+  let lv = 0; old.forEach((v, i) => { if (rp >= v) lv = i; });
+  const d = new Date();
+  SAVE.dan = { lv, since: { b: 0, w: 0, r: 0 }, cool: 0, exams: 0, hist: [{ lv, date: `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`, how: lv ? 'ランク戦から引きつぎ' : 'はじめ' }] };
+  save();
+}
+initDan();
+// 昔の名前（ほかの部分から呼ばれても動くように残す）
+function rankOf() { const lv = danLv(); return { n: danName(lv), ic: DAN[lv].ic, lv: DAN[lv].rankDiff }; }
+function nextRank() { const lv = danLv(); return lv + 1 < DAN.length ? { n: DAN[lv + 1].n } : null; }
+// 次の審査を受けられるか（条件と、いまの数）
+function examReady() {
+  const lv = danLv(), nx = DAN[lv + 1]; if (!nx) return { done: true };
+  const s = SAVE.dan.since, q = nx.req;
+  const rows = [['試合', s.b, q.b], ['勝ち', s.w, q.w], ['ランク戦の勝ち', s.r, q.r]].filter(r => r[2] > 0);   // 0 の条件は出さない
+  return { nx, t: lv + 1, rows, ok: rows.every(r => r[1] >= r[2]) && !(SAVE.dan.cool > 0), cool: SAVE.dan.cool | 0 };
+}
 
 // ----- CPU のつよさ -----
 // react：気づくまでの時間（秒） block：受けのうまさ read：すきを見つける確率 aggro：せめる強さ
@@ -356,6 +389,10 @@ const DIFF = [
   { n: 'ふつう', react: 0.34, block: 0.58, read: 0.45, aggro: 0.48, debana: 0.22, kaeshi: 0.3, nuki: 0.16, power: 70, sukiDur: 0.95, zan: 0.65 },
   { n: 'つよい', react: 0.24, block: 0.7, read: 0.6, aggro: 0.6, debana: 0.4, kaeshi: 0.48, nuki: 0.25, power: 77, sukiDur: 0.8, zan: 0.82 },
   { n: 'さいきょう', react: 0.17, block: 0.78, read: 0.72, aggro: 0.7, debana: 0.55, kaeshi: 0.6, nuki: 0.32, power: 83, sukiDur: 0.68, zan: 0.92 },
+  // ここから下は、六段〜八段の審査と高段者のランク戦だけに出る（2026-11-08）
+  { n: '達人', react: 0.15, block: 0.81, read: 0.78, aggro: 0.73, debana: 0.62, kaeshi: 0.66, nuki: 0.36, power: 87, sukiDur: 0.62, zan: 0.95 },
+  { n: '名人', react: 0.13, block: 0.84, read: 0.83, aggro: 0.76, debana: 0.68, kaeshi: 0.72, nuki: 0.4, power: 91, sukiDur: 0.57, zan: 0.97 },
+  { n: '剣聖', react: 0.11, block: 0.87, read: 0.88, aggro: 0.79, debana: 0.74, kaeshi: 0.78, nuki: 0.44, power: 95, sukiDur: 0.52, zan: 0.99 },
 ];
 
 // ----- 実績 -----
@@ -375,8 +412,10 @@ const ACH = [
   { id: 'sweep', ic: '🌪', n: '五人ぬき', d: '団体戦で5試合ぜんぶ勝つ' },
   { id: 'hard', ic: '💪', n: 'つよいに勝つ', d: '「つよい」以上の CPU に勝つ' },
   { id: 'cup', ic: '🏆', n: '優勝', d: '大会で優勝する' },
-  { id: 'dan', ic: '🥋', n: '初段', d: 'ランク戦で初段になる' },
-  { id: 'godan', ic: '👑', n: '五段', d: 'ランク戦で五段になる' },
+  { id: 'dan', ic: '🥋', n: '初段', d: '昇段審査で初段になる' },
+  { id: 'godan', ic: '👑', n: '五段', d: '昇段審査で五段になる' },
+  { id: 'shinsa', ic: '📜', n: 'はじめての免状', d: '昇段審査に合格する' },
+  { id: 'hachidan', ic: '🌸', n: '八段・範士', d: '最高の八段に合格する' },
   { id: 'tut', ic: '🎓', n: 'けいこ卒業', d: 'けいこ（チュートリアル）をクリア' },
 ];
 function unlock(id) {
@@ -1817,11 +1856,12 @@ function wazaName(tgt, S, debana) {
 // 審判の判定：3人それぞれが旗をあげるか決める（2人以上で一本）
 function judgeHit(M, A, z) {
   const D = other(A);
-  let q = z.q + (z.kiai ? 0.1 : 0) + (A.cpu && !z.kiai && Math.random() < A.diff.zan ? 0.1 : 0);
+  const zan = z.kiai || (A.cpu && Math.random() < A.diff.zan);   // 残心があったか
+  let q = z.q + (zan ? 0.1 : 0);
   if (M.tut && M.tutJudge) q = M.tutJudge(A, z, q);
   const votes = [0, 1, 2].map(() => q + (Math.random() - 0.5) * 0.26 > 0.66);
   const n = votes.filter(Boolean).length;
-  M.events.push({ type: 'judge', by: A.side, tgt: z.tgt, q, flags: n, t: M.t });
+  M.events.push({ type: 'judge', by: A.side, tgt: z.tgt, q, flags: n, t: M.t, zan: !!zan });
   if (n >= 2) {
     // 一本！
     A.marks.push(WAZA[z.tgt].mark); A.stats.ippon++;
@@ -2233,7 +2273,7 @@ function updateHUD(M) {
   const key = [A.marks.join(), B.marks.join(), A.fouls, B.fouls, M.encho, M.label].join('|');
   if (key !== hudKey) {
     hudKey = key; $('mkA').innerHTML = mk(A); $('mkB').innerHTML = mk(B);
-    $('nmA').innerHTML = `${A.d.sei}<small>${A.d.school}</small>`; $('nmB').innerHTML = `${B.d.sei}<small>${B.d.school}</small>`;
+    $('nmA').innerHTML = `${A.d.sei}<small>${M.cfg.danA ? M.cfg.danA + '・' : ''}${A.d.school}</small>`; $('nmB').innerHTML = `${B.d.sei}<small>${M.cfg.danB ? M.cfg.danB + '・' : ''}${B.d.school}</small>`;
     $('hf').textContent = M.encho ? '延長' : (M.label || '');
     if (M.phase !== 'intro') drawBoard(M);
   }
@@ -2414,7 +2454,7 @@ function myTeamMenu(tab = 'member', sel = -1) {
     body = `<div class="lbl">まだ持っていない剣士は、かけら 💠 と交換できる（N ${RAR.N.buy}・R ${RAR.R.buy}・SR ${RAR.SR.buy}・SSR ${RAR.SSR.buy}）。いま 💠${SAVE.shards}</div>
       <div class="pgrid">${POOL.map(p => pcard(p.id)).join('')}</div>`;
   }
-  openPanel(`<h2>${EMBLEMS[t.emb] || ''} ${t.name || 'いっぽん剣道部'}</h2><div style="color:var(--sub);font-size:12px;margin-top:-8px">${coinTxt()}　💠${SAVE.shards}　チーム力 ${Math.round(line.reduce((a, id) => a + ovrOf(id), 0) / 5)}</div>${tabs}${body}
+  openPanel(`<h2>${EMBLEMS[t.emb] || ''} ${t.name || 'いっぽん剣道部'}</h2><div style="color:var(--sub);font-size:12px;margin-top:-8px">${danTxt()}　${coinTxt()}　💠${SAVE.shards}　チーム力 ${Math.round(line.reduce((a, id) => a + ovrOf(id), 0) / 5)}</div>${tabs}${body}
     <div class="row" style="margin-top:12px"><button class="btn gray" id="back">もどる</button><button class="btn" id="toGacha">🎰 ガチャへ</button></div>`);
   card.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { SND.click(); myTeamMenu(b.dataset.tab); });
   $('back').onclick = showTitle; $('toGacha').onclick = () => gachaMenu();
@@ -2492,8 +2532,9 @@ function tipToast(t) { const d = document.createElement('div'); d.className = 't
 function showTitle() {
   closePanel(); $('hud').classList.add('hidden'); $('ctrl').classList.add('hidden'); $('tut').classList.add('hidden');
   $('title').classList.remove('hidden'); G.mode = 'title'; G.paused = false; G.fast = 1; G.TM = null;
-  const rk = rankOf(SAVE.rp), nx = nextRank(SAVE.rp);
-  $('rankpill').innerHTML = `<span class="rk">${rk.ic}</span><span>${rk.n}　${SAVE.rp} RP${nx ? `<span style="color:var(--sub);font-weight:500">（${nx.n}まで ${nx.rp - SAVE.rp}）</span>` : ''}</span><span style="color:var(--sub);font-weight:500">｜ ${SAVE.wins}勝 / ${SAVE.games}試合</span>`;
+  const lv = danLv(), ex = examReady();
+  $('rankpill').innerHTML = `<span class="rk">${DAN[lv].ic}</span><span>${danName(lv)}${ex.done ? '' : ex.ok ? `<span style="color:var(--gold)">　📜 ${ex.nx.n}の審査を受けられる！</span>` : `<span style="color:var(--sub);font-weight:500">（${ex.nx.n}の審査まで あと少し）</span>`}</span><span style="color:var(--sub);font-weight:500">｜ ${SAVE.wins}勝 / ${SAVE.games}試合</span>`;
+  if (lv >= 3) unlock('dan'); if (lv >= 7) unlock('godan'); if (lv >= 10) unlock('hachidan');
   $('achcount').textContent = `${Object.keys(SAVE.ach).length} / ${ACH.length}`;
   dailyBonus(); $('coincount').textContent = `${coinTxt()}${SAVE.pityReady ? '・天井OK' : ''}`;
   SND.hush();
@@ -2509,7 +2550,7 @@ function startDemo() {
   M.quickIntro = true;
 }
 document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => { SND.init(); SND.click(); MENU[b.dataset.go](); }));
-const diffChips = sel => DIFF.map((d, i) => `<button class="chip ${i === sel ? 'on' : ''}" data-diff="${i}">${['🙂', '😤', '🔥', '👹'][i]} ${d.n}</button>`).join('');
+const diffChips = sel => DIFF.slice(0, 4).map((d, i) => `<button class="chip ${i === sel ? 'on' : ''}" data-diff="${i}">${['🙂', '😤', '🔥', '👹'][i]} ${d.n}</button>`).join('');
 function bindChips(attr, onPick) { card.querySelectorAll(`[data-${attr}]`).forEach(b => b.addEventListener('click', () => { card.querySelectorAll(`[data-${attr}]`).forEach(x => x.classList.remove('on')); b.classList.add('on'); SND.click(); onPick(b.dataset[attr]); })); }
 const schoolChips = () => `<button class="chip on" data-opp="-1">🎲 おまかせ</button>${SCHOOLS.map((s, i) => `<button class="chip" data-opp="${i}"><span style="color:${hex(s.c1 === 0x16181e ? 0x9aa0aa : s.c1)}">●</span> ${s.name}</button>`).join('')}`;
 const MENU = {
@@ -2529,17 +2570,7 @@ const MENU = {
     };
     draw();
   },
-  rank() {
-    const rk = rankOf(SAVE.rp), nx = nextRank(SAVE.rp), diff = rk.lv;
-    openPanel(`<h2>🏅 ランク戦</h2>
-      <div style="font-size:40px;text-align:center">${rk.ic}</div><div style="text-align:center;font-weight:800;font-size:20px">${rk.n}</div>
-      <div style="text-align:center;color:var(--sub);font-size:13px">${SAVE.rp} RP ${nx ? `／ ${nx.n} まで あと ${nx.rp - SAVE.rp} RP` : '／ 最高ランク！'}</div>
-      <div class="lbl">大将（${pdata(myLineup()[4]).name}）が個人戦で戦う。相手の CPU：${DIFF[diff].n}（段が上がると強くなる）</div>
-      <div class="lbl">勝つと +20〜35 RP（二本勝ちはボーナス）、負けると −15 RP</div>
-      <div class="row" style="margin-top:14px"><button class="btn" id="go">ランク戦スタート</button><button class="btn gray" id="back">もどる</button></div>`);
-    $('go').onclick = () => startSingle({ kind: 'rank', diff, me: myLineup()[4], school: pick(SCHOOLS) });
-    $('back').onclick = showTitle;
-  },
+  rank() { danMenu(); },
   team5() {
     let diff = SAVE.lastDiff ?? 1, opp = -1;
     openPanel(`<h2>🎌 団体戦</h2><div style="color:var(--sub);font-size:13px">先鋒・次鋒・中堅・副将・大将の5人で戦う。勝った試合の数が多いチームの勝ち（同じなら一本の数。それも同じなら代表戦）。</div>
@@ -2614,7 +2645,7 @@ const MENU = {
     $('ll').onclick = () => { if (O.lockLand) unlockLandscape(); else lockLandscape(true); MENU.opt(); };
     card.querySelectorAll('[data-mins]').forEach(b => b.onclick = () => { O.mins = +b.dataset.mins; save(); MENU.opt(); });
     card.querySelectorAll('[data-q]').forEach(b => b.onclick = () => { O.quality = +b.dataset.q; save(); location.reload(); });
-    $('reset').onclick = () => { if (confirm('ランク・実績・記録・剣士をぜんぶ消します。いいですか？')) { const o = SAVE.opt; SAVE = DEF_SAVE(); SAVE.opt = o; initMyTeam(); save(); showTitle(); } };
+    $('reset').onclick = () => { if (confirm('ランク・実績・記録・剣士をぜんぶ消します。いいですか？')) { const o = SAVE.opt; SAVE = DEF_SAVE(); SAVE.opt = o; initMyTeam(); initDan(); save(); showTitle(); } };
     $('back').onclick = showTitle;
   },
 };
@@ -2633,7 +2664,7 @@ function showGame(M) {
 function startSingle(cfg) {
   SND.init(); G.mute = false; G.TM = null; G.fast = 1;
   const power = DIFF[cfg.diff].power, opp = schoolRoster(cfg.school, power)[4];
-  const M = newBout({ kind: cfg.kind, diff: cfg.diff, a: kenshiOf(cfg.me), b: opp, label: cfg.kind === 'rank' ? 'ランク戦' : '個人戦', onEnd: M => singleEnd(M, cfg) });
+  const M = newBout({ kind: cfg.kind, diff: cfg.diff, a: kenshiOf(cfg.me), b: opp, label: cfg.kind === 'rank' ? 'ランク戦' : '個人戦', onEnd: M => singleEnd(M, cfg), danA: DAN[danLv()].n, danB: cfg.kind === 'rank' ? DAN[danLv()].n : '' });
   showGame(M);
   banner('礼', `${M.F[0].d.name}　対　${M.F[1].d.name}（${DIFF[cfg.diff].n}）`, 2200);
   SND.drum(3, 0.45); SND.crowd(0.4);
@@ -2646,6 +2677,11 @@ function boutStats(M) {
     if (e.debana) { T.debana++; unlock('debana'); } if (e.oji) { T.kaeshi++; unlock('kaeshi'); } if (e.hiki) { T.hiki++; unlock('hiki'); }
   }
   T.bouts++;
+  // 段位：前の段になってからの 試合・勝ち・ランク戦の勝ち（審査そのものは数えない）
+  if (SAVE.dan && M.cfg.kind !== 'exam' && M.cfg.kind !== 'tut') {
+    const s = SAVE.dan.since; s.b++; if (M.winner === 0) { s.w++; if (M.cfg.kind === 'rank') s.r++; }
+    if (SAVE.dan.cool > 0) SAVE.dan.cool--;
+  }
 }
 function singleEnd(M, cfg) {
   const win = M.winner === 0, A = M.F[0], B = M.F[1];
@@ -2653,12 +2689,10 @@ function singleEnd(M, cfg) {
   boutStats(M); unlock('first'); if (win) unlock('win'); if (win && cfg.diff >= 2) unlock('hard'); if (win && A.marks.length >= 2 && !B.marks.length) unlock('nihon');
   let extra = '';
   if (cfg.kind === 'rank') {
-    const dlt = win ? 20 + (A.marks.length >= 2 && !B.marks.length ? 15 : 5) + cfg.diff * 2 : -15;
-    const before = rankOf(SAVE.rp); SAVE.rp = Math.max(0, SAVE.rp + dlt); const after = rankOf(SAVE.rp);
-    extra = `<div style="text-align:center;font-weight:800;margin:6px 0">${after.ic} ${after.n}　<span style="color:${dlt >= 0 ? 'var(--good)' : 'var(--bad)'}">${dlt >= 0 ? '+' : ''}${dlt} RP</span>（${SAVE.rp} RP）${after !== before ? (SAVE.rp > before.rp ? ' ⬆ 昇段！' : ' ⬇') : ''}</div>`;
-    if (SAVE.rp >= 250) unlock('dan'); if (SAVE.rp >= 1150) unlock('godan');
+    const ex = examReady();
+    extra = `<div style="text-align:center;font-weight:800;margin:6px 0">${danTxt()}${ex.done ? '' : `　${ex.nx.n}の審査まで：${ex.rows.map(r => `${r[0]} ${Math.min(r[1], r[2])}/${r[2]}`).join('・')}`}${ex.ok ? '<br><span style="color:var(--gold)">📜 昇段審査を受けられる！</span>' : ''}</div>`;
   }
-  const mul = [0.8, 1, 1.25, 1.5][cfg.diff] || 1, coins = addCoins(Math.round((win ? 100 : 40) * mul + A.stats.ippon * 15 + (cfg.kind === 'rank' ? 20 : 0)));
+  const mul = [0.8, 1, 1.25, 1.5, 1.7, 1.9, 2.1][cfg.diff] || 1, coins = addCoins(Math.round((win ? 100 : 40) * mul + A.stats.ippon * 15 + (cfg.kind === 'rank' ? 20 : 0)));
   extra += `<div style="text-align:center;font-weight:800;color:#f2c45a">🪙 +${coins} コイン（いま ${SAVE.coins}）</div>`;
   save();
   showBoutResult(M, extra, () => cfg.kind === 'rank' ? MENU.rank() : startSingle(cfg));
@@ -2708,11 +2742,143 @@ function makeCard(o) {
   if (o.big) { g.font = '400 150px "Yuji Syuku", serif'; g.fillStyle = '#fff'; g.fillText(o.big, 540, 610); g.font = '800 38px "M PLUS Rounded 1c", sans-serif'; g.fillStyle = '#b4b0c8'; g.fillText(o.bigSub || '', 540, 730); }
   g.fillStyle = 'rgba(0,0,0,.35)'; roundRect(g, 120, 840, 840, 330, 30); g.fill();
   (o.lines || []).slice(0, 6).forEach((l, i) => { g.font = '800 32px "M PLUS Rounded 1c", sans-serif'; g.fillStyle = '#fff'; g.fillText(l, 540, 890 + i * 52); });
-  const rk = rankOf(SAVE.rp), d = new Date();
-  g.font = '700 30px "M PLUS Rounded 1c", sans-serif'; g.fillStyle = '#b4b0c8'; g.fillText(`${rk.ic} ${rk.n}　${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}　#いっぽん剣道`, 540, 1270);
+  const d = new Date();
+  g.font = '700 30px "M PLUS Rounded 1c", sans-serif'; g.fillStyle = '#b4b0c8'; g.fillText(`${danTxt()}　${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}　#いっぽん剣道`, 540, 1270);
   return c.toDataURL('image/png');
 }
 function roundRect(g, x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+
+// =====================================================================
+//  段位と昇段審査（2026-11-08）
+//  ・ランク戦：いまの段位の強さの相手。勝つと「審査を受ける条件」がたまる
+//  ・昇段審査：条件がそろったら受けられる。大将が CPU と立合い（試合）を2回
+//    → 勝ち負け・一本の数・残心・反則・せめ を点にして、審査員5人のうち3人以上が ○ なら合格 → 免状
+//  ・不合格のときは、ほかの試合を2回してから、もう一度受けられる
+// =====================================================================
+function danMenu() {
+  const lv = danLv(), ex = examReady(), D = DAN[lv], ace = pdata(myLineup()[4]);
+  const bar = r => `<div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="width:96px">${r[0]}</span><div style="flex:1;height:8px;border-radius:5px;background:rgba(255,255,255,.12)"><div style="height:100%;width:${Math.min(100, r[1] / Math.max(1, r[2]) * 100)}%;border-radius:5px;background:linear-gradient(90deg,#e8473a,#f2c45a)"></div></div><b style="width:44px;text-align:right">${Math.min(r[1], r[2])}/${r[2]}</b></div>`;
+  const last = SAVE.dan.hist[SAVE.dan.hist.length - 1];
+  openPanel(`<h2>🏅 段位・昇段審査</h2>
+    <div style="font-size:44px;text-align:center">${D.ic}</div><div style="text-align:center;font-family:'Yuji Syuku';font-size:30px">${danName(lv)}</div>
+    <div style="text-align:center;color:var(--sub);font-size:12px">${last ? `${last.date} ${last.how}` : ''}　審査を受けた回数 ${SAVE.dan.exams | 0}</div>
+    <div class="row" style="justify-content:center;gap:4px;margin:8px 0">${DAN.map((d, i) => `<span title="${d.n}" style="font-size:${i === lv ? 20 : 13}px;opacity:${i <= lv ? 1 : 0.3}">${d.ic}</span>`).join('')}</div>
+    ${ex.done ? '<div style="text-align:center;font-weight:800;color:var(--gold)">🌸 最高の八段・範士！</div>' : `
+    <div class="lbl">次：<b>${ex.nx.n}${ex.nx.title ? '・' + ex.nx.title : ''}</b> の昇段審査を受ける条件（${D.n}になってから）</div>
+    <div style="display:flex;flex-direction:column;gap:5px;margin:6px 0">${ex.rows.map(bar).join('')}</div>
+    ${ex.cool ? `<div class="lbl">前の審査は不合格…ほかの試合をあと ${ex.cool} 回してから受けられる</div>` : ''}
+    <div class="lbl">審査：大将（${ace.name}）が立合いを2回（相手の強さ：${DIFF[ex.nx.examDiff].n}）。合格点 ${ex.nx.line} 点・審査員5人のうち3人が ○ で合格。勝つだけでなく、一本の数・残心（打ったらすぐ気合）・反則がないことも見られる</div>`}
+    <div class="lbl">ランク戦：大将が個人戦で戦う（相手：${DIFF[D.rankDiff].n}・段が上がると強くなる）。勝つと審査の条件がたまる</div>
+    <div class="row" style="margin-top:12px;justify-content:center">
+      <button class="btn gray" id="rk">⚔️ ランク戦</button>
+      ${ex.done ? '' : `<button class="btn" id="exam" ${ex.ok ? '' : 'disabled style="opacity:.45"'}>📜 ${ex.nx.n}の審査を受ける</button>`}
+      ${SAVE.dan.menjo && SAVE.dan.menjo.length ? '<button class="btn gray" id="mj">📜 免状を見る</button>' : ''}
+      <button class="btn gray" id="back">もどる</button></div>`);
+  $('rk').onclick = () => startSingle({ kind: 'rank', diff: D.rankDiff, me: myLineup()[4], school: pick(SCHOOLS) });
+  if ($('exam')) $('exam').onclick = () => { if (examReady().ok) startExam(); };
+  if ($('mj')) $('mj').onclick = () => showMenjo(SAVE.dan.menjo[SAVE.dan.menjo.length - 1], danMenu);
+  $('back').onclick = showTitle;
+}
+function startExam() {
+  const ex = examReady(); if (!ex.ok) return;
+  G.EX = { t: ex.t, i: 0, res: [], me: myLineup()[4] };
+  SAVE.dan.exams = (SAVE.dan.exams | 0) + 1; save();
+  examPanel();
+}
+// 立合い1回の点
+function examScore(M) {
+  const A = M.F[0], ev = M.events, mine = ev.filter(e => e.type === 'ippon' && e.by === 0 && e.tgt !== 'hansoku').length, theirs = ev.filter(e => e.type === 'ippon' && e.by === 1).length;
+  const zan = ev.filter(e => e.type === 'judge' && e.by === 0 && e.zan).length, fouls = ev.filter(e => e.type === 'foul' && e.by === 0).length;
+  const rows = [['勝ち負け', M.winner === 0 ? 35 : M.winner < 0 ? 15 : 0], ['一本', mine * 15], ['とられた一本', -theirs * 12], ['残心', Math.min(5, zan) * 4], ['せめ（打った数）', A.stats.strikes >= 5 ? 5 : 0], ['反則', -fouls * 10]];
+  return { rows, total: rows.reduce((a, r) => a + r[1], 0), marks: [A.marks.join('') || '－', M.F[1].marks.join('') || '－'], w: M.winner };
+}
+function examPanel() {
+  const E = G.EX, nx = DAN[E.t];
+  openPanel(`<h2>📜 昇段審査：${nx.n}${nx.title ? '・' + nx.title : ''}</h2>
+    <div style="text-align:center;color:var(--sub);font-size:13px">受ける人：${pdata(E.me).name}（${danName()}）　相手の強さ：${DIFF[nx.examDiff].n}</div>
+    <div class="bouts">${[0, 1].map(i => { const r = E.res[i]; return `<div class="b ${i === E.i ? 'now' : ''}"><span class="p">立合い${i + 1}</span><span>${r ? (r.w === 0 ? '勝ち' : r.w < 0 ? '引き分け' : '負け') : ''}</span><span class="s">${r ? r.marks.join(' 対 ') : '…'}</span><span style="text-align:right">${r ? r.total + '点' : ''}</span></div>`; }).join('')}</div>
+    <div class="lbl">合格点 ${nx.line} 点（2回の合計）。勝ち +35・引き分け +15・一本 +15・とられた一本 −12・残心 +4・せめ +5・反則 −10</div>
+    <div class="row" style="justify-content:center"><button class="btn" id="go">立合い${E.i + 1}へ</button><button class="btn gray" id="quit">やめる</button></div>`);
+  $('go').onclick = examBout;
+  $('quit').onclick = () => { if (!confirm('審査をやめますか？（不合格にはならない）')) return; G.EX = null; disposeBout(); showTitle(); };
+}
+function examBout() {
+  SND.init(); G.mute = false; G.TM = null; G.fast = 1;
+  const E = G.EX, nx = DAN[E.t], d = nx.examDiff;
+  const opp = schoolRoster(pick(SCHOOLS), DIFF[d].power)[2 + E.i];
+  const M = newBout({ kind: 'exam', diff: d, a: kenshiOf(E.me), b: opp, allowDraw: true, mins: Math.min(SAVE.opt.mins, 2), venue: E.t >= 3 ? 2 : 1,
+    label: `昇段審査 ${nx.n}・立合い${E.i + 1}/2`, danA: DAN[danLv()].n, danB: '審査', onEnd: M => examBoutEnd(M) });
+  showGame(M);
+  banner('立合い' + (E.i + 1), `${nx.n}の昇段審査`, 2000);
+  SND.drum(3, 0.45); SND.crowd(0.25);
+}
+function examBoutEnd(M) {
+  const E = G.EX; if (!E) return;
+  boutStats(M);
+  E.res.push(examScore(M)); E.i++;
+  disposeBout(); $('hud').classList.add('hidden'); $('ctrl').classList.add('hidden');
+  if (E.i < 2) examPanel(); else examResult();
+}
+// 合否：合計点に、審査員5人それぞれの「見かた」を少しだけ足して、3人以上が ○ なら合格
+function examResult() {
+  const E = G.EX, nx = DAN[E.t], total = E.res.reduce((a, r) => a + r.total, 0);
+  const judges = [0, 1, 2, 3, 4].map(() => total + Math.round((Math.random() - 0.5) * 16) >= nx.line);
+  const pass = judges.filter(Boolean).length >= 3;
+  G.EX = null;
+  const d = new Date(), date = `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+  let mj = null;
+  if (pass) {
+    SAVE.dan.lv = E.t; SAVE.dan.since = { b: 0, w: 0, r: 0 }; SAVE.dan.cool = 0;
+    SAVE.dan.hist.push({ lv: E.t, date, how: '昇段審査に合格' });
+    mj = { lv: E.t, date, name: pdata(E.me).name, school: SAVE.team.name || 'いっぽん剣道部', score: total };
+    (SAVE.dan.menjo = SAVE.dan.menjo || []).push(mj);
+    unlock('shinsa'); if (E.t >= 3) unlock('dan'); if (E.t >= 7) unlock('godan'); if (E.t >= 10) unlock('hachidan');
+    addCoins(100 + E.t * 30);
+    SND.fanfare(); SND.applause(1.2); confetti.burst(0, 0);
+  } else { SAVE.dan.cool = 2; SND.gasp(); }
+  save();
+  const rows = (r, i) => `<div style="font-weight:800;margin-top:6px">立合い${i + 1}：${r.w === 0 ? '勝ち' : r.w < 0 ? '引き分け' : '負け'}（${r.marks.join(' 対 ')}）　${r.total}点</div><div style="font-size:12px;color:var(--sub)">${r.rows.filter(x => x[1]).map(x => `${x[0]} ${x[1] > 0 ? '+' : ''}${x[1]}`).join('・') || '点なし'}</div>`;
+  openPanel(`<h2 style="text-align:center">${pass ? '🎉 合格！' : '😣 不合格…'}</h2>
+    <div style="text-align:center;font-family:'Yuji Syuku';font-size:28px">${nx.n}${nx.title ? '・' + nx.title : ''} 昇段審査</div>
+    <div style="text-align:center;font-size:30px;letter-spacing:6px;margin:6px 0">${judges.map(j => j ? '⭕' : '❌').join('')}</div>
+    <div style="text-align:center;color:var(--sub);font-size:12px">審査員5人のうち ${judges.filter(Boolean).length}人が ○（3人以上で合格）　合計 ${total}点／合格点 ${nx.line}点</div>
+    ${E.res.map(rows).join('')}
+    ${pass ? `<div style="text-align:center;font-weight:800;color:var(--gold);margin-top:8px">${DAN[E.t].ic} ${danName(E.t)} になった！　🪙 +${100 + E.t * 30}</div>` : '<div class="lbl">ほかの試合を2回したら、もう一度受けられる。勝つこと・一本をとること・打ったらすぐ「気合」（残心）・線から出ないこと！</div>'}
+    <div class="row" style="justify-content:center;margin-top:10px">${pass ? '<button class="btn" id="mj">📜 免状を見る</button>' : ''}<button class="btn gray" id="dm">段位の画面へ</button><button class="btn gray" id="menu">メニュー</button></div>`);
+  if ($('mj')) $('mj').onclick = () => showMenjo(mj, danMenu);
+  $('dm').onclick = danMenu; $('menu').onclick = showTitle;
+}
+// 免状（段位の証書）の絵。「いっぽん剣道連盟」はゲームの中だけの、作りものの連盟
+function makeMenjo(m) {
+  const c = document.createElement('canvas'); c.width = 1080; c.height = 1350; const g = c.getContext('2d');
+  const gr = g.createLinearGradient(0, 0, 1080, 1350); gr.addColorStop(0, '#f6eed8'); gr.addColorStop(1, '#e8dbb8'); g.fillStyle = gr; g.fillRect(0, 0, 1080, 1350);
+  g.globalAlpha = 0.07; g.fillStyle = '#7a5a2a'; for (let i = 0; i < 400; i++) g.fillRect(Math.random() * 1080, Math.random() * 1350, 2 + Math.random() * 6, 1); g.globalAlpha = 1;
+  g.strokeStyle = '#a8862a'; g.lineWidth = 10; g.strokeRect(50, 50, 980, 1250); g.lineWidth = 3; g.strokeRect(72, 72, 936, 1206);
+  g.strokeStyle = '#7a1414'; g.lineWidth = 2; g.strokeRect(86, 86, 908, 1178);
+  g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#1a1208';
+  g.font = '400 150px "Yuji Syuku", serif'; g.fillText('免　状', 540, 230);
+  g.font = '400 76px "Yuji Syuku", serif'; g.fillText(`${m.name}　殿`, 540, 440);
+  g.font = '700 34px "M PLUS Rounded 1c", sans-serif'; g.fillStyle = '#4a3a24'; g.fillText(m.school, 540, 510);
+  g.fillStyle = '#1a1208'; g.font = '400 50px "Yuji Syuku", serif';
+  g.fillText('あなたは　いっぽん剣道連盟の', 540, 640); g.fillText('昇段審査に　合格しました', 540, 710);
+  g.font = '400 130px "Yuji Syuku", serif'; g.fillStyle = '#7a1414'; g.fillText(`剣道${DAN[m.lv].n}`, 540, 870);
+  if (DAN[m.lv].title) { g.font = '400 70px "Yuji Syuku", serif'; g.fillText(`称号　${DAN[m.lv].title}`, 540, 980); }
+  g.fillStyle = '#1a1208'; g.font = '400 46px "Yuji Syuku", serif'; g.fillText('ここに　これを認めます', 540, DAN[m.lv].title ? 1060 : 1010);
+  g.font = '700 32px "M PLUS Rounded 1c", sans-serif'; g.fillText(m.date, 540, 1140);
+  g.font = '400 44px "Yuji Syuku", serif'; g.fillText('いっぽん剣道連盟', 470, 1210);
+  // 赤いはんこ
+  g.save(); g.translate(760, 1205); g.rotate(-0.06); g.strokeStyle = '#c0261c'; g.fillStyle = 'rgba(192,38,28,.12)'; g.lineWidth = 6; g.fillRect(-52, -52, 104, 104); g.strokeRect(-52, -52, 104, 104);
+  g.fillStyle = '#c0261c'; g.font = '400 44px "Yuji Syuku", serif'; g.fillText('一', -22, -18); g.fillText('本', 22, -18); g.fillText('之', -22, 26); g.fillText('印', 22, 26); g.restore();
+  g.font = '600 22px "M PLUS Rounded 1c", sans-serif'; g.fillStyle = '#8a7a5a'; g.fillText('いっぽん！剣道（ゲームの中の免状です）', 540, 1280);
+  return c.toDataURL('image/png');
+}
+function showMenjo(m, back) {
+  const img = makeMenjo(m);
+  openPanel(`<h2 style="text-align:center">📜 免状</h2><img id="resimg" src="${img}" alt="免状">${shareRow()}
+    <div class="row" style="justify-content:center"><button class="btn gray" id="bk">もどる</button></div>`);
+  bindShare(img, `いっぽん！剣道🥋 昇段審査に合格！ 剣道${danName(m.lv)}になった！ #いっぽん剣道`);
+  $('bk').onclick = back || showTitle;
+}
 
 // =====================================================================
 //  団体戦（5人）・大会
