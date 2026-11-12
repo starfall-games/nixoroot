@@ -1,0 +1,1799 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#10141c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>リアルライフ｜一人称で働いて、家を買う3D人生ゲーム</title>
+<meta name="description" content="目の高さで町を歩いて、コンビニのレジで働いて、給料をもらって、家賃をはらって、住宅ローンで家を買う。お金も時間も本物っぽく動く、一人称の3D人生ゲーム。スマホでもPCでも無料。">
+<meta property="og:title" content="リアルライフ｜一人称で働いて、家を買う3D人生ゲーム">
+<meta property="og:description" content="レジで働いて、給料日を待って、ローンで家を買う。超リアルな一人称の人生ゲーム。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://nixoroot.com/life/">
+<meta property="og:site_name" content="nixoroot GAMES">
+<link rel="canonical" href="https://nixoroot.com/life/">
+<meta name="apple-mobile-web-app-title" content="リアルライフ">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=M+PLUS+Rounded+1c:wght@500;800&display=swap" rel="stylesheet">
+<style>
+/* ===== 色やサイズのきまり ===== */
+:root{
+  --bg:#10141c; --panel:rgba(16,20,30,.9); --line:rgba(255,255,255,.16);
+  --txt:#f5f3ee; --sub:#aeb4c2; --acc:#4fd1a5; --gold:#f2c45a; --bad:#ff5d6c; --blue:#5aa8ff;
+  --vw:1vw; --vh:1vh;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font-family:"M PLUS Rounded 1c",system-ui,sans-serif;touch-action:none}
+body.forceLand{position:fixed;top:0;left:0;overflow:hidden;transform-origin:0 0}
+canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block}
+body.forceLand canvas#gl{position:absolute}
+button{font-family:inherit;cursor:pointer;color:var(--txt)}
+.hide{display:none!important}
+/* ===== 画面の上の情報（HUD） ===== */
+#hud{position:absolute;inset:0;pointer-events:none;z-index:5}
+#stat{position:absolute;left:calc(10px + env(safe-area-inset-left));top:calc(8px + env(safe-area-inset-top));background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px 12px;min-width:190px;font-size:12px;line-height:1.5}
+#stat .date{font-weight:800;font-size:13px}
+#stat .clock{font-family:"Dela Gothic One";font-size:22px;letter-spacing:1px}
+#stat .money{font-weight:800;font-size:15px;color:var(--gold)}
+.bar{height:6px;border-radius:4px;background:rgba(255,255,255,.12);overflow:hidden;margin:2px 0 4px}
+.bar i{display:block;height:100%;border-radius:4px}
+#goal{position:absolute;left:50%;top:calc(8px + env(safe-area-inset-top));transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:12px;max-width:46%;text-align:center}
+@media (max-width:640px){#goal{left:calc(10px + env(safe-area-inset-left));transform:none;top:calc(150px + env(safe-area-inset-top));max-width:72%;border-radius:12px;text-align:left}}
+#tbtn{position:absolute;right:calc(10px + env(safe-area-inset-right));top:calc(8px + env(safe-area-inset-top));display:flex;gap:6px;pointer-events:auto}
+#tbtn button{background:var(--panel);border:1px solid var(--line);border-radius:12px;font-size:20px;width:46px;height:46px}
+#cross{position:absolute;left:50%;top:50%;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;background:rgba(255,255,255,.85);box-shadow:0 0 3px #000}
+#prompt{position:absolute;left:50%;bottom:calc(18% + env(safe-area-inset-bottom));transform:translateX(-50%);background:rgba(0,0,0,.6);border:1px solid var(--line);border-radius:12px;padding:8px 16px;font-size:14px;font-weight:800;white-space:nowrap}
+#prompt b{color:var(--acc)}
+#vig{position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 160px 60px rgba(0,0,0,.0);transition:box-shadow .5s}
+/* ===== スマホの操作 ===== */
+#touch{position:absolute;inset:0;z-index:4}
+#stick{position:absolute;width:110px;height:110px;margin:-55px 0 0 -55px;border-radius:50%;border:2px solid rgba(255,255,255,.35);background:rgba(255,255,255,.06);pointer-events:none;display:none}
+#stick i{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:rgba(255,255,255,.45)}
+#actbtn{position:absolute;right:calc(24px + env(safe-area-inset-right));bottom:calc(28px + env(safe-area-inset-bottom));width:86px;height:86px;border-radius:50%;background:rgba(79,209,165,.85);border:3px solid #fff;font-size:15px;font-weight:800;z-index:6;color:#05221a}
+#movehint{position:absolute;left:calc(26px + env(safe-area-inset-left));bottom:calc(30px + env(safe-area-inset-bottom));font-size:11px;color:var(--sub);pointer-events:none;z-index:4}
+/* ===== パネル（お店・銀行・スマホなどの画面） ===== */
+#panel{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45)}
+#pbox{background:#161b26;border:1px solid var(--line);border-radius:18px;width:min(560px,94%);max-height:92%;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+#ptitle{font-weight:800;font-size:17px;padding:12px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+#ptitle button{background:none;border:none;font-size:22px;padding:0 4px}
+#pbody{padding:12px 16px;overflow:auto;font-size:13px;line-height:1.65;-webkit-user-select:text;user-select:text}
+#pbtns{display:flex;flex-wrap:wrap;gap:8px;padding:10px 16px 14px;border-top:1px solid var(--line)}
+.btn{background:#26304a;border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:14px;font-weight:800}
+.btn.main{background:var(--acc);color:#04261b;border-color:transparent}
+.btn.warn{background:#5a2330}
+.btn:disabled{opacity:.4}
+table.t{width:100%;border-collapse:collapse;font-size:12.5px}
+table.t td{padding:4px 2px;border-bottom:1px solid rgba(255,255,255,.07)}
+table.t td.r{text-align:right;white-space:nowrap}
+.plus{color:var(--acc)} .minus{color:#ff8f9a}
+.card{background:#1e2533;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:8px 0}
+.small{font-size:11.5px;color:var(--sub)}
+.tabs{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.tabs button{background:#232b3d;border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:12px;font-weight:800}
+.tabs button.on{background:var(--blue);color:#06182e}
+canvas.map{width:100%;border-radius:10px;background:#2a3140}
+/* ===== レジ（仕事） ===== */
+#pos{position:absolute;right:calc(10px + env(safe-area-inset-right));top:calc(64px + env(safe-area-inset-top));bottom:calc(10px + env(safe-area-inset-bottom));width:min(330px,40%);z-index:8;background:#0e1a17;border:2px solid #2d6b58;border-radius:14px;display:flex;flex-direction:column;font-size:12px}
+#pos .scr{background:#cfe9dc;color:#0d2a20;margin:8px;border-radius:8px;padding:6px 8px;font-family:ui-monospace,Menlo,monospace;min-height:120px;flex:1;overflow:auto}
+#pos .scr .row{display:flex;justify-content:space-between}
+#pos .scr .tot{border-top:1px dashed #557;margin-top:4px;padding-top:4px;font-weight:800;font-size:14px}
+#pos .keys{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding:0 8px 8px}
+#pos .keys button{background:#1f3d33;border:1px solid #3e7f69;border-radius:8px;padding:7px 2px;font-size:12px;font-weight:800}
+#pos .keys button.wide{grid-column:span 3;background:#2f8a6c}
+#pos .keys button.hl{background:#e0b341;color:#2a1d00}
+#pos .keys button:disabled{opacity:.35}
+#say{position:absolute;left:30%;top:calc(70px + env(safe-area-inset-top));transform:translateX(-50%);background:#fff;color:#222;border-radius:14px;padding:8px 14px;font-size:15px;font-weight:800;max-width:44%;z-index:8;box-shadow:0 4px 18px rgba(0,0,0,.4)}
+#say:after{content:"";position:absolute;left:50%;bottom:-10px;border:6px solid transparent;border-top-color:#fff}
+#shiftbar{position:absolute;left:calc(10px + env(safe-area-inset-left));bottom:calc(10px + env(safe-area-inset-bottom));z-index:8;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px 12px;font-size:12px;max-width:52%}
+#warm{height:6px;background:#552;border-radius:4px;overflow:hidden;margin-top:4px}
+#warm i{display:block;height:100%;background:#ffb347;width:0}
+/* ===== タイトル ===== */
+#title{position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(180deg,rgba(8,12,20,.25),rgba(8,12,20,.75));text-align:center;padding:16px}
+#title h1{font-family:"Dela Gothic One";font-size:min(12vw,64px);white-space:nowrap;margin:0;letter-spacing:2px;text-shadow:0 4px 30px rgba(0,0,0,.6)}
+#title .sub{font-size:14px;color:#dfe6f3;margin:4px 0 16px}
+#title .btns{display:flex;flex-direction:column;gap:10px;width:min(320px,90%)}
+#title .btn{font-size:16px;padding:13px}
+.tbtns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:12px}
+#land-btn,#home-btn,#snd-btn{padding:8px 14px;border-radius:999px;background:var(--panel);border:1px solid var(--line);font-size:12px;font-weight:800;color:var(--txt);text-decoration:none}
+#land-note{display:none;position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--panel);border:1px solid var(--gold);border-radius:12px;padding:10px 14px;font-size:13px;max-width:92%;z-index:60;text-align:center}
+#help{font-size:11.5px;color:var(--sub);margin-top:12px;line-height:1.6}
+/* ===== お知らせ・暗転 ===== */
+#toasts{position:absolute;left:50%;top:calc(60px + env(safe-area-inset-top));transform:translateX(-50%);z-index:40;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none}
+.toast{background:rgba(10,14,22,.92);border:1px solid var(--line);border-radius:12px;padding:8px 14px;font-size:13px;font-weight:800;animation:tin .25s;max-width:80vw;text-align:center}
+.toast.good{border-color:var(--acc)} .toast.bad{border-color:var(--bad)} .toast.gold{border-color:var(--gold)}
+@keyframes tin{from{opacity:0;transform:translateY(-8px)}}
+#fade{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;z-index:35;transition:opacity .6s;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="touch" class="hide"><div id="stick"><i></i></div></div>
+<div id="hud" class="hide">
+  <div id="vig"></div>
+  <div id="stat">
+    <div class="date" id="h-date">-</div>
+    <div class="clock" id="h-clock">7:00</div>
+    <div class="money" id="h-money">-</div>
+    <div>体力 <span id="h-en"></span></div><div class="bar"><i id="b-en" style="background:#5ad1ff"></i></div>
+    <div>おなか <span id="h-hu"></span></div><div class="bar"><i id="b-hu" style="background:#ffb35a"></i></div>
+  </div>
+  <div id="goal">-</div>
+  <div id="tbtn"><button id="phone-btn" title="スマホ（Pキー）">📱</button></div>
+  <div id="cross"></div>
+  <div id="prompt" class="hide"></div>
+</div>
+<button id="actbtn" class="hide">調べる</button>
+<div id="movehint" class="hide">左がわ：歩く／右がわ：見回す</div>
+<!-- レジ（仕事） -->
+<div id="say" class="hide"></div>
+<div id="shiftbar" class="hide"></div>
+<div id="pos" class="hide">
+  <div style="padding:6px 10px 0;font-weight:800;color:#8fe3c3">🧾 レジ（POS）<span id="pos-st" style="float:right;color:#cfe"></span></div>
+  <div class="scr" id="pos-scr"></div>
+  <div class="keys" id="pos-keys"></div>
+</div>
+<div id="panel" class="hide"><div id="pbox"><div id="ptitle"><span id="pt"></span><button id="pclose">✕</button></div><div id="pbody"></div><div id="pbtns"></div></div></div>
+<div id="title">
+  <h1>リアルライフ</h1>
+  <div class="sub">はたらく。くらす。家を買う。── 一人称の人生ゲーム</div>
+  <div class="btns">
+    <button class="btn main" id="t-new">はじめから</button>
+    <button class="btn" id="t-cont">つづきから</button>
+  </div>
+  <div class="tbtns"><button id="snd-btn">🔊 音：オン</button><button id="land-btn">🔓 横画面で固定：オフ</button><a id="home-btn" href="https://nixoroot.com/">🏠 nixoroot GAMES（ゲーム一覧へ）</a></div>
+  <div id="help">PC：WASD で歩く・Shift で走る・マウスで見回す（画面をクリック）・E で調べる・P でスマホ<br>スマホ：左がわをなぞって歩く・右がわをなぞって見回す・「調べる」ボタン<br>出てくる会社やお店は、すべて架空（つくりもの）です</div>
+</div>
+<div id="toasts"></div>
+<div id="fade"></div>
+<div id="land-note"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script>
+'use strict';
+// =====================================================================
+//  べんりな道具
+// =====================================================================
+const $ = id => document.getElementById(id);
+const Q = new URLSearchParams(location.search);
+const IS_TOUCH = matchMedia('(pointer:coarse)').matches || 'ontouchstart' in window;
+const MUTE = Q.has('mute');              // テスト用：?mute で音を作らない
+const FAST = Q.has('fast');              // テスト用：?fast で待ち時間を短く
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v)), lerp = (a, b, t) => a + (b - a) * t;
+const rnd = (a, b) => a + Math.random() * (b - a), ri = (a, b) => Math.floor(rnd(a, b + 1)), pick = a => a[Math.floor(Math.random() * a.length)];
+const yen = v => (v < 0 ? '-' : '') + Math.abs(Math.round(v)).toLocaleString('ja-JP') + '円';
+const man = v => (v / 10000).toLocaleString('ja-JP', { maximumFractionDigits: 1 }) + '万円';
+const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
+const TIME_SCALE = 2;                    // 本当の1秒 ＝ ゲームの2分
+const SAVE_KEY = 'life-save-v1', OPT_KEY = 'life-opt-v1';
+let OPT = { sound: true, lockLand: false };
+try { Object.assign(OPT, JSON.parse(localStorage.getItem(OPT_KEY) || '{}')); } catch (e) { }
+const saveOpt = () => { try { localStorage.setItem(OPT_KEY, JSON.stringify(OPT)); } catch (e) { } };
+
+// =====================================================================
+//  音（Web Audio で作る。?mute のときは何も作らない）
+// =====================================================================
+const SND = {
+  ctx: null,
+  init() {
+    if (MUTE || !OPT.sound || this.ctx) return;
+    try {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      this.out = this.ctx.createGain(); this.out.gain.value = 0.5; this.out.connect(this.ctx.destination);
+      this.ambience();
+    } catch (e) { this.ctx = null; }
+  },
+  off() { if (this.ctx) { try { this.ctx.close(); } catch (e) { } this.ctx = null; } },
+  tone(f, d, type = 'sine', v = 0.15, t0 = 0) {
+    const c = this.ctx; if (!c) return;
+    const o = c.createOscillator(), g = c.createGain(), t = c.currentTime + t0;
+    o.type = type; o.frequency.value = f;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+    o.connect(g); g.connect(this.out); o.start(t); o.stop(t + d + 0.05);
+  },
+  nbuf() { if (!this._nb) { const c = this.ctx, b = c.createBuffer(1, c.sampleRate, c.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; this._nb = b; } return this._nb; },
+  noise(d, f, v, q = 1) {
+    const c = this.ctx; if (!c) return;
+    const s = c.createBufferSource(), fl = c.createBiquadFilter(), g = c.createGain(), t = c.currentTime;
+    s.buffer = this.nbuf(); fl.type = 'bandpass'; fl.frequency.value = f; fl.Q.value = q;
+    g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+    s.connect(fl); fl.connect(g); g.connect(this.out); s.start(t); s.stop(t + d + 0.05);
+  },
+  ambience() {   // 町のざわざわ（とても小さく）
+    const c = this.ctx; if (!c) return;
+    const s = c.createBufferSource(), fl = c.createBiquadFilter(), g = c.createGain();
+    s.buffer = this.nbuf(); s.loop = true; fl.type = 'lowpass'; fl.frequency.value = 380; g.gain.value = 0.035;
+    s.connect(fl); fl.connect(g); g.connect(this.out); s.start();
+  },
+  step() { this.noise(0.07, rnd(250, 520), 0.12, 1.2); },
+  click() { this.tone(900, 0.05, 'triangle', 0.08); },
+  beep() { this.tone(2093, 0.1, 'square', 0.05); },
+  coin() { this.tone(2600, 0.06, 'triangle', 0.07); this.tone(3300, 0.08, 'triangle', 0.05, 0.04); },
+  drawer() { this.noise(0.18, 900, 0.2, 0.7); this.tone(1320, 0.25, 'sine', 0.06, 0.12); },
+  chime() { [659, 523, 587, 392].forEach((f, i) => this.tone(f, 0.5, 'sine', 0.09, i * 0.28)); },
+  good() { [784, 988, 1175].forEach((f, i) => this.tone(f, 0.25, 'triangle', 0.08, i * 0.08)); },
+  bad() { this.tone(220, 0.3, 'sawtooth', 0.06); this.tone(180, 0.3, 'sawtooth', 0.05, 0.1); },
+  money() { [1047, 1319, 1568, 2093].forEach((f, i) => this.tone(f, 0.2, 'triangle', 0.07, i * 0.06)); },
+  door() { this.noise(0.4, 300, 0.1, 0.5); },
+};
+
+// =====================================================================
+//  3D のじゅんび（three.js）
+// =====================================================================
+const renderer = new THREE.WebGLRenderer({ canvas: $('gl'), antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio || 1, IS_TOUCH ? 1.5 : 2));
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(72, 1, 0.05, 700); camera.rotation.order = 'YXZ';
+const MAXANI = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+
+// 光：空の光（半球）＋ 太陽（影を作る）
+const hemi = new THREE.HemisphereLight(0xcfe3ff, 0x4f4636, 0.7); scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xffffff, 2.6);
+sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+{ const c = sun.shadow.camera; c.left = -34; c.right = 34; c.top = 34; c.bottom = -34; c.near = 1; c.far = 220; }
+sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.04;
+scene.add(sun); scene.add(sun.target);
+scene.fog = new THREE.Fog(0xbcd8f0, 70, 330);
+// 夜の街灯（近くの3本だけ本当に光らせる）
+const ROAM = []; for (let i = 0; i < 3; i++) { const l = new THREE.PointLight(0xffd9a0, 0, 16, 2); scene.add(l); ROAM.push(l); }
+
+// 空（上と地平線の色を時間で変える）
+const skyMat = new THREE.ShaderMaterial({
+  side: THREE.BackSide, depthWrite: false, fog: false,
+  uniforms: { top: { value: new THREE.Color() }, hor: { value: new THREE.Color() }, sunDir: { value: V3(0, 1, 0) }, sunVis: { value: 1 }, night: { value: 0 } },
+  vertexShader: 'varying vec3 vP; void main(){ vP=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+  fragmentShader: `uniform vec3 top,hor,sunDir; uniform float sunVis,night; varying vec3 vP;
+    float h21(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+    void main(){ vec3 d=normalize(vP); float h=d.y;
+      vec3 c=mix(hor,top,pow(clamp(h,0.0,1.0),0.45));
+      if(h<0.0) c=mix(hor,hor*0.5,clamp(-h*5.0,0.0,1.0));
+      float s=max(dot(d,normalize(sunDir)),0.0);
+      c+=vec3(1.0,0.86,0.62)*pow(s,900.0)*4.0*sunVis + vec3(1.0,0.7,0.4)*pow(s,10.0)*0.22*sunVis;
+      // 夜の星
+      vec2 g=floor(vec2(atan(d.z,d.x)*180.0, h*180.0)); float st=step(0.997,h21(g))*night*clamp(h*3.0,0.0,1.0);
+      c+=vec3(st);
+      gl_FragColor=vec4(c,1.0); }`
+});
+const sky = new THREE.Mesh(new THREE.SphereGeometry(500, 32, 16), skyMat); sky.renderOrder = -1; scene.add(sky);
+
+// =====================================================================
+//  テクスチャ（絵）を canvas で作る
+// =====================================================================
+function cv(w, h, draw) { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); return c; }
+function tex(c, srgb = true) { const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; if (srgb) t.encoding = THREE.sRGBEncoding; t.anisotropy = MAXANI; return t; }
+function grain(g, w, h, a) { const id = g.getImageData(0, 0, w, h), d = id.data; for (let i = 0; i < d.length; i += 4) { const n = (Math.random() - 0.5) * a; d[i] += n; d[i + 1] += n; d[i + 2] += n; } g.putImageData(id, 0, 0); }
+function blotch(g, w, h, n, col, rmax) { for (let i = 0; i < n; i++) { g.fillStyle = col; g.globalAlpha = rnd(0.03, 0.09); g.beginPath(); g.arc(rnd(0, w), rnd(0, h), rnd(4, rmax), 0, 7); g.fill(); } g.globalAlpha = 1; }
+const TX = {};
+// アスファルト（4m）
+TX.asphalt = tex(cv(512, 512, (g, w, h) => { g.fillStyle = '#46484b'; g.fillRect(0, 0, w, h); blotch(g, w, h, 140, '#222', 40); blotch(g, w, h, 80, '#777', 20); grain(g, w, h, 34); }));
+// 歩道のタイル（1m に 3枚）
+TX.walk = tex(cv(256, 256, (g, w, h) => { g.fillStyle = '#a7a39b'; g.fillRect(0, 0, w, h); grain(g, w, h, 18); g.strokeStyle = 'rgba(60,55,50,.55)'; g.lineWidth = 2; for (let i = 0; i <= 3; i++) { g.beginPath(); g.moveTo(i * w / 3, 0); g.lineTo(i * w / 3, h); g.stroke(); g.beginPath(); g.moveTo(0, i * h / 3); g.lineTo(w, i * h / 3); g.stroke(); } blotch(g, w, h, 20, '#555', 18); }));
+// 土・じゃり・草
+TX.ground = tex(cv(256, 256, (g, w, h) => { g.fillStyle = '#7c7464'; g.fillRect(0, 0, w, h); blotch(g, w, h, 120, '#4a4438', 14); blotch(g, w, h, 60, '#b0a690', 6); grain(g, w, h, 40); }));
+TX.grass = tex(cv(256, 256, (g, w, h) => { g.fillStyle = '#4f6d36'; g.fillRect(0, 0, w, h); blotch(g, w, h, 160, '#2f4a20', 12); blotch(g, w, h, 80, '#8aa556', 8); grain(g, w, h, 36); for (let i = 0; i < 900; i++) { g.strokeStyle = Math.random() < .5 ? 'rgba(30,60,20,.4)' : 'rgba(140,170,90,.35)'; g.beginPath(); const x = rnd(0, w), y = rnd(0, h); g.moveTo(x, y); g.lineTo(x + rnd(-2, 2), y - rnd(3, 7)); g.stroke(); } }));
+TX.dirt = tex(cv(256, 256, (g, w, h) => { g.fillStyle = '#8a6f50'; g.fillRect(0, 0, w, h); blotch(g, w, h, 140, '#5a4430', 10); blotch(g, w, h, 60, '#b89a74', 5); grain(g, w, h, 40); }));
+TX.concrete = tex(cv(256, 256, (g, w, h) => { g.fillStyle = '#b7b4ad'; g.fillRect(0, 0, w, h); blotch(g, w, h, 80, '#6d6a64', 20); grain(g, w, h, 22); }));
+// 外かべ（2m）：しっくい・サイディング・タイル
+TX.plaster = tex(cv(256, 256, (g, w, h) => { g.fillStyle = '#e4ddcf'; g.fillRect(0, 0, w, h); blotch(g, w, h, 60, '#9a9080', 26); grain(g, w, h, 14); }));
+TX.siding = tex(cv(256, 256, (g, w, h) => { g.fillStyle = '#dcd6ca'; g.fillRect(0, 0, w, h); grain(g, w, h, 10); for (let y = 0; y < h; y += 16) { g.fillStyle = 'rgba(0,0,0,.13)'; g.fillRect(0, y, w, 2); g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(0, y + 2, w, 1); } }));
+TX.tileExt = tex(cv(256, 256, (g, w, h) => { for (let y = 0; y < 16; y++) for (let x = 0; x < 8; x++) { const v = ri(-14, 14); g.fillStyle = `rgb(${150 + v},${118 + v},${92 + v})`; g.fillRect(x * 32, y * 16, 31, 15); } g.fillStyle = '#ccc'; grain(g, w, h, 10); }));
+TX.block = tex(cv(256, 128, (g, w, h) => { g.fillStyle = '#a9a69e'; g.fillRect(0, 0, w, h); grain(g, w, h, 26); g.strokeStyle = 'rgba(70,68,62,.7)'; g.lineWidth = 3; for (let y = 0; y <= h; y += 64) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); } for (let r = 0; r < 2; r++) for (let x = (r ? 64 : 0); x < w; x += 128) { g.beginPath(); g.moveTo(x, r * 64); g.lineTo(x, r * 64 + 64); g.stroke(); } }));
+// 中：かべ紙・フローリング・お店のゆか・天井
+TX.paper = tex(cv(256, 256, (g, w, h) => { g.fillStyle = '#efebe3'; g.fillRect(0, 0, w, h); grain(g, w, h, 8); for (let i = 0; i < 400; i++) { g.fillStyle = 'rgba(0,0,0,.025)'; g.fillRect(rnd(0, w), rnd(0, h), 2, 2); } }));
+TX.wood = tex(cv(512, 512, (g, w, h) => { for (let i = 0; i < 8; i++) { const v = ri(-18, 18); g.fillStyle = `rgb(${168 + v},${124 + v},${84 + v})`; g.fillRect(0, i * 64, w, 64); for (let k = 0; k < 30; k++) { g.strokeStyle = `rgba(90,55,30,${rnd(.05, .18)})`; g.beginPath(); const y = i * 64 + rnd(2, 62); g.moveTo(0, y); g.bezierCurveTo(w * .3, y + rnd(-4, 4), w * .6, y + rnd(-4, 4), w, y); g.stroke(); } g.fillStyle = 'rgba(40,25,10,.5)'; g.fillRect(0, i * 64, w, 2); g.fillRect(((i * 197) % 400) + 40, i * 64, 2, 64); } grain(g, w, h, 10); }));
+TX.floorTile = tex(cv(256, 256, (g, w, h) => { g.fillStyle = '#e9e8e3'; g.fillRect(0, 0, w, h); grain(g, w, h, 10); blotch(g, w, h, 30, '#bbb', 30); g.strokeStyle = 'rgba(120,120,120,.5)'; g.lineWidth = 2; g.strokeRect(1, 1, w - 2, h - 2); }));
+TX.carpet = tex(cv(256, 256, (g, w, h) => { g.fillStyle = '#5b6273'; g.fillRect(0, 0, w, h); grain(g, w, h, 30); }));
+TX.ceil = tex(cv(128, 128, (g, w, h) => { g.fillStyle = '#f4f2ee'; g.fillRect(0, 0, w, h); grain(g, w, h, 6); }));
+// ビルの外かべ（6m＝2階×2列 の窓）。夜に光る窓の絵もいっしょに作る
+function facade(o) {
+  const S = 512, cells = [[0, 0], [1, 0], [0, 1], [1, 1]];
+  const lit = [Math.random() < .75, Math.random() < .6, Math.random() < .35, Math.random() < .7];
+  const map = cv(S, S, (g) => {
+    g.fillStyle = o.wall; g.fillRect(0, 0, S, S); blotch(g, S, S, 50, '#000', 40); grain(g, S, S, o.grain || 14);
+    if (o.siding) for (let y = 0; y < S; y += 14) { g.fillStyle = 'rgba(0,0,0,.1)'; g.fillRect(0, y, S, 2); }
+    if (o.brick) for (let y = 0; y < S; y += 18) for (let x = (y / 18) % 2 ? -20 : 0; x < S; x += 40) { const v = ri(-16, 16); g.fillStyle = `rgb(${130 + v},${70 + v},${55 + v})`; g.fillRect(x + 1, y + 1, 38, 16); }
+    for (const [cx, cy] of cells) {
+      const bx = cx * S / 2, by = cy * S / 2, cw = S / 2;
+      const wx = bx + cw * o.wx, wy = by + cw * o.wy, ww = cw * o.ww, wh = cw * o.wh;
+      g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(bx, by + cw - 8, cw, 8);   // 床のさかい目
+      g.fillStyle = o.frame; g.fillRect(wx - 5, wy - 5, ww + 10, wh + 10);
+      const gr = g.createLinearGradient(0, wy, 0, wy + wh); gr.addColorStop(0, o.g1 || '#a9c1d4'); gr.addColorStop(1, o.g2 || '#3a4c5c'); g.fillStyle = gr; g.fillRect(wx, wy, ww, wh);
+      g.fillStyle = 'rgba(255,255,255,.12)'; g.beginPath(); g.moveTo(wx + ww * .2, wy); g.lineTo(wx + ww * .45, wy); g.lineTo(wx + ww * .1, wy + wh); g.lineTo(wx, wy + wh); g.fill();
+      if (o.curtain && Math.random() < .6) { g.fillStyle = pick(['rgba(230,220,200,.55)', 'rgba(180,200,220,.5)', 'rgba(220,190,170,.5)']); g.fillRect(wx, wy, ww * rnd(.2, .45), wh); }
+      g.fillStyle = o.frame; g.fillRect(wx + ww / 2 - 2, wy, 4, wh);
+      if (o.rail) { g.fillStyle = 'rgba(60,64,70,.9)'; g.fillRect(bx + 6, wy + wh - cw * .2, cw - 12, 5); for (let x = bx + 8; x < bx + cw - 8; x += 9) g.fillRect(x, wy + wh - cw * .2, 2, cw * .2); }
+    }
+  });
+  const emi = cv(S / 2, S / 2, (g) => {
+    const s = S / 2; g.fillStyle = '#000'; g.fillRect(0, 0, s, s);
+    cells.forEach(([cx, cy], i) => { if (!lit[i]) return; const bx = cx * s / 2, by = cy * s / 2, cw = s / 2; g.fillStyle = pick(['#ffd79a', '#fff0d0', '#ffe2b0', '#d8e8ff']); g.fillRect(bx + cw * o.wx, by + cw * o.wy, cw * o.ww, cw * o.wh); });
+  });
+  return { map: tex(map), emi: tex(emi) };
+}
+const FAC = {
+  apt: facade({ wall: '#d8ccb3', frame: '#5d5f62', wx: .22, wy: .18, ww: .56, wh: .5, rail: true, curtain: true }),
+  office: facade({ wall: '#9ea3a8', frame: '#2c3136', wx: .08, wy: .14, ww: .84, wh: .58, g1: '#7f9db5', g2: '#26323d' }),
+  mansion: facade({ wall: '#e7e2d7', frame: '#4b4e52', wx: .15, wy: .12, ww: .7, wh: .62, rail: true, curtain: true }),
+  brick: facade({ wall: '#7c4637', brick: true, frame: '#e8e3da', wx: .25, wy: .2, ww: .5, wh: .48, curtain: true }),
+  house: facade({ wall: '#e9e5dc', siding: true, frame: '#3d3d3d', wx: .28, wy: .25, ww: .44, wh: .38, curtain: true }),
+  tower: facade({ wall: '#6f7c88', frame: '#1f262d', wx: .03, wy: .06, ww: .94, wh: .8, g1: '#8fb2cc', g2: '#20303f' }),
+};
+// 文字の看板
+function signTex(text, bg, fg, w = 512, h = 128, size = 64, sub) {
+  return tex(cv(w, h, (g) => {
+    g.fillStyle = bg; g.fillRect(0, 0, w, h);
+    g.fillStyle = fg; g.font = `800 ${size}px "M PLUS Rounded 1c", sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(text, w / 2, sub ? h * .4 : h / 2);
+    if (sub) { g.font = `800 ${size * .4}px "M PLUS Rounded 1c", sans-serif`; g.fillText(sub, w / 2, h * .8); }
+  }));
+}
+
+// =====================================================================
+//  材質（見た目）
+// =====================================================================
+const NIGHT_MATS = [];   // 夜に光るもの（窓・看板・街灯）
+function mat(o) { return new THREE.MeshStandardMaterial(Object.assign({ roughness: 0.85, metalness: 0 }, o)); }
+const MT = {
+  asphalt: mat({ map: TX.asphalt, roughness: .95 }), walk: mat({ map: TX.walk }), ground: mat({ map: TX.ground }),
+  grass: mat({ map: TX.grass, roughness: 1 }), dirt: mat({ map: TX.dirt, roughness: 1 }), concrete: mat({ map: TX.concrete }),
+  plaster: mat({ map: TX.plaster }), siding: mat({ map: TX.siding }), tileExt: mat({ map: TX.tileExt }), block: mat({ map: TX.block }),
+  paper: mat({ map: TX.paper, roughness: .95 }), wood: mat({ map: TX.wood, roughness: .55 }), floorTile: mat({ map: TX.floorTile, roughness: .35 }),
+  carpet: mat({ map: TX.carpet, roughness: 1 }), ceil: mat({ map: TX.ceil }),
+  glass: new THREE.MeshStandardMaterial({ color: 0x9fc4d8, transparent: true, opacity: 0.28, roughness: 0.05, metalness: 0.6, depthWrite: false }),
+  white: mat({ color: 0xf2f2f0 }), dark: mat({ color: 0x2a2c30, roughness: .6 }), metal: mat({ color: 0x9aa0a6, metalness: .7, roughness: .35 }),
+  roofGray: mat({ color: 0x4a4f57, roughness: .8 }), roofBrown: mat({ color: 0x5d4636 }), roofBlue: mat({ color: 0x3d4f66 }),
+  line: mat({ color: 0xf0efe9, roughness: .9 }), yellow: mat({ color: 0xf2c230 }), pole: mat({ color: 0x8e8c86 }),
+};
+for (const k in FAC) { const m = mat({ map: FAC[k].map, emissiveMap: FAC[k].emi, emissive: 0xffffff, emissiveIntensity: 0 }); MT['f_' + k] = m; NIGHT_MATS.push(m); }
+const colMats = {}; const cm = (hex, o) => colMats[hex + (o ? JSON.stringify(o) : '')] || (colMats[hex + (o ? JSON.stringify(o) : '')] = mat(Object.assign({ color: hex }, o || {})));
+
+// =====================================================================
+//  町を作る道具：箱・かべ・部屋・ぶつかり判定
+// =====================================================================
+const COL = [];       // ぶつかる四角（上から見た x,z のはんい）
+function col(x0, z0, x1, z1) { const c = { x0: Math.min(x0, x1), z0: Math.min(z0, z1), x1: Math.max(x0, x1), z1: Math.max(z0, z1), on: true }; COL.push(c); return c; }
+// 箱の絵の大きさを「メートル」にそろえる（大きい箱でも絵がのびない）
+function worldUV(g, w, h, d, tile) {
+  const uv = g.attributes.uv, dims = [[d, h], [d, h], [w, d], [w, d], [w, h], [w, h]];
+  for (let f = 0; f < 6; f++) for (let i = 0; i < 4; i++) { const k = f * 4 + i; uv.setXY(k, uv.getX(k) * dims[f][0] / tile, uv.getY(k) * dims[f][1] / tile); }
+  uv.needsUpdate = true;
+}
+function mesh(geo, m, x, y, z, o = {}) { const ms = new THREE.Mesh(geo, m); ms.position.set(x, y, z); ms.castShadow = o.cast !== false; ms.receiveShadow = o.recv !== false; (o.parent || scene).add(ms); return ms; }
+// 箱：x,z はまん中、y は下の高さ
+function box(w, h, d, m, x, y, z, o = {}) {
+  const g = new THREE.BoxGeometry(w, h, d); if (o.uv) worldUV(g, w, h, d, o.uv);
+  const ms = mesh(g, m, x, y + h / 2, z, o); if (o.col) col(x - w / 2, z - d / 2, x + w / 2, z + d / 2); return ms;
+}
+// 地面の板
+function plate(x0, z0, x1, z1, m, y = 0, tile = 1) {
+  const w = x1 - x0, d = z1 - z0, g = new THREE.PlaneGeometry(w, d), uv = g.attributes.uv;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * w / tile, uv.getY(i) * d / tile);
+  const ms = mesh(g, m, (x0 + x1) / 2, y, (z0 + z1) / 2, { cast: false }); ms.rotation.x = -Math.PI / 2; return ms;
+}
+// かべ（あな＝ドアや窓 つき）。axis:'x' は x の向きにのびるかべ（z が一定）
+// inSign：部屋の中がわ（+1 か -1）。ext=外の材質, int=中の材質
+function wall(axis, at, a0, a1, h, ext, int, inSign, holes = [], o = {}) {
+  const t = o.t || 0.16, tile = o.tile || 2;
+  // 箱の6面：[+x,-x,+y,-y,+z,-z]
+  const mats = axis === 'x' ? [ext, ext, ext, ext, inSign > 0 ? int : ext, inSign > 0 ? ext : int] : [inSign > 0 ? int : ext, inSign > 0 ? ext : int, ext, ext, ext, ext];
+  const piece = (p0, p1, y0, y1) => {
+    if (p1 - p0 < 0.01 || y1 - y0 < 0.01) return;
+    const L = p1 - p0, c = (p0 + p1) / 2;
+    if (axis === 'x') box(L, y1 - y0, t, mats, c, y0, at, { uv: tile }); else box(t, y1 - y0, L, mats, at, y0, c, { uv: tile });
+    if (y0 < 1.6) { if (axis === 'x') col(p0, at - t / 2, p1, at + t / 2); else col(at - t / 2, p0, at + t / 2, p1); }
+  };
+  const hs = holes.map(H => ({ a: H.at - H.w / 2, b: H.at + H.w / 2, y0: H.y0 || 0, y1: H.y1 || 2.05, glass: H.y0 > 0 || H.glass })).sort((p, q) => p.a - q.a);
+  let cur = a0;
+  for (const H of hs) {
+    piece(cur, H.a, 0, h); piece(H.a, H.b, 0, H.y0); piece(H.a, H.b, H.y1, h);
+    if (H.y0 > 0) {   // 窓ガラスとわく
+      const L = H.b - H.a, c = (H.a + H.b) / 2, hh = H.y1 - H.y0;
+      if (axis === 'x') { box(L, hh, 0.02, MT.glass, c, H.y0, at, { cast: false }); box(L, 0.05, t + 0.04, MT.metal, c, H.y0 - 0.02, at, { cast: false }); box(0.04, hh, t * .6, MT.metal, c, H.y0, at, { cast: false }); }
+      else { box(0.02, hh, L, MT.glass, at, H.y0, c, { cast: false }); box(t + 0.04, 0.05, L, MT.metal, at, H.y0 - 0.02, c, { cast: false }); box(t * .6, hh, 0.04, MT.metal, at, H.y0, c, { cast: false }); }
+    }
+    cur = H.b;
+  }
+  piece(cur, a1, 0, h);
+}
+// 部屋：4まいのかべ＋ゆか＋天井（屋根）＋あかり
+const LAMPS = [], ROOMS = [];
+function room(o) {
+  ROOMS.push([o.x0, o.z0, o.x1, o.z1]);
+  const { x0, z0, x1, z1, h } = o, ext = o.ext || MT.plaster, int = o.int || MT.paper, t = 0.16, W = o.walls || {};
+  if (!o.skip?.s) wall('x', z0, x0, x1, h, ext, int, +1, W.s || [], { tile: o.tile });
+  if (!o.skip?.n) wall('x', z1, x0, x1, h, ext, int, -1, W.n || [], { tile: o.tile });
+  if (!o.skip?.w) wall('z', x0, z0 + t / 2, z1 - t / 2, h, ext, int, +1, W.w || [], { tile: o.tile });
+  if (!o.skip?.e) wall('z', x1, z0 + t / 2, z1 - t / 2, h, ext, int, -1, W.e || [], { tile: o.tile });
+  plate(x0, z0, x1, z1, o.floor || MT.wood, 0.012, o.floorTile || 1.6);
+  const roofM = o.roof || MT.concrete;
+  box(x1 - x0 + 0.2, o.slab || 0.3, z1 - z0 + 0.2, [roofM, roofM, roofM, MT.ceil, roofM, roofM], (x0 + x1) / 2, h, (z0 + z1) / 2, { uv: 2 });
+  if (o.light !== false) {
+    const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+    const l = new THREE.PointLight(o.lightColor || 0xfff0dc, o.lightI || 1.1, o.lightD || 14, 2); l.position.set(cx, h - 0.35, cz); scene.add(l);
+    const lm = mat({ color: 0xffffff, emissive: 0xfff4e0, emissiveIntensity: 1 });
+    box(o.lampW || 0.6, 0.06, o.lampW || 0.6, lm, cx, h - 0.07, cz, { cast: false });
+    LAMPS.push(l);
+  }
+}
+// とがった屋根（三角の屋根）
+function gable(x0, z0, x1, z1, y, rise, m, along = 'x') {
+  const L = along === 'x' ? x1 - x0 : z1 - z0, half = (along === 'x' ? z1 - z0 : x1 - x0) / 2;
+  const sh = new THREE.Shape(); sh.moveTo(-half, 0); sh.lineTo(half, 0); sh.lineTo(0, rise); sh.lineTo(-half, 0);
+  const g = new THREE.ExtrudeGeometry(sh, { depth: L, bevelEnabled: false });
+  if (along === 'x') { g.rotateY(Math.PI / 2); g.translate(-L / 2, 0, 0); } else g.translate(0, 0, -L / 2);
+  mesh(g, MT.siding, (x0 + x1) / 2, y, (z0 + z1) / 2);
+  const sl = Math.hypot(half + .45, rise + .3), ang = Math.atan2(rise, half);
+  for (const s of [-1, 1]) {
+    const pl = along === 'x' ? box(L + 0.7, 0.14, sl, m, (x0 + x1) / 2, 0, (z0 + z1) / 2 + s * (half / 2)) : box(sl, 0.14, L + 0.7, m, (x0 + x1) / 2 + s * (half / 2), 0, (z0 + z1) / 2);
+    pl.position.y = y + rise / 2 + 0.04;
+    if (along === 'x') pl.rotation.x = s * ang; else pl.rotation.z = -s * ang;
+  }
+}
+// ふつうのビル（中に入れない）
+function building(x0, z0, x1, z1, h, fk, o = {}) {
+  box(x1 - x0, h, z1 - z0, MT['f_' + fk], (x0 + x1) / 2, 0, (z0 + z1) / 2, { uv: 6, col: true });
+  box(x1 - x0 + .1, 0.5, z1 - z0 + .1, MT.concrete, (x0 + x1) / 2, h, (z0 + z1) / 2, { uv: 2 });
+  if (o.roofThing) box(2.5, 1.6, 2, MT.metal, x0 + 2, h + .5, z0 + 2);
+}
+// 一戸建て（中に入れない）
+function house(x0, z0, x1, z1, rc, along) {
+  box(x1 - x0, 5.4, z1 - z0, MT.f_house, (x0 + x1) / 2, 0, (z0 + z1) / 2, { uv: 6, col: true });
+  gable(x0, z0, x1, z1, 5.4, 1.6, rc, along || ((x1 - x0) > (z1 - z0) ? 'x' : 'z'));
+}
+// 看板
+function sign(text, bg, fg, x, y, z, w, h, rotY = 0, sub, glow = true) {
+  const t = signTex(text, bg, fg, 512, 512 * h / w > 256 ? 256 : Math.round(512 * h / w), 64, sub);
+  const m = mat({ map: t, emissiveMap: t, emissive: 0xffffff, emissiveIntensity: glow ? 0.25 : 0 });
+  if (glow) NIGHT_MATS.push(m);
+  const ms = mesh(new THREE.PlaneGeometry(w, h), m, x, y, z, { cast: false }); ms.rotation.y = rotY; return ms;
+}
+
+// =====================================================================
+//  ドア（近づくと開く。カギがかかっていると開かない）
+// =====================================================================
+const DOORS = [];
+// 自動ドア（ガラス2まい）。axis='x' のかべ
+function slideDoor(cx, z, w, locked) {
+  const L = [], h = 2.1;
+  for (const s of [-1, 1]) { const p = box(w / 2, h, 0.04, MT.glass, cx + s * w / 4, 0, z, { cast: false }); box(w / 2, 0.06, 0.06, MT.metal, 0, 0, 0, { parent: p, cast: false }).position.set(0, h / 2 - 0.03, 0); L.push(p); }
+  const c = col(cx - w / 2, z - 0.1, cx + w / 2, z + 0.1);
+  DOORS.push({ kind: 'slide', x: cx, z, w, parts: L, open: 0, c, locked: locked || (() => false) });
+}
+// ひらくドア（木）
+function swingDoor(axis, hinge, at, w, inSign, locked, color = 0x6b4a33) {
+  const piv = new THREE.Group(); scene.add(piv);
+  const dm = cm(color, { roughness: .6 });
+  if (axis === 'x') { piv.position.set(hinge, 0, at); box(w, 2.02, 0.05, dm, w / 2, 0, 0, { parent: piv }); box(0.04, 0.04, 0.16, MT.metal, w - 0.1, 0.98, 0, { parent: piv, cast: false }); }
+  else { piv.position.set(at, 0, hinge); box(0.05, 2.02, w, dm, 0, 0, w / 2, { parent: piv }); box(0.16, 0.04, 0.04, MT.metal, 0, 0.98, w - 0.1, { parent: piv, cast: false }); }
+  const c = axis === 'x' ? col(hinge, at - .1, hinge + w, at + .1) : col(at - .1, hinge, at + .1, hinge + w);
+  DOORS.push({ kind: 'swing', axis, piv, x: axis === 'x' ? hinge + w / 2 : at, z: axis === 'x' ? at : hinge + w / 2, w, inSign, open: 0, c, locked: locked || (() => false) });
+}
+function updateDoors(dt) {
+  for (const d of DOORS) {
+    const lk = d.locked();
+    let near = Math.hypot(P.x - d.x, P.z - d.z) < (d.kind === 'slide' ? 2.6 : 1.7);
+    if (!near) for (const n of NPCS) if (Math.hypot(n.g.position.x - d.x, n.g.position.z - d.z) < 2.4) { near = true; break; }
+    const tgt = (!lk && near) ? 1 : 0, was = d.open;
+    d.open += clamp(tgt - d.open, -dt * 2.2, dt * 2.2);
+    if (was === 0 && d.open > 0 && Math.hypot(P.x - d.x, P.z - d.z) < 3) SND.door();
+    d.c.on = d.open < 0.6;
+    if (d.kind === 'slide') { d.parts[0].position.x = d.x - d.w / 4 - d.open * d.w * .48; d.parts[1].position.x = d.x + d.w / 4 + d.open * d.w * .48; }
+    else d.piv.rotation.y = (d.axis === 'x' ? -d.inSign : d.inSign) * 1.45 * d.open;
+  }
+}
+
+// =====================================================================
+//  ゲームのデータ（セーブするもの）
+// =====================================================================
+const START_DATE = new Date(2026, 3, 1);   // 2026年4月1日（水）からスタート
+const WD = ['日', '月', '火', '水', '木', '金', '土'];
+function newState() {
+  return {
+    v: 1, t: 7 * 60,          // t：はじめてからの分（0 ＝ 1日目の 0:00）
+    money: 500000,            // 口座のお金（全部ここ）
+    energy: 92, hunger: 70,
+    age: 22, home: 'apt',
+    job: null,                // { role:'part'|'staff', eval, days, manual, lastDay, staffDays }
+    unpaid: { g: 0, n: 0, days: 0 }, // まだもらっていない給料（25日にふりこみ）
+    food: { onigiri: 1, tea: 1 },
+    log: [], loan: null, apply: null, ach: {}, late: 0,
+    pos: { x: -30.6, z: 18.2, yaw: Math.PI * 0.85 },
+    stats: { shifts: 0, earned: 0, customers: 0, perfect: 0 },
+  };
+}
+let ST = newState();
+function save() { try { ST.pos = { x: P.x, z: P.z, yaw: P.yaw }; localStorage.setItem(SAVE_KEY, JSON.stringify(ST)); } catch (e) { } }
+function loadSave() { try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (s && s.v === 1) return Object.assign(newState(), s); } catch (e) { } return null; }
+const dayIdx = () => Math.floor(ST.t / 1440), minOfDay = () => ST.t - dayIdx() * 1440;
+const dateOf = d => new Date(START_DATE.getFullYear(), START_DATE.getMonth(), START_DATE.getDate() + d);
+const hhmm = m => { m = Math.floor(m); return Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0'); };
+const dateStr = d => { const t = dateOf(d); return `${t.getFullYear()}年${t.getMonth() + 1}月${t.getDate()}日（${WD[t.getDay()]}）`; };
+const isWeekday = d => { const w = dateOf(d).getDay(); return w >= 1 && w <= 5; };
+function addLog(label, v) { ST.log.push({ d: dayIdx(), l: label, v: Math.round(v) }); if (ST.log.length > 80) ST.log.shift(); ST.money += Math.round(v); }
+
+// =====================================================================
+//  お金のきまり（日本のだいたいの値段）
+// =====================================================================
+const ECON = {
+  partWage: 1100,            // アルバイトの時給
+  staffMonthly: 210000,      // 正社員の月給（21日はたらく）
+  partTax: 0.03,             // アルバイトの所得税（だいたい）
+  staffDeduct: 0.2,          // 正社員：健康保険・年金・雇用保険・税金（だいたい2割）
+  rent: 58000,               // アパートの家賃（1K）
+  utility: 11800, phone: 3200,
+  pension: 17510, health: 8600,   // アルバイトのときに自分ではらう 国民年金・国民健康保険
+  rate: 0.018, years: 35,    // 住宅ローン（固定 1.8%・35年）
+  fees: 0.07,                // 家を買うときの諸費用（登記・仲介手数料など）＝ 値段の7%くらい
+};
+const PROPS = {
+  mansion: { name: '中古マンション「グランメゾンあおば」102号室', short: '中古マンション', price: 11800000, info: '3LDK・72㎡・築27年・1階・駅から歩いて6分', monthly: 22000, monthlyLabel: '管理費・修繕積立金', tax: 5000, door: { x: -41.6, z: -10 }, inside: { x: -42.5, z: -12.2, yaw: 0 }, bed: { x: -46.4, z: -18.6 } },
+  house: { name: '中古一戸建て（あおば町3丁目）', short: '中古一戸建て', price: 16800000, info: '4LDK・土地110㎡・建物96㎡・築24年・庭と駐車場つき', monthly: 0, monthlyLabel: '', tax: 7500, door: { x: 38.9, z: -14 }, inside: { x: 39.4, z: -15.6, yaw: 0 }, bed: { x: 44.6, z: -22.6 } },
+};
+function loanMonthly(P0) { const r = ECON.rate / 12, n = ECON.years * 12; return P0 <= 0 ? 0 : Math.round(P0 * r / (1 - Math.pow(1 + r, -n))); }
+
+// =====================================================================
+//  町を作る
+// =====================================================================
+const INTER = [];  // 調べられるもの { x,z,r, label()→文字 or null, act() }
+const addI = o => INTER.push(o);
+const NPCS = [];
+const ownHome = id => ST.home === id;
+const realtyOpen = () => { const m = minOfDay(), w = dateOf(dayIdx()).getDay(); return w !== 3 && m >= 600 && m < 1080; };   // 10:00〜18:00・水曜休み
+const bankOpen = () => { const m = minOfDay(); return isWeekday(dayIdx()) && m >= 540 && m < 900; };                        // 9:00〜15:00・土日休み
+
+function buildTown() {
+  // ---- 地面と道 ----
+  plate(-260, -260, 260, 260, MT.ground, 0, 3);
+  plate(-200, -5, 200, 5, MT.asphalt, 0.005, 4);            // 大通り（東西）
+  plate(-5, -200, 5, 200, MT.asphalt, 0.006, 4);            // 交差する道（南北）
+  for (const s of [-1, 1]) {
+    plate(-200, s > 0 ? 5 : -8, 200, s > 0 ? 8 : -5, MT.walk, 0.008, 1);
+    plate(s > 0 ? 5 : -8, -200, s > 0 ? 8 : -5, 200, MT.walk, 0.009, 1);
+    // 縁石（えんせき）
+    box(400, 0.14, 0.18, MT.concrete, 0, 0, s * 5.05, { cast: false, uv: 1 });
+    box(0.18, 0.14, 400, MT.concrete, s * 5.05, 0, 0, { cast: false, uv: 1 });
+  }
+  // 白線：まん中の点線・横断歩道・止まれの線
+  for (let x = -196; x < 196; x += 6) if (Math.abs(x) > 14) box(3, 0.01, 0.15, MT.line, x, 0.012, 0, { cast: false, recv: true });
+  for (let z = -196; z < 196; z += 6) if (Math.abs(z) > 14) box(0.15, 0.01, 3, MT.line, 0, 0.013, z, { cast: false });
+  for (const s of [-1, 1]) {
+    for (let k = -4; k <= 4; k++) { box(0.45, 0.01, 3, MT.line, k * 0.95, 0.014, s * 10, { cast: false }); box(3, 0.01, 0.45, MT.line, s * 10, 0.015, k * 0.95, { cast: false }); }
+    box(0.3, 0.01, 4.6, MT.line, s * 12.2, 0.016, s * -2.4, { cast: false });
+    box(4.6, 0.01, 0.3, MT.line, s * 2.4, 0.017, s * 12.2, { cast: false });
+  }
+
+  // ---- 自分のアパート「コーポさくら」101号室（北西） ----
+  const aptLocked = () => !ownHome('apt');
+  room({ x0: -34, z0: 10, x1: -27, z1: 20, h: 2.5, ext: MT.f_apt === undefined ? MT.plaster : MT.siding, int: MT.paper, floor: MT.wood,
+    walls: { s: [{ at: -32.7, w: 0.86 }, { at: -29.6, w: 1.2, y0: 1.2, y1: 2.0 }], n: [{ at: -30.5, w: 2.6, y0: 0.12, y1: 2.1 }], w: [{ at: 16.5, w: 1.4, y0: 0.9, y1: 2.0 }] } });
+  swingDoor('x', -33.13, 10, 0.86, +1, aptLocked, 0x3d4a5a);
+  box(13, 2.8, 10, MT.f_apt, -20.5, 0, 15, { uv: 6, col: true });   // となりの部屋（入れない）
+  box(20.2, 2.8, 10.2, MT.f_apt, -24, 2.8, 15, { uv: 6 });            // 2階
+  box(20.6, 0.35, 10.6, MT.roofGray, -24, 5.6, 15);
+  box(20.2, 0.08, 1.2, MT.concrete, -24, 2.75, 9.4, { cast: false });  // ひさし
+  for (let x = -33; x <= -15; x += 3) box(0.06, 1.0, 0.06, MT.metal, x, 2.8, 9.05, { cast: false });
+  box(20, 0.06, 0.06, MT.metal, -24, 3.8, 9.05, { cast: false });
+  box(1.2, 2.8, 4, MT.concrete, -13.4, 0, 12.5, { col: true });        // 外の階段
+  sign('コーポさくら', '#f4efe4', '#3a3a3a', -24, 2.45, 9.89, 3.2, 0.5, Math.PI, null, false);
+  box(0.4, 1.0, 0.3, cm(0x4c6e9a), -26.4, 0, 9.6, { col: true });      // 郵便受け
+  // 部屋の中：キッチン・冷蔵庫・ベッド・つくえ・テーブル・テレビ
+  box(3.4, 0.86, 0.62, cm(0xe8e4dc, { roughness: .5 }), -29.8, 0, 10.42, { col: true });
+  box(3.4, 0.04, 0.64, MT.metal, -29.8, 0.86, 10.42);
+  box(0.6, 0.02, 0.4, MT.dark, -30.6, 0.9, 10.45);                     // コンロ
+  box(0.5, 0.06, 0.36, cm(0x777b80, { metalness: .8, roughness: .3 }), -29.2, 0.87, 10.45); // シンク
+  box(0.6, 1.5, 0.62, cm(0xf0f0ee, { roughness: .35 }), -27.5, 0, 11.0, { col: true });       // 冷蔵庫
+  wall('x', 13, -34, -27, 2.5, MT.paper, MT.paper, -1, [{ at: -32.6, w: 0.9 }]);                // 台所と部屋のしきり
+  box(0.04, 2.0, 0.8, cm(0xddd8cf), -27.12, 0, 12.2, { cast: false });                          // おふろのドア（入れない）
+  box(1.0, 0.42, 2.0, cm(0x6f5a46), -27.6, 0, 18.9, { col: true });                             // ベッド
+  box(0.94, 0.16, 1.94, cm(0xf3f1ec), -27.6, 0.42, 18.9);
+  box(0.96, 0.08, 1.3, cm(0x6c87a8), -27.6, 0.58, 18.6);
+  box(0.5, 0.1, 0.32, cm(0xffffff), -27.6, 0.6, 19.6);
+  box(1.1, 0.72, 0.55, cm(0xcaa77d, { roughness: .5 }), -33.4, 0, 14.4, { col: true });         // つくえ
+  box(0.36, 0.02, 0.25, MT.dark, -33.4, 0.73, 14.4);
+  { const lp = box(0.34, 0.22, 0.01, cm(0x1d2a3a, { emissive: 0x3a6aa0, emissiveIntensity: .6 }), -33.4, 0.74, 14.28); lp.rotation.x = -0.25; }
+  box(0.9, 0.36, 0.6, cm(0xd6b48c), -30.6, 0, 16.2, { col: true });                             // ローテーブル
+  plate(-32.2, 14.8, -29, 17.8, cm(0x8b7f73, { roughness: 1 }), 0.02, 1);                         // ラグ
+  box(0.4, 0.45, 1.4, cm(0x3b3f45), -33.7, 0, 18.0, { col: true });                             // テレビ台
+  box(0.06, 0.6, 1.1, MT.dark, -33.75, 0.45, 18.0);
+  box(1.4, 2.0, 0.06, cm(0xbfc9bf, { roughness: 1 }), -32.2, 0.1, 19.85, { cast: false });       // カーテン
+  addI({ x: -27.6, z: 18.2, r: 1.7, label: () => ownHome('apt') ? '🛏 ベッドで寝る' : null, act: () => sleepMenu() });
+  addI({ x: -27.5, z: 11.6, r: 1.5, label: () => ownHome('apt') ? '🧊 冷蔵庫（食べる）' : null, act: () => eatMenu() });
+  addI({ x: -33.0, z: 14.9, r: 1.4, label: () => '💻 パソコン（求人・物件・家計を見る）', act: () => pcMenu() });
+
+  // ---- となりの家や建物（北西） ----
+  house(-48, 12, -38, 22, MT.roofBrown, 'x');
+  building(-74, 12, -56, 28, 12, 'office');
+  building(-34, 28, -14, 42, 9, 'apt');
+  house(-46, 30, -38, 40, MT.roofBlue, 'z');
+  building(-70, 34, -54, 52, 18, 'brick');
+
+  // ---- コンビニ「まちかどマート」（北東・架空のお店） ----
+  room({ x0: 12, z0: 10, x1: 28, z1: 22, h: 3.4, ext: MT.tileExt, int: MT.paper, floor: MT.floorTile, floorTile: 0.6, lightI: 0.85, lightD: 22, lampW: 1.4, lightColor: 0xf4f8ff,
+    walls: { s: [{ at: 15, w: 5.2, y0: 0.25, y1: 2.9 }, { at: 19.2, w: 2.0 }, { at: 24, w: 6.6, y0: 0.25, y1: 2.9 }] } });
+  slideDoor(19.2, 10, 2.0);
+  for (const x of [15, 20.5, 25]) box(1.4, 0.04, 0.4, mat({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.8 }), x, 3.34, 17, { cast: false });
+  // 看板（オリジナルの色：ターコイズ＋黄色）
+  box(16.2, 0.9, 0.3, cm(0x1aa39a), 20, 3.4, 9.85);
+  sign('まちかどマート', '#1aa39a', '#fff7d0', 20, 3.85, 9.68, 6.4, 0.8, Math.PI);
+  box(16.2, 0.12, 0.32, cm(0xf2c230), 20, 3.3, 9.85, { cast: false });
+  // レジのカウンター
+  box(5.5, 1.0, 0.8, cm(0xd9d2c3, { roughness: .4 }), 24.25, 0, 13.4, { col: true });
+  box(5.6, 0.04, 0.86, cm(0x8a8f96, { roughness: .3 }), 24.25, 1.0, 13.4);
+  // レジの機械（POS）
+  box(0.42, 0.12, 0.36, MT.dark, 24.5, 1.04, 13.45);
+  { const sc = box(0.34, 0.24, 0.02, cm(0x0f1d17, { emissive: 0x38c590, emissiveIntensity: .5 }), 24.5, 1.18, 13.55); sc.rotation.x = 0.3; }
+  box(0.26, 0.18, 0.04, cm(0x0f1d17, { emissive: 0x2a8f70, emissiveIntensity: .4 }), 24.5, 1.08, 13.05); // お客さん側の画面
+  box(0.5, 0.45, 0.4, cm(0xeeeeee), 26.4, 1.04, 13.5);       // 電子レンジ
+  box(0.36, 0.3, 0.02, MT.dark, 26.4, 1.12, 13.29);
+  box(0.6, 0.55, 0.45, cm(0x2c2f33), 22.2, 1.04, 13.5);     // コーヒーマシン
+  // うしろのたな・ホットスナックのケース
+  box(5.5, 1.6, 0.5, cm(0xcfc8b8), 24.5, 0, 16.9, { col: true });
+  // 商品だな（ゴンドラ）
+  const goods = [0xd94a3a, 0x3a7fd9, 0xf2b630, 0x47a85c, 0xe58fb0, 0xffffff, 0x7a4f2a, 0x2bb3c0];
+  for (const z of [15.2, 18.4]) {
+    // たなは「まん中の板＋だん」にして、商品が見えるようにする
+    box(6.5, 1.5, 0.06, cm(0xe2ded6), 16.2, 0, z, { col: false });
+    box(6.5, 0.12, 0.9, cm(0xcfcac0), 16.2, 0, z, { col: true });
+    for (let s = 0; s < 3; s++) {
+      for (const side of [-1, 1]) box(6.5, 0.025, 0.4, cm(0xd8d4cc), 16.2, 0.12 + s * 0.45, z + side * 0.22, { cast: false });
+      for (let i = 0; i < 18; i++) for (const side of [-1, 1]) box(0.3, 0.22 + Math.random() * .1, 0.18, cm(pick(goods), { roughness: .5 }), 13.2 + i * 0.35, 0.145 + s * 0.45, z + side * 0.3, { cast: false });
+    }
+    box(0.06, 1.5, 0.9, cm(0xe2ded6), 12.95, 0, z, { cast: false }); box(0.06, 1.5, 0.9, cm(0xe2ded6), 19.45, 0, z, { cast: false });
+  }
+  // 冷蔵の飲み物のたな（おく）
+  box(15.4, 2.1, 0.45, cm(0x9aa3ab, { metalness: .4, roughness: .4 }), 20, 0, 21.6, { col: true });
+  col(12.3, 20.9, 27.7, 21.4);
+  for (let s = 0; s < 4; s++) box(15.2, 0.02, 0.5, MT.metal, 20, 0.22 + s * 0.42, 21.12, { cast: false });
+  for (let i = 0; i < 44; i++) for (let s = 0; s < 4; s++) mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.22, 8), cm(pick(goods), { roughness: .4 }), 12.6 + i * 0.34, 0.35 + s * 0.42, 21.1, { cast: false });
+  box(15.4, 0.12, 0.6, cm(0x9aa3ab), 20, 2.0, 21.1, { cast: false });
+  box(15.4, 1.9, 0.02, MT.glass, 20, 0.1, 20.84, { cast: false });
+  addI({ x: 24.5, z: 14.6, r: 1.3, label: () => shiftLabel(), act: () => shiftMenu() });
+  addI({ x: 24.5, z: 12.1, r: 1.3, label: () => '🛒 買い物をする（レジ）', act: () => shopMenu() });
+  // 店長（架空の人）
+  const boss = person({ shirt: 0x1aa39a, pants: 0x30343a, hair: 0x2a2420, skin: 0xe6c3a0 }); boss.g.position.set(27.0, 0, 15.3); boss.g.rotation.y = 0.4; scene.add(boss.g);
+  addI({ x: 27.0, z: 15.3, r: 1.8, label: () => '🧑‍💼 店長の森さんと話す', act: () => bossTalk() });
+  // 自動販売機（架空）
+  box(1.0, 1.85, 0.75, cm(0xd8303a, { roughness: .4 }), 29.2, 0, 8.9, { col: true });
+  box(0.8, 0.9, 0.02, mat({ color: 0xffffff, emissive: 0xfff0e8, emissiveIntensity: .4 }), 29.2, 0.85, 8.51);
+
+  // ---- 売り土地（北東） ----
+  plate(34, 12, 50, 26, MT.dirt, 0.01, 2);
+  for (let x = 34; x <= 50; x += 2) for (const z of [12, 26]) box(0.08, 0.6, 0.08, cm(0xeeeeee), x, 0, z, { cast: false });
+  for (let z = 12; z <= 26; z += 2) for (const x of [34, 50]) box(0.08, 0.6, 0.08, cm(0xeeeeee), x, 0, z, { cast: false });
+  box(0.08, 1.6, 0.08, MT.metal, 38, 0, 11.6); sign('売り土地', '#ffffff', '#c22', 38, 1.7, 11.55, 1.6, 0.7, Math.PI, '140㎡ 980万円', false);
+  addI({ x: 38, z: 11.2, r: 1.8, label: () => '📋 「売り土地」の看板を見る', act: () => landInfo() });
+  // ---- 駅・ビル（北東のおく） ----
+  building(56, 10, 92, 24, 9, 'office');
+  sign('あおば駅', '#1b3d6b', '#ffffff', 74, 7.4, 9.9, 6, 1.2, Math.PI, 'AOBA STATION');
+  box(36, 0.3, 4, MT.concrete, 74, 2.6, 8.0, { cast: false });
+  building(12, 30, 30, 46, 15, 'office', { roofThing: true });
+  building(36, 32, 52, 46, 21, 'tower');
+
+  // ---- 銀行「ひだまり銀行」（南西・架空） ----
+  room({ x0: -30, z0: -22, x1: -14, z1: -10, h: 3.8, ext: MT.concrete, int: MT.paper, floor: MT.floorTile, floorTile: 0.8, lightI: 1.4, lightD: 20, lampW: 1.2,
+    walls: { n: [{ at: -26, w: 4, y0: 0.4, y1: 3.1 }, { at: -22, w: 1.8 }, { at: -18, w: 4, y0: 0.4, y1: 3.1 }] } });
+  slideDoor(-22, -10, 1.8, () => !bankOpen() && !(Math.hypot(P.x + 22, P.z + 12) < 1.6));
+  sign('ひだまり銀行', '#f5f1e8', '#c2502a', -22, 3.35, -9.9, 5, 0.75, 0);
+  box(12, 1.05, 0.7, cm(0xb99a74, { roughness: .5 }), -22, 0, -17.6, { col: true });
+  box(12, 0.5, 0.04, MT.glass, -22, 1.05, -17.6, { cast: false });
+  for (let i = 0; i < 4; i++) { box(0.7, 1.45, 0.6, cm(0x56606c), -29.4, 0, -12 - i * 1.3, { col: true }); box(0.02, 0.3, 0.4, cm(0x0e2235, { emissive: 0x3a8adf, emissiveIntensity: .5 }), -29.08, 1.0, -12 - i * 1.3, { cast: false }); }
+  for (let i = 0; i < 3; i++) box(2.2, 0.45, 0.5, cm(0x3c5a7a), -20 + i * 2.6 - 2, 0, -13.2, { col: true });
+  addI({ x: -22, z: -16.6, r: 1.6, label: () => bankOpen() ? '🏦 窓口で相談する' : null, act: () => bankMenu() });
+  addI({ x: -28.6, z: -13.3, r: 1.5, label: () => '🏧 ATM（残高を見る）', act: () => atm() });
+  // ---- 中古マンション「グランメゾンあおば」（南西・102号室に入れる） ----
+  const manLocked = () => !(ownHome('mansion') || (realtyOpen() && ST.home !== 'house' && !ST.apply?.done));
+  room({ x0: -48, z0: -20, x1: -40, z1: -10, h: 2.5, ext: MT.tileExt, int: MT.paper, floor: MT.wood,
+    walls: { n: [{ at: -41.6, w: 0.86 }, { at: -45.2, w: 1.4, y0: 1.1, y1: 2.0 }], s: [{ at: -45.5, w: 2.8, y0: 0.12, y1: 2.1 }, { at: -41.8, w: 1.4, y0: 0.9, y1: 2.0 }] }, skip: {} });
+  swingDoor('x', -42.03, -10, 0.86, -1, manLocked, 0x51463c);
+  wall('x', -15.6, -48, -40, 2.5, MT.paper, MT.paper, 1, [{ at: -45.2, w: 0.9 }]);    // LDK と寝室のしきり
+  box(0.62, 0.86, 2.6, cm(0xf1efe9, { roughness: .4 }), -40.4, 0, -12.6, { col: true }); // キッチン
+  box(10, 2.8, 14, MT.tileExt, -53, 0, -17, { uv: 2, col: true });
+  box(8.2, 2.8, 4, MT.tileExt, -44, 0, -22, { uv: 2, col: true });
+  box(18.2, 12.2, 14.2, MT.f_mansion, -49, 2.8, -17, { uv: 6 });
+  box(18.6, 0.4, 14.6, MT.concrete, -49, 15, -17);
+  sign('グランメゾンあおば', '#3a332c', '#f0e6d2', -52, 2.4, -9.89, 4, 0.6, 0);
+  box(4, 0.15, 2, MT.concrete, -52, 2.7, -9, { cast: false });
+  houseFurniture('mansion');
+  // ---- となりの建物（南西） ----
+  building(-74, -30, -60, -12, 9, 'apt');
+  building(-34, -44, -12, -30, 12, 'mansion');
+  house(-56, -42, -46, -32, MT.roofGray, 'x');
+
+  // ---- 不動産屋「すまいる不動産」（南東・架空） ----
+  room({ x0: 12, z0: -18, x1: 22, z1: -10, h: 3.3, ext: MT.siding, int: MT.paper, floor: MT.carpet, floorTile: 2, lightI: 1.3, lightD: 16, lampW: 1.0,
+    walls: { n: [{ at: 15, w: 1.6 }, { at: 19.2, w: 4.6, y0: 0.4, y1: 2.6 }] } });
+  slideDoor(15, -10, 1.6, () => !realtyOpen() && !(Math.hypot(P.x - 15, P.z + 12) < 1.6));
+  sign('すまいる不動産', '#ffffff', '#2a7d4f', 17, 2.9, -9.9, 4.4, 0.65, 0);
+  { const flyer = tex(cv(512, 256, (g) => { g.fillStyle = '#fff'; g.fillRect(0, 0, 512, 256); for (let i = 0; i < 6; i++) { const x = (i % 3) * 170 + 6, y = Math.floor(i / 3) * 128 + 6; g.fillStyle = pick(['#d9e8f5', '#f5e6d9', '#e1f2dc']); g.fillRect(x, y, 158, 116); g.fillStyle = '#c22'; g.font = '800 22px sans-serif'; g.fillText(pick(['980万円', '1,180万円', '1,680万円', '2,480万円', '家賃5.8万', '3,280万円']), x + 8, y + 30); g.fillStyle = '#333'; g.font = '16px sans-serif'; g.fillText(pick(['3LDK 72㎡', '4LDK 庭つき', '1K 駅近', '土地140㎡']), x + 8, y + 60); g.fillRect(x + 8, y + 72, 60, 36); } }));
+    const fm = mesh(new THREE.PlaneGeometry(4.2, 2.1), mat({ map: flyer }), 19.2, 1.5, -10.12, { cast: false }); }
+  box(1.6, 0.74, 0.8, cm(0xcfd6dd, { roughness: .5 }), 17.5, 0, -14.5, { col: true });
+  box(0.5, 0.45, 0.5, cm(0x2d6c4c), 17.5, 0, -13.6); box(0.5, 0.45, 0.5, cm(0x2d6c4c), 17.5, 0, -15.5);
+  mesh(new THREE.CylinderGeometry(0.2, 0.16, 0.4, 12), cm(0x8a6a4a), 21.3, 0.2, -17.3); mesh(new THREE.IcosahedronGeometry(0.45, 0), cm(0x3f7a3a), 21.3, 0.8, -17.3);
+  const agent = person({ shirt: 0xf0f0f0, pants: 0x2a3550, hair: 0x1b1714, skin: 0xf0cfb0, tie: 0x2a7d4f }); agent.g.position.set(17.5, 0, -15.7); scene.add(agent.g);
+  addI({ x: 17.5, z: -13.4, r: 1.7, label: () => realtyOpen() ? '🏠 不動産屋さんと話す（物件をさがす）' : null, act: () => realtyMenu() });
+  // ---- 中古一戸建て（南東・中に入れる） ----
+  const houseLocked = () => !(ownHome('house') || (realtyOpen() && ST.home !== 'mansion' && !ST.apply?.done));
+  room({ x0: 36, z0: -24, x1: 46, z1: -14, h: 2.5, ext: MT.siding, int: MT.paper, floor: MT.wood, light: true,
+    walls: { n: [{ at: 38.9, w: 0.9 }, { at: 43.8, w: 1.6, y0: 0.9, y1: 2.0 }], w: [{ at: -19, w: 2.6, y0: 0.12, y1: 2.1 }], s: [{ at: 39, w: 1.4, y0: 1.0, y1: 1.9 }, { at: 44, w: 1.6, y0: 0.9, y1: 2.0 }], e: [{ at: -20.5, w: 1.2, y0: 0.9, y1: 2.0 }] } });
+  swingDoor('x', 38.45, -14, 0.9, -1, houseLocked, 0x6b3f22);
+  wall('z', 42, -24 + .08, -14 - .08, 2.5, MT.paper, MT.paper, 1, [{ at: -17.2, w: 0.9 }]);
+  box(2.8, 0.86, 0.62, cm(0xf1efe9, { roughness: .4 }), 38.2, 0, -23.6, { col: true });
+  box(10.4, 2.7, 10.4, MT.f_house, 41, 2.8, -19, { uv: 6 });
+  gable(35.6, -24.4, 46.4, -13.6, 5.5, 2.2, MT.roofGray, 'x');
+  plate(35, -14, 48, -9.4, MT.grass, 0.01, 2);
+  plate(42, -14, 46.5, -9.4, MT.concrete, 0.015, 2);
+  for (const [a, b] of [[34, 38.4], [39.6, 41.6]]) box(b - a, 1.1, 0.15, MT.block, (a + b) / 2, 0, -9.3, { col: true, uv: 1 });
+  box(0.15, 1.1, 16.6, MT.block, 34, 0, -17.6, { col: true, uv: 1 }); box(0.15, 1.1, 16.6, MT.block, 48, 0, -17.6, { col: true, uv: 1 }); box(14, 1.1, 0.15, MT.block, 41, 0, -26, { col: true, uv: 1 });
+  houseFurniture('house');
+  // ---- 「売物件」の看板 ----
+  for (const [id, x, z, ry] of [['mansion', -38.6, -9.4, 0], ['house', 36.4, -9.6, 0]]) {
+    const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
+    box(0.06, 1.3, 0.06, MT.metal, 0, 0, 0, { parent: g });
+    const sp = sign('売物件', '#ffffff', '#c22', x, 1.55, z + 0.05, 1.3, 0.6, ry, 'すまいる不動産', false);
+    PROPS[id].signs = [g, sp];
+    addI({ x, z: z - 0.6, r: 1.8, label: () => ST.home === id ? null : '📋 「売物件」の看板を見る', act: () => propInfo(id) });
+  }
+  addI({ x: PROPS.mansion.bed.x, z: PROPS.mansion.bed.z, r: 1.7, label: () => ownHome('mansion') ? '🛏 ベッドで寝る' : null, act: () => sleepMenu() });
+  addI({ x: PROPS.house.bed.x, z: PROPS.house.bed.z, r: 1.7, label: () => ownHome('house') ? '🛏 ベッドで寝る' : null, act: () => sleepMenu() });
+  addI({ x: -40.6, z: -11.6, r: 1.4, label: () => ownHome('mansion') ? '🧊 冷蔵庫（食べる）' : null, act: () => eatMenu() });
+  addI({ x: 37.4, z: -23.0, r: 1.4, label: () => ownHome('house') ? '🧊 冷蔵庫（食べる）' : null, act: () => eatMenu() });
+  // ---- となりの建物（南東） ----
+  building(24, -22, 32, -10, 6, 'brick');
+  building(54, -32, 72, -12, 18, 'tower');
+  house(36, -42, 46, -32, MT.roofBrown, 'x');
+  building(12, -44, 30, -28, 9, 'apt');
+
+  // ---- 遠くのビル（地平線をうめる） ----
+  for (let i = 0; i < 40; i++) {
+    const a = i / 40 * Math.PI * 2, r = rnd(120, 170), x = Math.cos(a) * r, z = Math.sin(a) * r;
+    if (Math.abs(x) < 12 || Math.abs(z) < 12) continue;
+    const w = rnd(10, 22), d = rnd(10, 22), h = rnd(9, 45);
+    box(w, h, d, MT['f_' + pick(['office', 'apt', 'mansion', 'tower', 'brick'])], x, 0, z, { uv: 6, cast: false });
+  }
+  // ---- 木・電柱・街灯・信号 ----
+  STREETLAMPS.length = 0;
+  for (let x = -96; x <= 96; x += 12) for (const s of [-1, 1]) { if (Math.abs(x) < 14) continue; tree(x + 3, s * 7.3); }
+  for (let z = -96; z <= 96; z += 12) for (const s of [-1, 1]) { if (Math.abs(z) < 14) continue; tree(s * 7.3, z + 3); }
+  for (let x = -90; x <= 90; x += 30) for (const s of [-1, 1]) if (Math.abs(x) > 10) pole(x, s * 7.85, s);
+  for (let z = -90; z <= 90; z += 30) for (const s of [-1, 1]) if (Math.abs(z) > 10) pole(s * 7.85, z, 0, s);
+  for (const [sx, sz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) trafficLight(sx * 6.4, sz * 6.4, sx, sz);
+  // 道に止まっている車
+  car(0xeeeeee, 13.5, -3.0, 0, true);
+}
+// 家具（家を買ったら見える）
+const FURN = { mansion: new THREE.Group(), house: new THREE.Group() };
+function houseFurniture(id) {
+  const g = FURN[id]; scene.add(g); g.visible = false;
+  const b = PROPS[id].bed;
+  box(1.0, 0.42, 2.0, cm(0x6f5a46), b.x, 0, b.z, { parent: g });
+  box(0.94, 0.16, 1.94, cm(0xf3f1ec), b.x, 0.42, b.z, { parent: g });
+  box(0.96, 0.08, 1.3, cm(0x6c87a8), b.x, 0.58, b.z + 0.3, { parent: g });
+  const lx = id === 'mansion' ? -44 : 39, lz = id === 'mansion' ? -12.8 : -18.5;
+  box(2.0, 0.8, 0.85, cm(0x5a6b7d), lx, 0, lz + 1.2, { parent: g });      // ソファ
+  box(1.0, 0.4, 0.55, cm(0xd6b48c), lx, 0, lz, { parent: g });            // テーブル
+  box(1.4, 0.45, 0.4, cm(0x3b3f45), lx, 0, lz - 1.4, { parent: g });       // テレビ台
+  box(1.1, 0.62, 0.06, MT.dark, lx, 0.45, lz - 1.4, { parent: g });
+  box(0.6, 1.5, 0.62, cm(0xf0f0ee, { roughness: .35 }), id === 'mansion' ? -40.5 : 37.0, 0, id === 'mansion' ? -11.0 : -23.4, { parent: g });   // 冷蔵庫
+}
+function setFurniture() { for (const id in FURN) FURN[id].visible = ownHome(id); for (const id in PROPS) if (PROPS[id].signs) PROPS[id].signs.forEach(s => s.visible = !ownHome(id)); }
+function tree(x, z) {
+  const tm = cm(0x5a4434);
+  mesh(new THREE.CylinderGeometry(0.1, 0.16, 2.4, 7), tm, x, 1.2, z);
+  const lm = cm(pick([0x3f6e33, 0x4a7a3a, 0x355f2c]), { roughness: 1 });
+  for (let i = 0; i < 3; i++) { const m = mesh(new THREE.IcosahedronGeometry(rnd(0.9, 1.3), 1), lm, x + rnd(-.5, .5), rnd(2.6, 3.6), z + rnd(-.5, .5)); m.scale.y = 0.85; }
+  col(x - 0.2, z - 0.2, x + 0.2, z + 0.2);
+}
+const STREETLAMPS = [];
+const lampMat = mat({ color: 0xfff6e0, emissive: 0xffd9a0, emissiveIntensity: 0 }); NIGHT_MATS.push(lampMat);
+function pole(x, z, sz, sx = 0) {
+  mesh(new THREE.CylinderGeometry(0.14, 0.18, 9, 8), MT.pole, x, 4.5, z);
+  box(1.6, 0.1, 0.1, MT.pole, x, 7.6, z);
+  const ax = sx ? -sx : 0, az = sz ? -sz : 0;
+  box(0.08 + Math.abs(ax) * 1.3, 0.08, 0.08 + Math.abs(az) * 1.3, MT.pole, x + ax * 0.65, 5.2, z + az * 0.65, { cast: false });
+  box(0.5, 0.1, 0.25, lampMat, x + ax * 1.3, 5.08, z + az * 1.3, { cast: false });
+  STREETLAMPS.push(V3(x + ax * 1.3, 5.0, z + az * 1.3));
+  col(x - 0.18, z - 0.18, x + 0.18, z + 0.18);
+}
+// 電線（電柱の間）
+function wires() {
+  const m = new THREE.LineBasicMaterial({ color: 0x222222 });
+  for (const s of [-1, 1]) for (const k of [0, 1, 2]) {
+    const pts = [], pts2 = [];
+    for (let x = -90; x <= 90; x += 2) { const ph = ((x + 90) % 30) / 30; pts.push(V3(x, 7.6 - k * 0.25 - Math.sin(ph * Math.PI) * 0.5, s * 7.85 + (k - 1) * 0.5)); }
+    for (let z = -90; z <= 90; z += 2) { const ph = ((z + 90) % 30) / 30; pts2.push(V3(s * 7.85 + (k - 1) * 0.5, 7.6 - k * 0.25 - Math.sin(ph * Math.PI) * 0.5, z)); }
+    scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), m));
+    scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts2), m));
+  }
+}
+// 信号
+const TL = [];
+function trafficLight(x, z, sx, sz) {
+  mesh(new THREE.CylinderGeometry(0.08, 0.1, 5, 8), MT.pole, x, 2.5, z);
+  col(x - 0.12, z - 0.12, x + 0.12, z + 0.12);
+  // 大通り（x 方向に走る車）向けの信号：歩道のかどから道の方へ
+  const g = new THREE.Group(); g.position.set(x, 4.8, z); scene.add(g);
+  box(0.36, 0.36, 1.2, cm(0x3a3d42), 0, -0.18, 0, { parent: g });
+  const lamps = [0x2ecc71, 0xf1c40f, 0xe74c3c].map((c, i) => { const m = mat({ color: 0x222222, emissive: c, emissiveIntensity: 0 }); const b = mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.05, 14), m, sx * -0.2, 0, -0.4 + i * 0.4, { parent: g, cast: false }); b.rotation.z = Math.PI / 2; return m; });
+  TL.push({ lamps, dir: 'x' });
+}
+// 車
+const CARS = [];
+function car(color, x, z, dir, parked) {
+  const g = new THREE.Group(); scene.add(g);
+  const bm = cm(color, { roughness: 0.25, metalness: 0.5 });
+  box(4.2, 0.62, 1.7, bm, 0, 0.28, 0, { parent: g });
+  box(2.3, 0.58, 1.56, bm, -0.2, 0.9, 0, { parent: g });
+  box(2.32, 0.46, 1.58, cm(0x1b2229, { roughness: .1, metalness: .8 }), -0.2, 0.95, 0, { parent: g, cast: false });
+  for (const [wx, wz] of [[1.35, .78], [1.35, -.78], [-1.35, .78], [-1.35, -.78]]) { const w = mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.24, 14), MT.dark, wx, 0.32, wz, { parent: g }); w.rotation.x = Math.PI / 2; }
+  const hl = mat({ color: 0xffffff, emissive: 0xfff4d6, emissiveIntensity: 0 }); NIGHT_MATS.push(hl);
+  box(0.05, 0.14, 0.4, hl, 2.1, 0.62, 0.55, { parent: g, cast: false }); box(0.05, 0.14, 0.4, hl, 2.1, 0.62, -0.55, { parent: g, cast: false });
+  box(0.05, 0.12, 0.36, cm(0x880000, { emissive: 0x550000 }), -2.1, 0.66, 0.6, { parent: g, cast: false }); box(0.05, 0.12, 0.36, cm(0x880000, { emissive: 0x550000 }), -2.1, 0.66, -0.6, { parent: g, cast: false });
+  g.position.set(x, 0, z); g.rotation.y = dir;
+  const c = { g, x, z, dir, v: 0, parked, axis: Math.abs(Math.cos(dir)) > .5 ? 'x' : 'z', sgn: 1 };
+  if (parked) col(x - 2.1, z - 0.85, x + 2.1, z + 0.85);
+  CARS.push(c); return c;
+}
+
+// =====================================================================
+//  人（かんたんな体）
+// =====================================================================
+function person(o) {
+  const g = new THREE.Group();
+  const sm = cm(o.skin || 0xe8c8a8), shm = cm(o.shirt || 0x6688aa), pm = cm(o.pants || 0x333844), hm = cm(o.hair || 0x222222, { roughness: .9 });
+  const legs = [], arms = [];
+  for (const s of [-1, 1]) {
+    const lg = new THREE.Group(); lg.position.set(s * 0.1, 0.86, 0); g.add(lg); box(0.15, 0.84, 0.17, pm, 0, -0.84, 0, { parent: lg }); box(0.15, 0.08, 0.26, MT.dark, 0, -0.86, 0.04, { parent: lg }); legs.push(lg);
+    const am = new THREE.Group(); am.position.set(s * 0.27, 1.42, 0); g.add(am); box(0.11, 0.62, 0.13, shm, 0, -0.6, 0, { parent: am }); box(0.09, 0.12, 0.1, sm, 0, -0.72, 0, { parent: am }); arms.push(am);
+  }
+  box(0.44, 0.6, 0.24, shm, 0, 0.84, 0, { parent: g });
+  if (o.tie) box(0.06, 0.4, 0.02, cm(o.tie), 0, 1.0, 0.125, { parent: g });
+  if (o.apron) box(0.4, 0.62, 0.02, cm(o.apron), 0, 0.72, 0.125, { parent: g });
+  box(0.1, 0.08, 0.1, sm, 0, 1.44, 0, { parent: g });
+  mesh(new THREE.SphereGeometry(0.125, 16, 12), sm, 0, 1.62, 0, { parent: g });
+  const hr = mesh(new THREE.SphereGeometry(0.133, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.55), hm, 0, 1.635, -0.01, { parent: g }); hr.rotation.x = -0.2;
+  for (const s of [-1, 1]) mesh(new THREE.SphereGeometry(0.014, 6, 6), MT.dark, s * 0.045, 1.64, 0.115, { parent: g, cast: false });
+  return { g, legs, arms, ph: Math.random() * 6 };
+}
+function animPerson(p, speed, dt) {
+  p.ph += dt * speed * 5.5; const a = speed > 0.05 ? Math.sin(p.ph) * 0.55 : 0;
+  p.legs[0].rotation.x = a; p.legs[1].rotation.x = -a; p.arms[0].rotation.x = -a * 0.8; p.arms[1].rotation.x = a * 0.8;
+}
+// 歩いている人（歩道を行ったり来たり）
+const WALKERS = [];
+function makeWalkers() {
+  const looks = [{ shirt: 0x8a3b3b, pants: 0x2b3245 }, { shirt: 0xe9e4d8, pants: 0x3a3a3a, hair: 0x5a3a20 }, { shirt: 0x31546f, pants: 0x9b8a6e }, { shirt: 0x7fa36a, pants: 0x2f2f2f, hair: 0x111 }, { shirt: 0xd8b04a, pants: 0x354055 }, { shirt: 0x444, pants: 0x222, tie: 0x8a2a2a }, { shirt: 0xc87fa0, pants: 0x3a3048, hair: 0x3a2618 }];
+  looks.forEach((lk, i) => {
+    const p = person(lk); scene.add(p.g);
+    const alongX = i % 2 === 0, s = i % 4 < 2 ? 1 : -1;
+    p.alongX = alongX; p.lane = s * rnd(5.6, 7.0); p.pos = rnd(-80, 80); p.dir = Math.random() < .5 ? 1 : -1; p.sp = rnd(1.1, 1.5);
+    WALKERS.push(p); NPCS.push(p);
+  });
+}
+function updateWalkers(dt) {
+  for (const p of WALKERS) {
+    p.pos += p.dir * p.sp * dt;
+    if (p.pos > 92) p.dir = -1; if (p.pos < -92) p.dir = 1;
+    if (p.alongX) { p.g.position.set(p.pos, 0, p.lane); p.g.rotation.y = p.dir > 0 ? Math.PI / 2 : -Math.PI / 2; }
+    else { p.g.position.set(p.lane, 0, p.pos); p.g.rotation.y = p.dir > 0 ? 0 : Math.PI; }
+    animPerson(p, p.sp, dt);
+  }
+}
+// 走っている車（交差点の信号で止まる・人の前で止まる）
+let TL_T = 0;
+function mainGreen() { const t = TL_T % 30; return t < 14 ? 'g' : t < 17 ? 'y' : 'r'; }
+function makeTraffic() {
+  const cols = [0xffffff, 0x1d2b4a, 0x8a1c1c, 0x2b2b2b, 0xc0c4c8, 0x2f5d3a];
+  for (let i = 0; i < 6; i++) {
+    const along = i < 4 ? 'x' : 'z', sgn = i % 2 ? 1 : -1;
+    // 日本は左側通行：+x に走る車は z=-2.5、-x に走る車は z=+2.5
+    let c;
+    if (along === 'x') c = car(cols[i], rnd(-90, 90), sgn > 0 ? -2.5 : 2.5, sgn > 0 ? 0 : Math.PI, false);
+    else c = car(cols[i], sgn > 0 ? 2.5 : -2.5, rnd(-90, 90), sgn > 0 ? -Math.PI / 2 : Math.PI / 2, false);
+    c.axis = along; c.sgn = sgn; c.p = along === 'x' ? c.g.position.x : c.g.position.z; c.v = 8;
+  }
+}
+function updateTraffic(dt) {
+  TL_T += dt;
+  const mg = mainGreen(), crossGreen = (TL_T % 30) >= 18 && (TL_T % 30) < 28;
+  for (const t of TL) { t.lamps[0].emissiveIntensity = mg === 'g' ? 2 : 0; t.lamps[1].emissiveIntensity = mg === 'y' ? 2 : 0; t.lamps[2].emissiveIntensity = mg === 'r' ? 2 : 0; }
+  for (const c of CARS) {
+    if (c.parked) continue;
+    let want = 9;
+    const front = c.p * c.sgn;      // 進む方向でみた位置
+    const stopAt = -12.5;           // 交差点の手前の線
+    const green = c.axis === 'x' ? mg === 'g' : crossGreen;
+    if (!green && front < stopAt && front > stopAt - 14) want = Math.min(want, Math.max(0, (stopAt - front - 2.5) * 1.2));
+    // 前の車
+    for (const o of CARS) if (o !== c && !o.parked && o.axis === c.axis && o.sgn === c.sgn) { const d = (o.p - c.p) * c.sgn; if (d > 0 && d < 12) want = Math.min(want, Math.max(0, (d - 6) * 1.5)); }
+    // 前にいる人（プレイヤー）
+    const lx = c.axis === 'x' ? P.z : P.x, lp = c.axis === 'x' ? P.x : P.z, lane = c.axis === 'x' ? c.g.position.z : c.g.position.x;
+    if (Math.abs(lx - lane) < 1.8) { const d = (lp - c.p) * c.sgn; if (d > 0 && d < 14) want = Math.min(want, Math.max(0, (d - 4) * 1.2)); }
+    c.v += clamp(want - c.v, -dt * 9, dt * 3);
+    c.p += c.v * c.sgn * dt;
+    if (c.p * c.sgn > 110) c.p = -110 * c.sgn;
+    if (c.axis === 'x') c.g.position.x = c.p; else c.g.position.z = c.p;
+  }
+}
+
+// =====================================================================
+//  プレイヤー（目の高さのカメラ）
+// =====================================================================
+const P = { x: -30.6, z: 18.2, yaw: 0, pitch: -0.05, bob: 0, stepT: 0, lock: null };
+const EYE = 1.6, RAD = 0.28;
+const KEY = {};
+const MV = { x: 0, y: 0, run: false };   // スティックの入力
+function collide() {
+  for (let it = 0; it < 3; it++) for (const c of COL) {
+    if (!c.on) continue;
+    const cx = clamp(P.x, c.x0, c.x1), cz = clamp(P.z, c.z0, c.z1), dx = P.x - cx, dz = P.z - cz, d2 = dx * dx + dz * dz;
+    if (d2 < RAD * RAD) {
+      if (d2 > 1e-8) { const d = Math.sqrt(d2), k = (RAD - d) / d; P.x += dx * k; P.z += dz * k; }
+      else { // まん中が箱の中：いちばん近い辺へ出す
+        const l = P.x - c.x0, r = c.x1 - P.x, b = P.z - c.z0, f = c.z1 - P.z, m = Math.min(l, r, b, f);
+        if (m === l) P.x = c.x0 - RAD; else if (m === r) P.x = c.x1 + RAD; else if (m === b) P.z = c.z0 - RAD; else P.z = c.z1 + RAD;
+      }
+    }
+  }
+  P.x = clamp(P.x, -98, 98); P.z = clamp(P.z, -98, 98);
+}
+function updatePlayer(dt) {
+  let fx = 0, fz = 0;
+  if (KEY.KeyW || KEY.ArrowUp) fz += 1; if (KEY.KeyS || KEY.ArrowDown) fz -= 1;
+  if (KEY.KeyA || KEY.ArrowLeft) fx -= 1; if (KEY.KeyD || KEY.ArrowRight) fx += 1;
+  fx += MV.x; fz += MV.y;
+  const len = Math.hypot(fx, fz);
+  let sp = (KEY.ShiftLeft || KEY.ShiftRight || MV.run) ? 4.2 : 2.0;
+  if (ST.energy < 15 || ST.hunger < 10) sp *= 0.6;   // つかれ・はらぺこだと、おそくなる
+  if (len > 0.05) {
+    const k = Math.min(1, len) / len; fx *= k; fz *= k;
+    const sn = Math.sin(P.yaw), cs = Math.cos(P.yaw);
+    // 前 = (-sin, -cos)、右 = (cos, -sin)
+    P.x += (-sn * fz + cs * fx) * sp * dt; P.z += (-cs * fz - sn * fx) * sp * dt;
+    collide();
+    P.bob += dt * sp * 4.2;
+    P.stepT += dt * sp; if (P.stepT > 1.3) { P.stepT = 0; SND.step(); }
+  } else P.bob *= 0.9;
+}
+function applyCamera() {
+  if (!isFinite(P.x) || !isFinite(P.z)) { P.x = -30.6; P.z = 18.2; }
+  if (!isFinite(P.yaw)) P.yaw = 0; if (!isFinite(P.pitch)) P.pitch = 0;
+  P.pitch = clamp(P.pitch, -1.45, 1.45);
+  camera.position.set(P.x, EYE + Math.sin(P.bob) * 0.035, P.z);
+  camera.rotation.set(P.pitch, P.yaw, 0);
+}
+
+// =====================================================================
+//  入力（キーボード・マウス・タッチ）
+// =====================================================================
+let MODE = 'title';   // title / walk / shift / panel
+let PAUSE = false;
+addEventListener('keydown', e => {
+  KEY[e.code] = true;
+  if (MODE === 'walk' && !PAUSE) {
+    if (e.code === 'KeyE' || e.code === 'Enter') doInteract();
+    if (e.code === 'KeyP' || e.code === 'Tab') { e.preventDefault(); phoneMenu(); }
+  } else if (e.code === 'Escape' && PANEL.open && PANEL.closable) closePanel();
+});
+addEventListener('keyup', e => { KEY[e.code] = false; });
+addEventListener('blur', () => { for (const k in KEY) KEY[k] = false; resetTouch(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { for (const k in KEY) KEY[k] = false; resetTouch(); save(); } });
+// マウス：クリックで「マウスで見回す」をはじめる（だめなら、ドラッグで見回す）
+const cvs = $('gl');
+let mDrag = false;
+cvs.addEventListener('mousedown', e => {
+  if (IS_TOUCH) return;
+  SND.init();
+  if (MODE === 'walk' && !PAUSE) { if (document.pointerLockElement !== cvs) { try { const r = cvs.requestPointerLock(); if (r && r.catch) r.catch(() => { }); } catch (err) { } mDrag = true; } else doInteract(); }
+  else if (MODE === 'shift') shiftTap(ptOf(e));
+});
+addEventListener('mouseup', () => { mDrag = false; });
+addEventListener('mousemove', e => {
+  if (MODE !== 'walk' || PAUSE) return;
+  if (document.pointerLockElement === cvs || mDrag) { P.yaw -= e.movementX * 0.0023; P.pitch -= e.movementY * 0.0023; }
+});
+// タッチ：左がわ＝スティック、右がわ＝見回す
+const TCH = { stick: null, look: null, sx: 0, sy: 0, lx: 0, ly: 0, t0: 0, moved: 0 };
+function resetTouch() { TCH.stick = TCH.look = null; MV.x = MV.y = 0; MV.run = false; $('stick').style.display = 'none'; }
+const tl = $('touch');
+tl.addEventListener('pointerdown', e => {
+  SND.init(); e.preventDefault();
+  const p = ptOf(e);
+  if (MODE === 'shift') { shiftTap(p); return; }
+  if (MODE !== 'walk' || PAUSE) return;
+  if (p.x < LW() * 0.42 && TCH.stick === null) { TCH.stick = e.pointerId; TCH.sx = p.x; TCH.sy = p.y; const s = $('stick'); s.style.display = 'block'; s.style.left = p.x + 'px'; s.style.top = p.y + 'px'; s.firstChild.style.transform = ''; }
+  else if (TCH.look === null) { TCH.look = e.pointerId; TCH.lx = p.x; TCH.ly = p.y; }
+  try { tl.setPointerCapture(e.pointerId); } catch (err) { }
+});
+tl.addEventListener('pointermove', e => {
+  const p = ptOf(e);
+  if (e.pointerId === TCH.stick) {
+    let dx = p.x - TCH.sx, dy = p.y - TCH.sy; const d = Math.hypot(dx, dy), R = 50;
+    if (d > R) { dx *= R / d; dy *= R / d; }
+    MV.x = dx / R; MV.y = -dy / R; MV.run = d > R * 0.95;
+    $('stick').firstChild.style.transform = `translate(${dx}px,${dy}px)`;
+  } else if (e.pointerId === TCH.look) {
+    P.yaw -= (p.x - TCH.lx) * 0.006; P.pitch -= (p.y - TCH.ly) * 0.006; TCH.lx = p.x; TCH.ly = p.y;
+  }
+});
+const tEnd = e => { if (e.pointerId === TCH.stick) { TCH.stick = null; MV.x = MV.y = 0; MV.run = false; $('stick').style.display = 'none'; } if (e.pointerId === TCH.look) TCH.look = null; };
+tl.addEventListener('pointerup', tEnd); tl.addEventListener('pointercancel', tEnd); tl.addEventListener('lostpointercapture', tEnd);
+addEventListener('touchend', e => { if (e.touches.length === 0) resetTouch(); });   // 指がぜんぶはなれたら、スティックをもどす（固まらないように）
+$('actbtn').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); SND.init(); if (MODE === 'walk' && !PAUSE) doInteract(); });
+$('phone-btn').addEventListener('click', () => { SND.init(); SND.click(); if (MODE === 'walk' && !PAUSE) phoneMenu(); });
+
+// =====================================================================
+//  画面の大きさ・横画面で固定（FUTSAL STRIKE と同じしくみ）
+// =====================================================================
+let VW = 1, VH = 1, FORCE = false;
+const LW = () => FORCE ? innerHeight : innerWidth, LH = () => FORCE ? innerWidth : innerHeight;
+const ptOf = e => FORCE ? { x: e.clientY, y: innerWidth - e.clientX } : { x: e.clientX, y: e.clientY };
+const wantForce = () => !!(OPT.lockLand && (IS_TOUCH || Q.has('forceland')) && innerHeight > innerWidth);
+function applyForce() {
+  FORCE = wantForce();
+  const b = document.body; b.classList.toggle('forceLand', FORCE);
+  if (FORCE) { b.style.width = innerHeight + 'px'; b.style.height = innerWidth + 'px'; b.style.transform = `translate(${innerWidth}px,0) rotate(90deg)`; }
+  else { b.style.width = b.style.height = b.style.transform = ''; }
+}
+function onResize() {
+  if (!(innerWidth > 0 && innerHeight > 0)) return;   // 大きさ0のときは何もしない（0でわると NaN になる）
+  applyForce();
+  VW = LW(); VH = LH();
+  renderer.setSize(VW, VH, false);
+  camera.aspect = VW / VH; camera.updateProjectionMatrix();
+}
+addEventListener('resize', onResize);
+async function lockLandscape(quiet) {
+  OPT.lockLand = true; saveOpt(); let native = false;
+  try { const el = document.documentElement; if (IS_TOUCH && !document.fullscreenElement && el.requestFullscreen) await el.requestFullscreen(); if (IS_TOUCH && screen.orientation && screen.orientation.lock) { await screen.orientation.lock('landscape'); native = true; } } catch (e) { }
+  onResize(); landLabel();
+  if (!quiet) landNote(native ? '🔒 横画面で固定したよ（Android）' : '🔒 固定したよ。<b>画面の回転ロックをオン</b>にして、スマホを横にして遊んでね');
+}
+function unlockLandscape() { OPT.lockLand = false; saveOpt(); try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) { } onResize(); landLabel(); landNote('🔓 横画面の固定をやめたよ'); }
+function landLabel() { $('land-btn').textContent = OPT.lockLand ? '🔒 横画面で固定：オン' : '🔓 横画面で固定：オフ'; }
+function landNote(html) { const n = $('land-note'); n.innerHTML = html; n.style.display = 'block'; clearTimeout(landNote.t); landNote.t = setTimeout(() => n.style.display = 'none', 6000); }
+$('land-btn').onclick = () => { SND.click(); if (OPT.lockLand) unlockLandscape(); else lockLandscape(false); };
+function sndLabel() { $('snd-btn').textContent = OPT.sound ? '🔊 音：オン' : '🔇 音：オフ'; }
+$('snd-btn').onclick = () => { OPT.sound = !OPT.sound; saveOpt(); sndLabel(); if (!OPT.sound) SND.off(); else { SND.init(); SND.click(); } };
+
+// =====================================================================
+//  パネル（いろいろな画面）・おしらせ
+// =====================================================================
+const PANEL = { open: false, closable: true, onClose: null };
+function openPanel(title, html, btns = [], o = {}) {
+  PANEL.open = true; PANEL.closable = o.closable !== false; PANEL.onClose = o.onClose || null;
+  PAUSE = true; if (document.pointerLockElement) document.exitPointerLock();
+  resetTouch(); for (const k in KEY) KEY[k] = false;
+  $('pt').textContent = title; $('pbody').innerHTML = html; $('pclose').style.display = PANEL.closable ? '' : 'none';
+  const pb = $('pbtns'); pb.innerHTML = ''; pb.style.display = btns.length ? '' : 'none';
+  for (const b of btns) { const el = document.createElement('button'); el.className = 'btn ' + (b.cls || ''); el.innerHTML = b.t; if (b.dis) el.disabled = true; el.onclick = () => { SND.click(); b.f(); }; pb.appendChild(el); }
+  $('panel').classList.remove('hide');
+  if (o.after) o.after();
+}
+function closePanel() { if (!PANEL.open) return; PANEL.open = false; $('panel').classList.add('hide'); PAUSE = false; const f = PANEL.onClose; PANEL.onClose = null; if (f) f(); }
+$('pclose').onclick = () => { SND.click(); closePanel(); };
+function toast(msg, kind = '') { const d = document.createElement('div'); d.className = 'toast ' + kind; d.innerHTML = msg; $('toasts').appendChild(d); setTimeout(() => d.remove(), 3600); while ($('toasts').children.length > 4) $('toasts').firstChild.remove(); }
+function fade(text, ms, mid) { return new Promise(res => { const f = $('fade'); f.textContent = text || ''; f.style.opacity = 1; setTimeout(() => { if (mid) mid(); setTimeout(() => { f.style.opacity = 0; setTimeout(res, 500); }, FAST ? 50 : ms); }, FAST ? 50 : 650); }); }
+
+// =====================================================================
+//  時間がすすむ（体力・おなか・日がかわるときのお金）
+// =====================================================================
+function pass(min, how = 'awake') {
+  while (min > 0.0001) {
+    const step = Math.min(min, 30), before = dayIdx();
+    ST.t += step; min -= step;
+    const h = step / 60;
+    if (how === 'sleep') { ST.energy += 13 * h; ST.hunger -= 2.2 * h; }
+    else if (how === 'work') { ST.energy -= 5.5 * h; ST.hunger -= 6 * h; }
+    else { ST.energy -= 4.2 * h; ST.hunger -= 5.5 * h; }
+    ST.energy = clamp(ST.energy, 0, 100); ST.hunger = clamp(ST.hunger, 0, 100);
+    for (let d = before + 1; d <= dayIdx(); d++) newDay(d);
+  }
+}
+function newDay(d) {
+  const dt = dateOf(d), dd = dt.getDate(), last = dateOf(d + 1).getDate() === 1;
+  if (d > 0 && d % 365 === 0) { ST.age++; toast(`🎂 ${ST.age}さいになった`, 'gold'); }
+  // 25日：給料日（今月はたらいた分がまとめて口座にふりこまれる）
+  if (dd === 25 && ST.unpaid.g > 0) {
+    const u = ST.unpaid; addLog(`給料（まちかどマート・${u.days}日分）`, u.n);
+    ST.stats.earned += u.n;
+    toast(`💴 給料日！ ${yen(u.n)} がふりこまれた（引かれる前は ${yen(u.g)}）`, 'good'); SND.money();
+    if (!ST.ach.pay) { ST.ach.pay = dateStr(d); toast('🏅 実績：はじめての給料', 'gold'); }
+    ST.unpaid = { g: 0, n: 0, days: 0 };
+  }
+  if (dd === 26) { addLog('電気・ガス・水道', -ECON.utility); addLog('スマホ代', -ECON.phone); toast(`💡 光熱費とスマホ代 ${yen(ECON.utility + ECON.phone)} が引き落とされた`); }
+  if (dd === 27) {
+    if (ST.home === 'apt') { addLog('家賃（コーポさくら101）', -ECON.rent); toast(`🏠 家賃 ${yen(ECON.rent)} が引き落とされた`); }
+    if (ST.loan) {
+      const L = ST.loan, r = ECON.rate / 12, intr = Math.round(L.remain * r), pay = Math.min(L.monthly, L.remain + intr);
+      L.remain = Math.max(0, L.remain - (pay - intr)); L.paid++;
+      addLog(`住宅ローン返済（利息 ${yen(intr)}）`, -pay); toast(`🏦 住宅ローン ${yen(pay)} を返した（のこり ${man(L.remain)}）`);
+      const pr = PROPS[L.prop]; if (pr.monthly) addLog(pr.monthlyLabel, -pr.monthly); if (pr.tax) addLog('固定資産税（月わり）', -pr.tax);
+    }
+  }
+  if (last && (!ST.job || ST.job.role !== 'staff')) { addLog('国民年金', -ECON.pension); addLog('国民健康保険', -ECON.health); toast(`📄 国民年金・健康保険 ${yen(ECON.pension + ECON.health)} をはらった`); }
+  if (ST.money < 0 && !newDay.warned) { toast('⚠️ 口座のお金がマイナス！ 引き落としができていない（滞納）。働いてかせごう', 'bad'); SND.bad(); }
+  if (ST.money >= 1000000 && !ST.ach.m100) { ST.ach.m100 = dateStr(d); toast('🏅 実績：貯金100万円', 'gold'); }
+  save();
+}
+
+// =====================================================================
+//  時間と光（太陽が動く・夜は街灯や窓が光る）
+// =====================================================================
+const SKYKEYS = [ // [時, 空の上, 地平線, 太陽の強さ, 空の光]
+  [0, 0x03060f, 0x0c1424, 0, 0.1], [4.5, 0x060b1d, 0x1c2238, 0, 0.12], [5.5, 0x24345e, 0xd88a6a, 0.25, 0.25], [6.5, 0x3d6aa8, 0xf2c39a, 1.1, 0.45],
+  [8, 0x3f78c8, 0xc6dbee, 2.2, 0.65], [12, 0x3b75cf, 0xc2d9f0, 2.8, 0.75], [15.5, 0x4078c4, 0xcbdbea, 2.4, 0.7], [17, 0x3f62a0, 0xf1b47a, 1.3, 0.5],
+  [18, 0x2a3a68, 0xe07a52, 0.35, 0.3], [19, 0x0f1a36, 0x34304a, 0, 0.14], [24, 0x03060f, 0x0c1424, 0, 0.1],
+];
+const _c1 = new THREE.Color(), _c2 = new THREE.Color();
+function lightAt(hour) {
+  let i = 0; while (i < SKYKEYS.length - 2 && SKYKEYS[i + 1][0] <= hour) i++;
+  const a = SKYKEYS[i], b = SKYKEYS[i + 1], t = clamp((hour - a[0]) / (b[0] - a[0]), 0, 1);
+  skyMat.uniforms.top.value.copy(_c1.setHex(a[1])).lerp(_c2.setHex(b[1]), t);
+  skyMat.uniforms.hor.value.copy(_c1.setHex(a[2])).lerp(_c2.setHex(b[2]), t);
+  const sunI = lerp(a[3], b[3], t), hemiI = lerp(a[4], b[4], t);
+  // 太陽：朝6時に東（+x）、昼に南（-z）の高い所、夕方18時に西
+  const ang = (hour - 6) / 12 * Math.PI, el = Math.sin(ang);
+  const dir = el > -0.05 ? V3(Math.cos(ang), Math.max(0.06, el) * 1.15, -0.55 * Math.max(0, el) - 0.15).normalize() : V3(-0.4, 0.8, 0.3).normalize();
+  skyMat.uniforms.sunDir.value.copy(dir); skyMat.uniforms.sunVis.value = el > 0 ? 1 : 0;
+  const night = clamp(1 - hemiI / 0.3, 0, 1); skyMat.uniforms.night.value = night;
+  sun.intensity = el > 0 ? sunI : 0.12;   // 夜は月あかり
+  sun.color.setHex(el > 0 ? (hour < 8 || hour > 16.5 ? 0xffc89a : 0xfff4e6) : 0x8fa8d8);
+  hemi.intensity = hemiI;
+  hemi.color.copy(skyMat.uniforms.top.value).lerp(_c1.setHex(0xffffff), 0.45);
+  sun.userData.dir = dir;
+  scene.fog.color.copy(skyMat.uniforms.hor.value).convertSRGBToLinear();
+  const lightsOn = hour < 6 || hour > 17.6 ? 1 : 0;
+  for (const m of NIGHT_MATS) m.emissiveIntensity = m === lampMat ? lightsOn * 2.2 : (m.map && m.emissiveMap === m.map ? 0.25 + night * 0.6 : night * 1.1);
+  for (const l of LAMPS) l.intensity = l.userData.base || (l.userData.base = l.intensity);
+  return lightsOn;
+}
+function updateLight() {
+  const hour = (minOfDay() / 60);
+  const on = lightAt(hour);
+  // 家やお店の中にいるときは、空の光を弱くする（中が明るすぎないように）
+  if (ROOMS.some(r => P.x > r[0] && P.x < r[2] && P.z > r[1] && P.z < r[3])) hemi.intensity *= 0.5;
+  const d = sun.userData.dir;
+  sun.target.position.set(P.x, 0, P.z); sun.position.set(P.x + d.x * 90, d.y * 90, P.z + d.z * 90);
+  sky.position.copy(camera.position);
+  // 近くの街灯3本を本当に光らせる
+  if (on) { const near = STREETLAMPS.map(p => [p, (p.x - P.x) ** 2 + (p.z - P.z) ** 2]).sort((a, b) => a[1] - b[1]); ROAM.forEach((l, i) => { l.position.copy(near[i][0]); l.intensity = 1.4; }); }
+  else ROAM.forEach(l => l.intensity = 0);
+}
+
+// =====================================================================
+//  調べる（近くにある物）
+// =====================================================================
+let CUR_I = null;
+function findInteract() {
+  let best = null, bd = 99;
+  const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw);
+  for (const it of INTER) {
+    const dx = it.x - P.x, dz = it.z - P.z, d = Math.hypot(dx, dz);
+    if (d > it.r) continue;
+    if (d > 0.7 && (dx * fx + dz * fz) / d < 0.35) continue;    // 前を向いていないとだめ
+    const lb = it.label(); if (!lb) continue;
+    if (d < bd) { bd = d; best = { it, lb }; }
+  }
+  return best;
+}
+function doInteract() { if (CUR_I) { SND.click(); CUR_I.it.act(); } }
+
+// =====================================================================
+//  食べる・寝る・病院
+// =====================================================================
+const FOODS = {
+  onigiri: { n: 'おにぎり（さけ）', p: 160, h: 18 }, bento: { n: 'のり弁当', p: 520, h: 50 }, karaage: { n: 'からあげ弁当', p: 598, h: 58 },
+  sand: { n: 'ミックスサンド', p: 298, h: 28 }, noodle: { n: 'カップめん', p: 228, h: 35 }, pan: { n: '菓子パン', p: 158, h: 22 },
+  tea: { n: 'お茶 500ml', p: 140, h: 3, e: 3 }, coffee: { n: 'ホットコーヒー', p: 120, h: 2, e: 8 },
+};
+function eatMenu() {
+  const items = Object.keys(ST.food).filter(k => ST.food[k] > 0);
+  const html = items.length ? `<div class="small">持っている食べ物（おなか ${Math.round(ST.hunger)}／100）</div>` : 'なにも持っていない。コンビニで買おう（「まちかどマート」のレジ）';
+  openPanel('🍙 食べる', html, items.map(k => ({ t: `${FOODS[k].n} ×${ST.food[k]}（おなか+${FOODS[k].h}）`, f: () => { eat(k); eatMenu(); } })));
+}
+function eat(k) { if (!(ST.food[k] > 0)) return; ST.food[k]--; ST.hunger = Math.min(100, ST.hunger + FOODS[k].h); if (FOODS[k].e) ST.energy = Math.min(100, ST.energy + FOODS[k].e); pass(10); toast(`😋 ${FOODS[k].n} を食べた`); }
+function sleepMenu() {
+  const m = minOfDay();
+  const opts = [6, 7, 8].map(h => { const until = (h * 60 - m + 1440) % 1440 || 1440; return { t: `次の ${h}:00 まで寝る（${(until / 60).toFixed(1)}時間）`, f: () => sleep(until) }; });
+  opts.push({ t: '1時間だけ仮眠', f: () => sleep(60) });
+  openPanel('🛏 寝る', `今 ${hhmm(m)}・体力 ${Math.round(ST.energy)}／100<br><span class="small">7時間くらい寝ると体力が満タンになる。仕事は 9:00 から。</span>`, opts);
+}
+async function sleep(min) {
+  closePanel(); PAUSE = true;
+  await fade('💤 Zzz…', 900, () => { pass(min, 'sleep'); updateLight(); save(); });
+  PAUSE = false;
+  toast(`☀️ ${dateStr(dayIdx())} ${hhmm(minOfDay())}　体力 ${Math.round(ST.energy)}`);
+  if (ST.hunger < 30) toast('🍙 おなかがすいている。何か食べよう', 'bad');
+}
+async function faint(why) {
+  PAUSE = true; SND.bad();
+  await fade(why === 'hunger' ? '😵 おなかがすきすぎて、たおれた…' : '😵 つかれすぎて、たおれた…', 1600, () => {
+    pass(8 * 60, 'sleep'); ST.energy = Math.max(ST.energy, 55); ST.hunger = Math.max(ST.hunger, 55);
+    addLog('病院（診察・点滴 3割負担）', -9800);
+    const h = homeSpot(); P.x = h.x; P.z = h.z;
+  });
+  PAUSE = false;
+  openPanel('🏥 病院', `たおれて病院に運ばれた。<br>診察と点滴で <b>9,800円</b>（健康保険で3割だけ自分ではらう）。<br><span class="small">体力とおなかが0にならないように、ちゃんと寝て、ちゃんと食べよう。</span>`, [{ t: 'わかった', cls: 'main', f: closePanel }]);
+}
+function homeSpot() { if (ST.home === 'apt') return { x: -28.9, z: 18.0 }; const b = PROPS[ST.home].bed; return { x: b.x - 1.3, z: b.z }; }
+
+// =====================================================================
+//  コンビニで買い物
+// =====================================================================
+function shopMenu() {
+  const keys = ['onigiri', 'bento', 'karaage', 'sand', 'noodle', 'pan', 'tea', 'coffee'];
+  openPanel('🛒 まちかどマートで買う', `口座のお金：<b>${yen(ST.money)}</b>（キャッシュレスではらう）<br><span class="small">ねだんは税込み（食べ物は消費税8%）。買った物は「📱スマホ → 食べる」か家の冷蔵庫で食べられる。</span>`,
+    keys.map(k => ({ t: `${FOODS[k].n} ${yen(FOODS[k].p)}`, f: () => { if (ST.money < FOODS[k].p) { toast('お金が足りない', 'bad'); return; } addLog(`買い物：${FOODS[k].n}`, -FOODS[k].p); ST.food[k] = (ST.food[k] || 0) + 1; SND.beep(); toast(`🛍 ${FOODS[k].n} を買った（${yen(FOODS[k].p)}）`); pass(2); } })));
+}
+
+// =====================================================================
+//  仕事：コンビニのアルバイト（レジ打ち）
+// =====================================================================
+const GOODS = [   // 商品（架空の名前）。t=税率
+  { n: 'おにぎり さけ', p: 160, t: 8, s: 'onigiri', c: 0xffffff }, { n: 'おにぎり ツナマヨ', p: 150, t: 8, s: 'onigiri', c: 0xffffff },
+  { n: 'のり弁当', p: 520, t: 8, s: 'bento', c: 0x2b2b2b, bento: true }, { n: 'からあげ弁当', p: 598, t: 8, s: 'bento', c: 0xc0392b, bento: true },
+  { n: 'ミックスサンド', p: 298, t: 8, s: 'sand', c: 0xf5e6c8 }, { n: 'お茶 500ml', p: 140, t: 8, s: 'bottle', c: 0x3f8f3f },
+  { n: '天然水 2L', p: 118, t: 8, s: 'bottle2', c: 0x6fb7e8 }, { n: 'カップめん しょうゆ', p: 228, t: 8, s: 'cup', c: 0xe2a13a },
+  { n: 'ポテトチップス', p: 158, t: 8, s: 'bag', c: 0xf2c230 }, { n: 'ミルクチョコ', p: 128, t: 8, s: 'flat', c: 0x6b3a22 },
+  { n: '牛乳 1L', p: 238, t: 8, s: 'carton', c: 0xf4f4f4 }, { n: 'バニラアイス', p: 165, t: 8, s: 'cup', c: 0xf7f0dc },
+  { n: 'ボールペン 黒', p: 110, t: 10, s: 'flat', c: 0x1b2a6b }, { n: '単三電池 4本', p: 448, t: 10, s: 'flat', c: 0x222222 },
+  { n: 'ノート B5', p: 165, t: 10, s: 'flat', c: 0x3a7fd9 }, { n: 'ばんそうこう', p: 330, t: 10, s: 'flat', c: 0xe58fb0 },
+];
+const SHIFT = { cust: null, n: 0, total: 6, scores: [], items: [], state: '', key: '', drawer: [], ask: {}, warmT: 0, t0: 0 };
+const POS_SPOT = { x: 24.5, z: 14.55 }, CUST_SPOT = { x: 23.4, z: 12.15 };
+function shiftLabel() {
+  if (!ST.job) return '🧾 レジ（店長に話して、やとってもらおう）';
+  if (ST.job.lastDay === dayIdx()) return '🧾 今日のシフトはおわった（また明日）';
+  const m = minOfDay();
+  if (m < 450) return '🧾 シフトは 7:30 から入れる';
+  if (m > 660) return '🧾 今日のシフトにはもうまにあわない（11:00 まで）';
+  return '🧾 レジに入る（シフト開始）';
+}
+function shiftMenu() {
+  if (!ST.job) { bossTalk(); return; }
+  const m = minOfDay();
+  if (ST.job.lastDay === dayIdx() || m < 450 || m > 660) { toast(shiftLabel()); return; }
+  if (ST.energy < 25) { openPanel('😪 つかれている', `体力が ${Math.round(ST.energy)} しかない。家で寝てから来よう（25以上必要）。`, [{ t: 'わかった', f: closePanel }]); return; }
+  const start = Math.max(m, 540), late = m > 545, hours = Math.max(0, Math.floor(((1020 - start) / 60 - 1) * 4) / 4);
+  const pay = ST.job.role === 'staff' ? Math.round(ECON.staffMonthly / 21) : Math.round(hours * wage());
+  const btns = [{ t: '👋 レジに入る（自分で働く）', cls: 'main', f: () => { closePanel(); startShift(true); } }];
+  if (ST.job.manual >= 1) btns.push({ t: '⏩ おまかせで働く（いつもくらいの評価）', f: () => { closePanel(); startShift(false); } });
+  openPanel('🧾 シフト', `<b>${hhmm(start)}〜17:00</b>（休けい1時間）${late ? '<br><span class="minus">⚠️ 遅刻（9:00 すぎ）。評価が下がり、はたらく時間もへる</span>' : ''}<br>
+    ${ST.job.role === 'staff' ? `正社員：日給にすると約 ${yen(pay)}` : `時給 ${yen(wage())} × ${hours}時間 ＝ <b>${yen(pay)}</b>`}（25日にまとめてふりこみ）<br>
+    <div class="card small">やること：①お客さんの商品をタップしてスキャン ②「袋はご利用ですか？」と聞く ③お弁当なら「温めますか？」 ④「小計」→ お客さんが出したお金を入力 ⑤お釣りを数えてわたす。キャッシュレスなら お釣りなし。<br>はやく・正しくやると評価が上がる。</div>`, btns);
+}
+// おまかせのときの点数：自分でレジをしたときの平均（うで前）に近くなる
+const autoScore = () => clamp((ST.job.skill ?? 70) + rnd(-7, 3), 20, 98);
+const canPromote = () => ST.job && ST.job.role === 'part' && ST.job.days >= 10 && ST.job.eval >= 70;
+function promote() { const j = ST.job; j.role = 'staff'; j.staffSince = dayIdx(); ST.ach.staff = dateStr(dayIdx()); closePanel(); SND.good(); toast('🏅 実績：正社員になった！', 'gold'); save(); }
+const wage = () => ECON.partWage + (ST.job && ST.job.eval >= 80 && ST.job.days >= 5 ? 50 : 0);
+function bossTalk() {
+  if (!ST.job) {
+    openPanel('🧑‍💼 店長（森さん）', `「いらっしゃい。アルバイトの面接だね？」<br><br>
+      <div class="card">📄 <b>アルバイト募集（レジ・品出し）</b><br>時給 <b>1,100円</b>（評価が上がると1,150円）<br>9:00〜17:00（休けい1時間・7時間）・週何日でもOK<br>給料は月末しめ・<b>毎月25日にふりこみ</b><br>交通費なし・制服（エプロン）かしだし</div>
+      「まじめにやって評価が上がれば、<b>正社員</b>にもなれるよ。」`, [{ t: 'はたらきます！', cls: 'main', f: () => {
+        ST.job = { role: 'part', eval: 60, days: 0, manual: 0, lastDay: -1, staffDays: 0, hiredDay: dayIdx() };
+        closePanel(); SND.good(); toast('🎉 まちかどマートのアルバイトになった！', 'good'); save();
+        openPanel('🧑‍💼 店長（森さん）', '「よろしくね。シフトは毎日 <b>7:30〜11:00 の間に</b>レジ（カウンターの中）に入ればOK。9:00 をすぎると遅刻だよ。今日からでも入れるよ。」', [{ t: 'はい！', cls: 'main', f: closePanel }]);
+      } }, { t: 'やめておく', f: closePanel }]);
+    return;
+  }
+  const j = ST.job;
+  const next = j.role === 'part' ? `正社員になる条件：はたらいた日 10日以上（今 ${j.days}日）・評価 70以上（今 ${Math.round(j.eval)}）` : `正社員として ${j.staffDays}日 はたらいている。`;
+  openPanel('🧑‍💼 店長（森さん）', `「${j.eval >= 80 ? 'いつもありがとう。たよりにしてるよ！' : j.eval >= 60 ? 'その調子でがんばってね。' : 'お釣りのまちがいには気をつけてね。'}」<br><div class="card small">役職：${j.role === 'staff' ? '正社員' : 'アルバイト（時給 ' + yen(wage()) + '）'}<br>評価：${Math.round(j.eval)}／100・はたらいた日：${j.days}日<br>${next}</div>${canPromote() ? '<div class="card" style="border-color:var(--gold)">「よくがんばってるね。<b>正社員</b>にならない？ 月給21万円（手取り約16.8万円）・健康保険と厚生年金に入れるよ。」</div>' : ''}`, canPromote() ? [{ t: '🎉 正社員になる！', cls: 'main', f: promote }, { t: 'まだいい', f: closePanel }] : [{ t: 'とじる', f: closePanel }]);
+}
+// レジに入る
+let shiftCust = null;
+function startShift(manual) {
+  const m = minOfDay(), start = Math.max(m, 540);
+  SHIFT.late = m > 545; SHIFT.start = start; SHIFT.manual = manual;
+  if (m < 540) pass(540 - m);
+  if (!manual) { finishShift(autoScore(), true); return; }
+  MODE = 'shift'; SHIFT.n = 0; SHIFT.scores = []; SHIFT.total = FAST ? 2 : 6;
+  P.x = 23.75; P.z = POS_SPOT.z; P.yaw = 0.06; P.pitch = -0.36;   // お客さんと商品が見えるように
+  if (document.pointerLockElement) document.exitPointerLock();
+  $('pos').classList.remove('hide'); $('shiftbar').classList.remove('hide'); $('cross').classList.add('hide'); $('prompt').classList.add('hide'); $('actbtn').classList.add('hide');
+  $('touch').classList.remove('hide');
+  toast('👕 エプロンをつけて、レジに入った。「いらっしゃいませ！」');
+  setTimeout(nextCustomer, FAST ? 100 : 1200);
+}
+function nextCustomer() {
+  if (MODE !== 'shift') return;
+  if (SHIFT.n >= SHIFT.total) { endShiftManual(); return; }
+  SHIFT.n++;
+  const look = { shirt: pick([0x8a3b3b, 0x31546f, 0x7fa36a, 0xd8b04a, 0x444444, 0xc87fa0, 0xeeeeee]), pants: pick([0x2b3245, 0x3a3a3a, 0x9b8a6e]), hair: pick([0x111111, 0x3a2618, 0x5a3a20, 0x888888]), skin: pick([0xe8c8a8, 0xd9b08c, 0xf0d5ba]) };
+  const p = person(look); scene.add(p.g); p.g.position.set(19.2, 0, 7.6); NPCS.push(p);
+  const n = ri(1, 4), items = [];
+  for (let i = 0; i < n; i++) items.push(pick(GOODS));
+  const hasBento = items.some(g => g.bento);
+  const r = Math.random(), sum = items.reduce((a, g) => a + g.p, 0);
+  shiftCust = {
+    p, items, hasBento, path: [[19.2, 11.0], [CUST_SPOT.x - 0.6, CUST_SPOT.z - 0.3], [CUST_SPOT.x, CUST_SPOT.z]], pi: 0, state: 'in',
+    wantBag: Math.random() < 0.5, wantWarm: hasBento && Math.random() < 0.65,
+    pay: r < 0.3 ? 'card' : 'cash', t0: 0,
+  };
+  SHIFT.items = []; SHIFT.state = 'wait'; SHIFT.key = ''; SHIFT.drawer = []; SHIFT.ask = {}; SHIFT.warmT = 0; SHIFT.recv = 0; SHIFT.lines = []; SHIFT.err = 0;
+  say(''); posRender();
+}
+function custArrived() {
+  const c = shiftCust; c.state = 'at'; c.t0 = performance.now();
+  // 商品をカウンターに置く
+  c.items.forEach((g, i) => { const m = itemMesh(g); m.position.set(22.95 + (i % 3) * 0.4, 1.04, 13.3 - Math.floor(i / 3) * 0.24); m.userData.good = g; scene.add(m); SHIFT.items.push(m); });
+  SHIFT.state = 'scan'; say(pick(['おねがいします', 'これください', '…（スマホを見ている）', 'すみません、おねがいします']));
+  SND.chime(); posRender();
+}
+function itemMesh(g) {
+  const gr = new THREE.Group(), m = cm(g.c, { roughness: .5 }), lab = cm(0xffffff);
+  if (g.s === 'onigiri') { const o = mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.04, 3), m, 0, 0.07, 0, { parent: gr }); o.rotation.x = Math.PI / 2; o.rotation.y = Math.PI / 2; box(0.06, 0.05, 0.045, cm(0x1d2b1d), 0, 0.02, 0, { parent: gr }); }
+  else if (g.s === 'bento') { box(0.24, 0.06, 0.18, m, 0, 0, 0, { parent: gr }); box(0.24, 0.02, 0.18, MT.glass, 0, 0.06, 0, { parent: gr }); box(0.08, 0.02, 0.06, cm(0xf2f0e8), -0.05, 0.05, 0, { parent: gr }); box(0.06, 0.02, 0.05, cm(0xc87a2a), 0.06, 0.05, 0.02, { parent: gr }); }
+  else if (g.s === 'bottle') { mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.2, 12), MT.glass, 0, 0.1, 0, { parent: gr }); mesh(new THREE.CylinderGeometry(0.036, 0.036, 0.08, 12), m, 0, 0.1, 0, { parent: gr }); mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.03, 8), m, 0, 0.215, 0, { parent: gr }); }
+  else if (g.s === 'bottle2') { box(0.1, 0.3, 0.1, MT.glass, 0, 0, 0, { parent: gr }); box(0.102, 0.08, 0.102, m, 0, 0.12, 0, { parent: gr }); }
+  else if (g.s === 'cup') { mesh(new THREE.CylinderGeometry(0.06, 0.045, 0.1, 14), m, 0, 0.05, 0, { parent: gr }); mesh(new THREE.CylinderGeometry(0.062, 0.062, 0.01, 14), lab, 0, 0.1, 0, { parent: gr }); }
+  else if (g.s === 'carton') { box(0.08, 0.2, 0.08, m, 0, 0, 0, { parent: gr }); box(0.081, 0.06, 0.081, cm(0x2a6fd0), 0, 0.08, 0, { parent: gr }); }
+  else if (g.s === 'bag') { const b = mesh(new THREE.SphereGeometry(0.1, 12, 8), m, 0, 0.06, 0, { parent: gr }); b.scale.set(1, 0.6, 0.35); }
+  else if (g.s === 'sand') { const s = mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.06, 3), m, 0, 0.06, 0, { parent: gr }); s.rotation.z = Math.PI / 2; }
+  else { box(0.16, 0.025, 0.1, m, 0, 0, 0, { parent: gr }); box(0.08, 0.002, 0.05, lab, 0, 0.026, 0, { parent: gr }); }
+  gr.traverse(o => { if (o.isMesh) o.castShadow = false; });
+  return gr;
+}
+function say(t) { const s = $('say'); if (!t) { s.classList.add('hide'); return; } s.textContent = 'お客さん：「' + t + '」'; s.classList.remove('hide'); }
+const ray = new THREE.Raycaster();
+function shiftTap(p) {
+  if (SHIFT.state !== 'scan') return;
+  const v = new THREE.Vector2(p.x / VW * 2 - 1, -(p.y / VH) * 2 + 1);
+  ray.setFromCamera(v, camera);
+  const hits = ray.intersectObjects(SHIFT.items.filter(m => !m.userData.done), true);
+  let o = null;
+  if (hits.length) { o = hits[0].object; while (o.parent && !o.userData.good) o = o.parent; }
+  else {   // 指が少しずれても、近くの商品をえらぶ（スマホ用）
+    let bd = 70;
+    for (const m of SHIFT.items) { if (m.userData.done) continue; const q = m.position.clone(); q.y += 0.05; q.project(camera); const sx = (q.x + 1) / 2 * VW, sy = (1 - q.y) / 2 * VH, d = Math.hypot(sx - p.x, sy - p.y); if (d < bd) { bd = d; o = m; } }
+  }
+  scanItem(o);
+}
+function scanItem(o) {
+  if (!o || o.userData.done) return;
+  o.userData.done = true; SND.beep();
+  SHIFT.lines.push({ n: o.userData.good.n, p: o.userData.good.p });
+  const k = SHIFT.lines.length - 1; o.userData.tx = 24.95 + (k % 3) * 0.3; o.userData.tz = 13.3 - Math.floor(k / 3) * 0.22;
+  posRender();
+}
+function custTotal() { return SHIFT.lines.reduce((a, l) => a + l.p, 0); }
+function posKey(k) {
+  const c = shiftCust; if (!c || c.state !== 'at') return;
+  SND.click();
+  if (k === 'bag') {
+    if (SHIFT.ask.bag) return; SHIFT.ask.bag = true;
+    say(c.wantBag ? 'あ、おねがいします' : 'いらないです');
+    if (c.wantBag) SHIFT.lines.push({ n: 'レジ袋（中）', p: 5 });
+  } else if (k === 'warm') {
+    if (SHIFT.ask.warm) return; SHIFT.ask.warm = true;
+    say(c.wantWarm ? 'はい、温めてください' : 'そのままで大丈夫です');
+  } else if (k === 'micro') {
+    if (!c.wantWarm || SHIFT.warmT > 0) return; SHIFT.warmT = 0.001; say('（チン！まで待っている）');
+  } else if (k === 'sub') {
+    if (SHIFT.items.some(m => !m.userData.done)) { toast('まだスキャンしていない商品がある', 'bad'); return; }
+    if (c.wantWarm && SHIFT.warmT < 1) { toast('お弁当を温めてから（レンジ）', 'bad'); return; }
+    if (!SHIFT.ask.bag) { SHIFT.err += 10; say('…袋ください'); SHIFT.ask.bag = true; if (c.wantBag) SHIFT.lines.push({ n: 'レジ袋（中）', p: 5 }); }
+    if (c.hasBento && !SHIFT.ask.warm) SHIFT.err += 10;
+    SHIFT.state = 'pay';
+    const tot = custTotal();
+    if (c.pay === 'card') { c.given = 0; say('カードで（ピッ）'); }
+    else {
+      const r = Math.random();
+      if (r < 0.2) c.given = tot;
+      else if (r < 0.75) c.given = Math.ceil((tot + 1) / 1000) * 1000;
+      else if (r < 0.88 && tot < 4000) c.given = 5000;
+      else c.given = Math.ceil((tot + 1) / 1000) * 1000 + (tot % 100);   // お釣りがきれいになるように小銭も出す
+      if (c.given === Math.ceil((tot + 1) / 1000) * 1000 + (tot % 100) && tot % 100 === 0) c.given = Math.ceil((tot + 1) / 1000) * 1000;
+      say(`${c.given.toLocaleString()}円で`);
+    }
+  } else if (SHIFT.state === 'pay') {
+    if (k === 'card') { if (c.pay === 'card') { SND.beep(); finishCustomer(0); } else { SHIFT.err += 10; say('え、現金ですけど…'); SND.bad(); } }
+    else if (k === 'C') SHIFT.key = '';
+    else if (k === 'ok') {
+      if (c.pay === 'card') { SHIFT.err += 10; say('カードです…'); SND.bad(); return; }
+      const v = +SHIFT.key || 0; const tot = custTotal();
+      if (v < tot) { toast('お預かりが合計より少ない', 'bad'); SHIFT.key = ''; }
+      else if (v !== c.given) { SHIFT.err += 15; say(`${c.given.toLocaleString()}円ですよ？`); SND.bad(); SHIFT.key = ''; }
+      else { SHIFT.recv = v; SND.drawer(); if (v === tot) { finishCustomer(0); return; } SHIFT.state = 'change'; SHIFT.drawer = []; }
+    }
+    else if (k === '1000' || k === '5000' || k === '10000') SHIFT.key = k;
+    else if (SHIFT.key.length < 6) SHIFT.key += k;
+  } else if (SHIFT.state === 'change') {
+    if (k === 'C') SHIFT.drawer = [];
+    else if (k === 'give') {
+      const need = SHIFT.recv - custTotal(), gave = SHIFT.drawer.reduce((a, b) => a + b, 0);
+      if (gave !== need) { SHIFT.err += 40; say(gave < need ? 'あれ、お釣り足りなくない？' : 'お釣り多いですよ'); SND.bad(); SHIFT.drawer = []; SHIFT.wrongChange = true; return; }
+      SND.coin(); finishCustomer(SHIFT.drawer.length);
+      return;
+    } else { SHIFT.drawer.push(+k); SND.coin(); }
+  }
+  posRender();
+}
+function finishCustomer(coins) {
+  const c = shiftCust, sec = (performance.now() - c.t0) / 1000;
+  let sc = 100 - SHIFT.err - Math.max(0, sec - 22) * 1.2;
+  sc = clamp(Math.round(sc), 0, 100);
+  SHIFT.scores.push(sc); ST.stats.customers++; if (sc >= 95) ST.stats.perfect++;
+  say(sc >= 85 ? pick(['ありがとう', 'どうも〜', 'ありがとうございます']) : sc >= 60 ? 'どうも' : '…（ちょっと不満そう）');
+  toast(`${sc >= 85 ? '😊' : sc >= 60 ? '🙂' : '😠'} 接客 ${sc}点（${sec.toFixed(0)}秒）`, sc >= 85 ? 'good' : sc >= 60 ? '' : 'bad');
+  SHIFT.state = 'done'; c.state = 'out'; c.path = [[CUST_SPOT.x - 0.6, CUST_SPOT.z - 0.4], [19.2, 11.0], [19.2, 7.0], [19.2 + rnd(-30, 30), 6.4]]; c.pi = 0;
+  for (const m of SHIFT.items) scene.remove(m); SHIFT.items = [];
+  posRender();
+  setTimeout(nextCustomer, FAST ? 100 : 1800);
+}
+function posRender() {
+  const c = shiftCust, st = SHIFT.state;
+  $('pos-st').textContent = `お客さん ${SHIFT.n}／${SHIFT.total}`;
+  let h = '';
+  for (const l of SHIFT.lines || []) h += `<div class="row"><span>${l.n}</span><span>${l.p.toLocaleString()}</span></div>`;
+  const tot = custTotal();
+  if (st === 'scan' || st === 'wait') h += `<div class="tot row"><span>小計 ${SHIFT.lines.length}点</span><span>¥${tot.toLocaleString()}</span></div>`;
+  else if (st === 'pay' || st === 'change') {
+    h += `<div class="tot row"><span>合計（税込）</span><span>¥${tot.toLocaleString()}</span></div>`;
+    if (st === 'pay') h += `<div class="row"><span>お預かり</span><span>¥${(+SHIFT.key || 0).toLocaleString()}</span></div>`;
+    if (st === 'change') { const need = SHIFT.recv - tot, gave = SHIFT.drawer.reduce((a, b) => a + b, 0); h += `<div class="row"><span>お預かり</span><span>¥${SHIFT.recv.toLocaleString()}</span></div><div class="row" style="font-weight:800;color:#a03"><span>お釣り</span><span>¥${need.toLocaleString()}</span></div><div class="row"><span>手に持っている</span><span>¥${gave.toLocaleString()}</span></div>`; }
+  }
+  if (st === 'wait') h = '<div style="opacity:.6">お客さんを待っています…</div>';
+  $('pos-scr').innerHTML = h;
+  const K = $('pos-keys'); K.innerHTML = '';
+  const add = (lab, k, cls = '', dis = false) => { const b = document.createElement('button'); b.textContent = lab; if (cls) b.className = cls; b.disabled = dis; b.onpointerdown = e => { e.preventDefault(); e.stopPropagation(); posKey(k); }; K.appendChild(b); };
+  if (st === 'scan') {
+    add('🛍 袋はご利用ですか？', 'bag', SHIFT.ask.bag ? '' : 'hl', !!SHIFT.ask.bag);
+    add('🍱 温めますか？', 'warm', c && c.hasBento && !SHIFT.ask.warm ? 'hl' : '', !(c && c.hasBento) || !!SHIFT.ask.warm);
+    add(SHIFT.warmT >= 1 ? '✅ 温めた' : SHIFT.warmT > 0 ? '🔥 温め中…' : '🔥 レンジ', 'micro', c && c.wantWarm && SHIFT.ask.warm && !SHIFT.warmT ? 'hl' : '', !(c && c.wantWarm && SHIFT.ask.warm) || SHIFT.warmT > 0);
+    add('小計（お会計へ）', 'sub', 'wide');
+    $('shiftbar').innerHTML = '👆 カウンターの商品を<b>タップしてスキャン</b>（ピッ）。袋とお弁当の温めも聞こう' + (SHIFT.warmT > 0 && SHIFT.warmT < 1 ? '<div id="warm"><i style="width:' + (SHIFT.warmT * 100) + '%"></i></div>' : '');
+  } else if (st === 'pay') {
+    for (const k of ['7', '8', '9', '4', '5', '6', '1', '2', '3', '0', '00', 'C']) add(k, k);
+    add('千円', '1000'); add('五千円', '5000'); add('一万円', '10000');
+    add('💳 キャッシュレス', 'card', c && c.pay === 'card' ? 'hl' : '');
+    add('お預かり 確定', 'ok', 'hl'); add('', 'x', '', true);
+    $('shiftbar').innerHTML = '💴 お客さんが出したお金を入力して「お預かり確定」。カードなら「キャッシュレス」';
+  } else if (st === 'change') {
+    for (const v of [5000, 1000, 500, 100, 50, 10, 5, 1]) add(v >= 1000 ? (v / 1000) + '千円札' : v + '円', String(v));
+    add('もどす', 'C'); add('お釣りをわたす', 'give', 'wide hl');
+    $('shiftbar').innerHTML = '🪙 レジの中から、お釣りと同じ金額をえらんで「お釣りをわたす」';
+  } else $('shiftbar').innerHTML = `今日のシフト：${hhmm(SHIFT.start)}〜17:00${SHIFT.late ? '（遅刻）' : ''}`;
+}
+function updateShift(dt) {
+  const c = shiftCust;
+  if (c && c.p) {
+    if (c.state === 'in' || c.state === 'out') {
+      const tgt = c.path[c.pi];
+      if (tgt) {
+        const g = c.p.g.position, dx = tgt[0] - g.x, dz = tgt[1] - g.z, d = Math.hypot(dx, dz);
+        if (d < 0.05) { c.pi++; if (!c.path[c.pi]) { if (c.state === 'in') custArrived(); else { scene.remove(c.p.g); NPCS.splice(NPCS.indexOf(c.p), 1); c.p = null; } } }
+        else { const s = Math.min(d, 1.3 * dt); g.x += dx / d * s; g.z += dz / d * s; c.p.g.rotation.y = Math.atan2(dx, dz); animPerson(c.p, 1.3, dt); }
+      }
+    } else if (c.state === 'at') { c.p.g.rotation.y = 0 + Math.PI * 0; c.p.g.rotation.y = 0; animPerson(c.p, 0, dt); c.p.g.rotation.y = 0; }
+  }
+  for (const m of SHIFT.items) if (m.userData.done && m.userData.tx) { m.position.x += (m.userData.tx - m.position.x) * Math.min(1, dt * 10); m.position.z += (m.userData.tz - m.position.z) * Math.min(1, dt * 10); }
+  if (SHIFT.warmT > 0 && SHIFT.warmT < 1) { SHIFT.warmT = Math.min(1, SHIFT.warmT + dt / (FAST ? 0.2 : 3)); if (SHIFT.warmT >= 1) { SND.tone(1800, 0.3, 'sine', 0.08); say('（チン！）'); } posRender(); }
+}
+function endShiftManual() {
+  const avg = SHIFT.scores.length ? SHIFT.scores.reduce((a, b) => a + b, 0) / SHIFT.scores.length : 50;
+  ST.job.manual++;
+  ST.job.skill = ST.job.skill == null ? avg : ST.job.skill * 0.6 + avg * 0.4;   // うで前（おまかせの点数のもと）
+  MODE = 'walk'; $('pos').classList.add('hide'); $('shiftbar').classList.add('hide'); say(''); $('cross').classList.remove('hide');
+  if (!IS_TOUCH) $('touch').classList.add('hide');
+  P.pitch = -0.05;
+  finishShift(avg, false);
+}
+function finishShift(score, auto) {
+  const j = ST.job, start = SHIFT.start || 540;
+  if (SHIFT.late) score -= 15;
+  score = clamp(Math.round(score), 0, 100);
+  const hours = Math.max(0, Math.floor(((1020 - start) / 60 - 1) * 4) / 4);
+  let gross, net;
+  if (j.role === 'staff') { gross = Math.round(ECON.staffMonthly / 21); net = Math.round(gross * (1 - ECON.staffDeduct)); j.staffDays++; }
+  else { gross = Math.round(hours * wage()); net = Math.round(gross * (1 - ECON.partTax)); }
+  ST.unpaid.g += gross; ST.unpaid.n += net; ST.unpaid.days++;
+  j.eval = j.eval * 0.7 + score * 0.3; j.days++; j.lastDay = dayIdx(); ST.stats.shifts++;
+  pass(Math.max(0, 1020 - minOfDay()), 'work');
+  if (SHIFT.late) ST.late++;
+  // 店の外（入口の前）に出る
+  P.x = 19.2; P.z = 8.6; P.yaw = 0; P.pitch = -0.05;
+  const comment = score >= 90 ? '「完ぺきだったね！助かったよ」' : score >= 75 ? '「おつかれさま。いい感じだったよ」' : score >= 55 ? '「おつかれ。もう少しはやくできるといいね」' : '「お釣りのまちがいや、聞きわすれに気をつけてね」';
+  let html = `<b>${dateStr(dayIdx())}</b>　${hhmm(start)}〜17:00${SHIFT.late ? '（遅刻 −15点）' : ''}<br>
+    今日の評価：<b>${score}点</b>${auto ? '（おまかせ）' : `（お客さん ${SHIFT.scores.length}人の平均）`}<br>店長：${comment}<br>
+    <div class="card">${j.role === 'staff' ? '日給（月給÷21日）' : `時給 ${yen(wage())} × ${hours}時間`} ＝ <b>${yen(gross)}</b><br>
+    <span class="small">${j.role === 'staff' ? '健康保険・厚生年金・税金などで約2割引かれて' : '所得税が約3%引かれて'}、手取り ${yen(net)}。25日にまとめてふりこまれる（今月分 ${yen(ST.unpaid.n)}）</span></div>
+    <span class="small">評価 ${Math.round(j.eval)}／100・はたらいた日 ${j.days}日・体力 ${Math.round(ST.energy)}</span>`;
+  const btns = [{ t: 'おつかれさまでした', cls: 'main', f: closePanel }];
+  if (canPromote()) {
+    html += `<div class="card" style="border-color:var(--gold)">🧑‍💼 店長：「ずっとがんばってくれてるね。<b>正社員</b>にならない？」<br>月給 <b>21万円</b>（手取り約16.8万円）・健康保険と厚生年金に入れる（会社が半分はらう）・住宅ローンの審査にも通りやすくなる</div>`;
+    btns.unshift({ t: '🎉 正社員になる！', cls: 'main', f: promote });
+  }
+  openPanel('🧾 シフトおわり', html, btns);
+  save();
+}
+
+// =====================================================================
+//  スマホ（じぶんの情報・地図・家計簿・おまかせ）
+// =====================================================================
+let PH_TAB = 'home';
+function phoneMenu(tab) {
+  if (tab) PH_TAB = tab;
+  const T = (id, lab) => `<button data-tab="${id}" class="${PH_TAB === id ? 'on' : ''}">${lab}</button>`;
+  let body = `<div class="tabs">${T('home', '🏠 じぶん')}${T('map', '🗺 地図')}${T('money', '💴 家計簿')}${T('food', '🍙 食べる')}${T('ach', '🏅 実績')}</div>`;
+  const j = ST.job, d = dayIdx();
+  if (PH_TAB === 'home') {
+    body += `<div class="card"><b>${dateStr(d)} ${hhmm(minOfDay())}</b>　${ST.age}さい<br>口座：<b>${yen(ST.money)}</b>　（まだもらっていない給料 ${yen(ST.unpaid.n)}）<br>
+      住まい：${ST.home === 'apt' ? 'アパート「コーポさくら」101（家賃 5.8万円）' : PROPS[ST.home].name + '（持ち家）'}<br>
+      仕事：${j ? (j.role === 'staff' ? '正社員（月給21万円）' : `アルバイト（時給 ${yen(wage())}）`) + `・評価 ${Math.round(j.eval)}・${j.days}日` : 'なし（まちかどマートで募集中）'}<br>
+      ${ST.loan ? `住宅ローン：のこり <b>${man(ST.loan.remain)}</b>（毎月 ${yen(ST.loan.monthly)}・${ST.loan.paid}回 返した）` : ''}</div>
+      <div class="card small">📅 毎月のお金：25日 給料 ／ 26日 光熱費・スマホ ／ 27日 ${ST.home === 'apt' ? '家賃' : 'ローン・管理費'} ／ 月末 ${j && j.role === 'staff' ? '（年金・保険は給料から引かれる）' : '国民年金・国民健康保険'}<br>🏦 銀行 9:00〜15:00（土日休み）・🏠 不動産屋 10:00〜18:00（水曜休み）・🏪 コンビニ 24時間</div>`;
+  } else if (PH_TAB === 'map') {
+    body += `<canvas class="map" id="mapc" width="520" height="380"></canvas><div class="small">● が自分。▲ が向いている方。</div>`;
+  } else if (PH_TAB === 'money') {
+    body += `<table class="t">` + ST.log.slice(-30).reverse().map(l => `<tr><td class="small">${dateOf(l.d).getMonth() + 1}/${dateOf(l.d).getDate()}</td><td>${l.l}</td><td class="r ${l.v >= 0 ? 'plus' : 'minus'}">${l.v >= 0 ? '+' : ''}${yen(l.v)}</td></tr>`).join('') + `</table>` + (ST.log.length ? '' : '<div class="small">まだ記録がない</div>');
+  } else if (PH_TAB === 'food') {
+    const items = Object.keys(ST.food).filter(k => ST.food[k] > 0);
+    body += `おなか ${Math.round(ST.hunger)}／100・体力 ${Math.round(ST.energy)}／100<br>` + (items.length ? items.map(k => `<button class="btn" data-eat="${k}" style="margin:4px">${FOODS[k].n} ×${ST.food[k]}</button>`).join('') : '<div class="small">食べ物がない。コンビニで買おう</div>');
+  } else if (PH_TAB === 'ach') {
+    const A = [['pay', 'はじめての給料'], ['staff', '正社員になった'], ['m100', '貯金100万円'], ['home', '家を買った'], ['perfect', '接客で満点を10回']];
+    if (ST.stats.perfect >= 10 && !ST.ach.perfect) ST.ach.perfect = dateStr(d);
+    body += A.map(([k, n]) => `<div class="card">${ST.ach[k] ? '🏅' : '⬜'} ${n}<span class="small" style="float:right">${ST.ach[k] || ''}</span></div>`).join('') + `<div class="small">はたらいた日 ${ST.stats.shifts}・接客 ${ST.stats.customers}人・これまでの手取り ${yen(ST.stats.earned)}</div>`;
+  }
+  const btns = [];
+  if (j && j.manual >= 1) btns.push({ t: '⏩ 1週間おまかせ', f: () => weekAuto() });
+  btns.push({ t: '💾 セーブ', f: () => { save(); toast('💾 セーブした'); } }, { t: '🏁 タイトルへ', cls: 'warn', f: () => { save(); closePanel(); toTitle(); } });
+  openPanel('📱 スマホ', body, btns, {
+    after: () => {
+      document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { SND.click(); phoneMenu(b.dataset.tab); });
+      document.querySelectorAll('[data-eat]').forEach(b => b.onclick = () => { eat(b.dataset.eat); phoneMenu('food'); });
+      if (PH_TAB === 'map') drawMap($('mapc'));
+    }
+  });
+}
+function drawMap(c) {
+  const g = c.getContext('2d'), W = c.width, H = c.height, s = 2.6, ox = W / 2, oz = H / 2, X = x => ox + x * s, Z = z => oz - z * s;   // 上が北（+z）
+  g.fillStyle = '#3b4252'; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#596173'; g.fillRect(0, Z(5), W, 10 * s); g.fillRect(X(-5), 0, 10 * s, H);
+  const R = (x0, z0, x1, z1, col, t) => { g.fillStyle = col; g.fillRect(X(x0), Z(z1), (x1 - x0) * s, (z1 - z0) * s); if (t) { g.fillStyle = '#fff'; g.font = '800 12px sans-serif'; g.textAlign = 'center'; g.fillText(t, X((x0 + x1) / 2), Z((z0 + z1) / 2) + 4); } };
+  R(-34, 10, -27, 20, '#5aa8ff', ''); R(-27, 10, -14, 20, '#7f8899', 'アパート');
+  R(12, 10, 28, 22, '#1aa39a', 'コンビニ'); R(34, 12, 50, 26, '#8a6f50', '売り土地');
+  R(-30, -22, -14, -10, '#c2502a', '銀行'); R(12, -18, 22, -10, '#2a7d4f', '不動産屋');
+  R(-58, -24, -40, -10, ST.home === 'mansion' ? '#5aa8ff' : '#8b7f9a', 'マンション'); R(36, -24, 46, -14, ST.home === 'house' ? '#5aa8ff' : '#9a8b7f', '一戸建て');
+  R(56, 10, 92, 24, '#1b3d6b', '駅');
+  g.fillStyle = '#ffeb5a'; g.beginPath(); g.arc(X(P.x), Z(P.z), 6, 0, 7); g.fill();
+  const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw); g.strokeStyle = '#ffeb5a'; g.lineWidth = 3; g.beginPath(); g.moveTo(X(P.x), Z(P.z)); g.lineTo(X(P.x + fx * 8), Z(P.z + fz * 8)); g.stroke();
+}
+// 1週間おまかせ：平日ははたらく・ごはんを買う・夜は寝る
+async function weekAuto() {
+  closePanel(); PAUSE = true;
+  let worked = 0, spent = 0;
+  await fade('⏩ 1週間がすぎていく…', 1400, () => {
+    for (let i = 0; i < 7; i++) {
+      // 次の朝 7:00 へ
+      const m = minOfDay(); pass(((7 * 60 - m) + 1440) % 1440 || 1440, 'sleep');
+      ST.energy = Math.max(ST.energy, 90);
+      const d = dayIdx();
+      if (isWeekday(d) && ST.job && ST.job.lastDay !== d) { SHIFT.late = false; SHIFT.start = 540; pass(120); finishShiftQuiet(autoScore()); worked++; }
+      else pass(10 * 60);
+      addLog('食費（コンビニなど）', -1300); spent += 1300; ST.hunger = Math.max(ST.hunger, 75);
+      pass(Math.max(0, 23 * 60 - minOfDay()));
+    }
+    const h = homeSpot(); P.x = h.x; P.z = h.z;
+    pass(((7 * 60 - minOfDay()) + 1440) % 1440, 'sleep'); ST.energy = Math.max(ST.energy, 90); ST.hunger = Math.max(ST.hunger, 60);
+  });
+  PAUSE = false; save();
+  openPanel('⏩ 1週間おまかせ', `${worked}日はたらいた（評価 ${Math.round(ST.job.eval)}）。食費 ${yen(spent)}。<br>今は <b>${dateStr(dayIdx())} ${hhmm(minOfDay())}</b>・口座 <b>${yen(ST.money)}</b>`, [{ t: 'OK', cls: 'main', f: closePanel }]);
+}
+function finishShiftQuiet(score) {   // おまかせの1日分（画面を出さない）
+  const j = ST.job; score = clamp(Math.round(score), 0, 100);
+  let gross, net;
+  if (j.role === 'staff') { gross = Math.round(ECON.staffMonthly / 21); net = Math.round(gross * (1 - ECON.staffDeduct)); j.staffDays++; }
+  else { gross = Math.round(7 * wage()); net = Math.round(gross * (1 - ECON.partTax)); }
+  ST.unpaid.g += gross; ST.unpaid.n += net; ST.unpaid.days++;
+  j.eval = j.eval * 0.7 + score * 0.3; j.days++; j.lastDay = dayIdx(); ST.stats.shifts++;
+  pass(Math.max(0, 1020 - minOfDay()), 'work');
+  if (canPromote()) toast('🧑‍💼 店長が「正社員にならない？」と言っている。お店で話そう', 'gold');
+}
+
+// =====================================================================
+//  パソコン・ATM・銀行・不動産屋・家を買う
+// =====================================================================
+function pcMenu() {
+  openPanel('💻 パソコン', `<div class="card"><b>🔎 求人サイト（架空）</b><br>・まちかどマート あおば町店：アルバイト 時給1,100円〜／正社員登用あり<br><span class="small">ほかの仕事（カフェ・配達・建設現場・事務）は、次のアップデートでふえる予定</span></div>
+    <div class="card"><b>🏠 物件サイト（架空）</b><br>${Object.keys(PROPS).map(id => `・${PROPS[id].name}：<b>${man(PROPS[id].price)}</b>（${PROPS[id].info}）`).join('<br>')}<br>・売り土地 140㎡：980万円（家を建てる「注文住宅」は次のアップデート）<br><span class="small">買うときは「すまいる不動産」へ（10:00〜18:00・水曜休み）</span></div>
+    <div class="card small">💡 家を買うには：①正社員になる（アルバイトだとローンの審査がむずかしい）②諸費用（値段の約7%）＋頭金をためる ③不動産屋で申しこむ ④銀行でローンの審査 ⑤契約してカギをもらう</div>`, [{ t: 'とじる', f: closePanel }]);
+}
+function atm() {
+  openPanel('🏧 ATM', `口座の残高：<b style="font-size:20px">${yen(ST.money)}</b><br><span class="small">（ふだんのお金はキャッシュレスで、この口座から直接はらっている）</span><br>${ST.loan ? `住宅ローンのこり：${man(ST.loan.remain)}` : ''}`, [{ t: 'とじる', f: closePanel }]);
+}
+function landInfo() {
+  openPanel('📋 売り土地', `<b>売り土地 140㎡（約42坪）　980万円</b><br>建ぺい率60%・容積率200%・南ひろい道路<br><div class="card small">🔨 土地を買って<b>自分で家を建てる（注文住宅）</b>のは、次のアップデートでできるようになる予定。間取り・かべの色・材料をえらんで、建てた家の中を歩けるようにする。</div>`, [{ t: 'とじる', f: closePanel }]);
+}
+function propInfo(id) {
+  const p = PROPS[id];
+  openPanel('📋 ' + p.short, `<b>${p.name}</b><br>価格 <b>${man(p.price)}</b>　${p.info}<br>${p.monthly ? `${p.monthlyLabel} 月 ${yen(p.monthly)}・` : ''}固定資産税 年 ${yen(p.tax * 12)}<br><span class="small">不動産屋が開いている時間（10:00〜18:00・水曜休み）は、ドアが開いていて<b>中を見学（内見）</b>できる。</span>`, [{ t: 'とじる', f: closePanel }]);
+}
+function fees(id) { return Math.round(PROPS[id].price * ECON.fees / 1000) * 1000; }
+function realtyMenu(sel, downPct) {
+  if (ST.apply && !ST.apply.done) {
+    openPanel('🏠 すまいる不動産', `「${PROPS[ST.apply.prop].short}のお申しこみ、ありがとうございます。<b>ひだまり銀行</b>で住宅ローンの審査を受けてくださいね（平日 9:00〜15:00）。」`, [{ t: '申しこみをやめる', cls: 'warn', f: () => { ST.apply = null; closePanel(); toast('申しこみをとりけした'); } }, { t: 'とじる', f: closePanel }]);
+    return;
+  }
+  if (ST.home !== 'apt') { openPanel('🏠 すまいる不動産', '「新しいお家の住み心地はどうですか？ 何かあったら、いつでも来てくださいね。」', [{ t: 'とじる', f: closePanel }]); return; }
+  if (!sel) {
+    openPanel('🏠 すまいる不動産', `「いらっしゃいませ。どんなお家をおさがしですか？」<br><span class="small">いまの口座：${yen(ST.money)}</span>` +
+      Object.keys(PROPS).map(id => { const p = PROPS[id]; return `<div class="card"><b>${p.name}</b><br>${man(p.price)}・${p.info}<br><span class="small">諸費用（登記・仲介手数料・ローンの手数料など）約 ${man(fees(id))}・ローン毎月 約${yen(loanMonthly(p.price))}（頭金0・35年・金利1.8%）</span></div>`; }).join('') +
+      `<div class="card small">売り土地 980万円（注文住宅は次のアップデート）</div>`,
+      Object.keys(PROPS).map(id => ({ t: `${PROPS[id].short}をくわしく`, f: () => realtyMenu(id, 0) })));
+    return;
+  }
+  const p = PROPS[sel], down = Math.round(p.price * downPct / 100), loan = p.price - down, mo = loanMonthly(loan), f = fees(sel), need = down + f;
+  const annual = ST.job && ST.job.role === 'staff' ? ECON.staffMonthly * 12 : (ST.job ? wage() * 7 * 21 * 12 : 0);
+  const ratio = annual ? mo * 12 / annual : 9;
+  openPanel('🏠 ' + p.short + 'の資金計画', `<b>${p.name}</b><br>
+    <div class="tabs">${[0, 10, 20].map(v => `<button data-dp="${v}" class="${v === downPct ? 'on' : ''}">頭金 ${v}%</button>`).join('')}</div>
+    <table class="t"><tr><td>物件の値段</td><td class="r">${yen(p.price)}</td></tr><tr><td>頭金（自分のお金ではらう）</td><td class="r">${yen(down)}</td></tr>
+    <tr><td>住宅ローン（銀行から借りる）</td><td class="r">${yen(loan)}</td></tr><tr><td>毎月の返済（35年・固定1.8%）</td><td class="r"><b>${yen(mo)}</b></td></tr>
+    <tr><td>35年で返す合計</td><td class="r">${yen(mo * 420)}（利息 ${man(mo * 420 - loan)}）</td></tr>
+    <tr><td>諸費用（自分のお金ではらう）</td><td class="r">${yen(f)}</td></tr><tr><td><b>今 必要なお金</b></td><td class="r"><b>${yen(need)}</b></td></tr>
+    <tr><td>${p.monthly ? p.monthlyLabel + '＋' : ''}固定資産税（毎月）</td><td class="r">${yen(p.monthly + p.tax)}</td></tr></table>
+    <div class="card small">年収（見こみ）${man(annual)} → 返済の割合 <b>${annual ? Math.round(ratio * 100) : '-'}%</b>（銀行は 30% 以下だと安心と考える）<br>
+    ${ST.money >= need ? '✅ 必要なお金は足りている' : `❌ あと ${yen(need - ST.money)} 足りない`}<br>${ST.job && ST.job.role === 'staff' ? '✅ 正社員' : '⚠️ アルバイトだと審査に通りにくい'}</div>`,
+    [{ t: '購入を申しこむ', cls: 'main', f: () => { ST.apply = { prop: sel, down, loan, mo, fee: f, day: dayIdx() }; closePanel(); SND.good(); toast('📝 購入を申しこんだ。銀行でローンの審査を受けよう', 'good'); save(); } }, { t: 'もどる', f: () => realtyMenu() }],
+    { after: () => document.querySelectorAll('[data-dp]').forEach(b => b.onclick = () => realtyMenu(sel, +b.dataset.dp)) });
+}
+function bankMenu() {
+  const a = ST.apply;
+  let html = `「いらっしゃいませ。ひだまり銀行です。」<br>口座の残高：<b>${yen(ST.money)}</b>`;
+  const btns = [];
+  if (a && !a.done) {
+    const p = PROPS[a.prop];
+    html += `<div class="card">📝 住宅ローンの申しこみ：${p.short}（借りる額 ${man(a.loan)}・毎月 ${yen(a.mo)}）</div>`;
+    btns.push({ t: '🔍 住宅ローンの審査を受ける', cls: 'main', f: () => loanReview() });
+  } else if (ST.loan) html += `<div class="card">住宅ローン：のこり <b>${man(ST.loan.remain)}</b>・毎月 ${yen(ST.loan.monthly)}・${ST.loan.paid}回 返した</div>`;
+  else html += `<div class="card small">家を買うときは、先に「すまいる不動産」で物件を申しこんでから来てね。住宅ローンの審査をします。</div>`;
+  btns.push({ t: 'とじる', f: closePanel });
+  openPanel('🏦 ひだまり銀行 窓口', html, btns);
+}
+function loanReview() {
+  const a = ST.apply, j = ST.job, p = PROPS[a.prop];
+  const annual = j && j.role === 'staff' ? ECON.staffMonthly * 12 : (j ? wage() * 7 * 21 * 12 : 0);
+  const ratio = annual ? a.mo * 12 / annual : 9, need = a.down + a.fee;
+  const ng = [];
+  if (!j) ng.push('仕事をしていない');
+  else if (j.role !== 'staff') ng.push('アルバイトなので、収入が安定しているか分からない（正社員になってから）');
+  if (ratio > 0.3) ng.push(`年収にくらべて返済が多すぎる（${Math.round(ratio * 100)}%・30%以下が目安）`);
+  if (ST.money < need) ng.push(`頭金と諸費用（${yen(need)}）が口座に足りない`);
+  if (ST.money < 0) ng.push('引き落としの滞納がある');
+  if (ng.length) { SND.bad(); openPanel('🔍 審査の結果', `<b class="minus">今回は審査に通りませんでした。</b><br>${ng.map(s => '・' + s).join('<br>')}<br><span class="small">条件がそろったら、また来てね。</span>`, [{ t: 'わかった', f: closePanel }]); return; }
+  SND.good();
+  openPanel('🔍 審査の結果', `<b class="plus">審査に通りました！</b><br>${p.name}<br><table class="t"><tr><td>今はらう（頭金＋諸費用）</td><td class="r"><b>${yen(need)}</b></td></tr><tr><td>借りる額</td><td class="r">${yen(a.loan)}</td></tr><tr><td>毎月の返済（27日）</td><td class="r">${yen(a.mo)} × 420回</td></tr></table><span class="small">契約すると、アパートは今月で出ていく（家賃は止まる）。</span>`,
+    [{ t: '✍️ 契約して家を買う', cls: 'main', f: () => buyHome() }, { t: 'まだやめておく', f: closePanel }]);
+}
+async function buyHome() {
+  const a = ST.apply, p = PROPS[a.prop];
+  if (a.down) addLog(`頭金（${p.short}）`, -a.down);
+  addLog('諸費用（登記・仲介手数料など）', -a.fee);
+  ST.loan = a.loan > 0 ? { prop: a.prop, principal: a.loan, remain: a.loan, monthly: a.mo, paid: 0 } : null;
+  ST.home = a.prop; a.done = true; ST.apply = null;
+  ST.ach.home = dateStr(dayIdx());
+  setFurniture(); closePanel(); PAUSE = true; SND.money();
+  await fade('🔑 カギをうけとった！ 引っこし中…', 1500, () => { pass(180); const s = p.inside; P.x = s.x; P.z = s.z; P.yaw = s.yaw; });
+  PAUSE = false; save();
+  openPanel('🏡 家を買った！', `<b>${p.name}</b> があなたの家になった！<br>${dateStr(dayIdx())}・${ST.age}さい<br>
+    <div class="card">🏅 実績：家を買った<br>のこりのローン ${man(ST.loan ? ST.loan.remain : 0)}・毎月 ${yen(ST.loan ? ST.loan.monthly : 0)}<br>口座 ${yen(ST.money)}</div>
+    <span class="small">これからは家賃のかわりに、ローンと${p.monthly ? '管理費・' : ''}固定資産税をはらっていく。ベッドで寝られるよ。</span>`, [{ t: 'やったー！', cls: 'main', f: closePanel }]);
+}
+
+// =====================================================================
+//  画面の情報（HUD）
+// =====================================================================
+function goalText() {
+  const j = ST.job;
+  if (!j) return '🎯 「まちかどマート」の店長と話して、アルバイトをはじめよう（家を出て右・交差点のむこう）';
+  if (!ST.stats.shifts) return '🎯 カウンターの中のレジに入って、はじめての仕事をしよう（7:30〜11:00 に入る）';
+  if (!ST.ach.pay) return '🎯 25日の給料日まではたらこう（📱スマホの「1週間おまかせ」も使えるよ）';
+  if (j.role === 'part') return `🎯 正社員をめざそう（はたらいた日 ${j.days}／10・評価 ${Math.round(j.eval)}／70）`;
+  if (ST.home === 'apt') { const n = Math.min(...Object.keys(PROPS).map(fees)); return ST.apply ? '🎯 ひだまり銀行で住宅ローンの審査を受けよう（平日 9:00〜15:00）' : `🎯 家を買おう！ 諸費用（約${man(n)}〜）をためて「すまいる不動産」へ`; }
+  return '🏡 家を買った！ ローンを返しながら、人生をつづけよう';
+}
+let hudT = 0;
+function updateHUD(dt) {
+  hudT -= dt; if (hudT > 0) return; hudT = 0.25;
+  const d = dayIdx();
+  $('h-date').textContent = dateStr(d) + '　' + ST.age + 'さい';
+  $('h-clock').textContent = hhmm(minOfDay());
+  $('h-money').textContent = '💴 ' + yen(ST.money);
+  $('h-en').textContent = Math.round(ST.energy); $('h-hu').textContent = Math.round(ST.hunger);
+  $('b-en').style.width = ST.energy + '%'; $('b-hu').style.width = ST.hunger + '%';
+  $('b-en').style.background = ST.energy < 20 ? '#ff5d6c' : '#5ad1ff'; $('b-hu').style.background = ST.hunger < 20 ? '#ff5d6c' : '#ffb35a';
+  $('goal').textContent = goalText();
+  const low = Math.min(ST.energy, ST.hunger);
+  $('vig').style.boxShadow = `inset 0 0 160px 60px rgba(0,0,0,${low < 20 ? (20 - low) / 25 : 0})`;
+}
+
+// =====================================================================
+//  タイトル・はじめる
+// =====================================================================
+function toTitle() {
+  MODE = 'title'; PAUSE = false;
+  ['hud', 'touch', 'actbtn', 'movehint', 'pos', 'shiftbar', 'say'].forEach(id => $(id).classList.add('hide'));
+  $('title').classList.remove('hide');
+  $('t-cont').style.display = loadSave() ? '' : 'none';
+}
+function startGame(st) {
+  ST = st; SND.init();
+  P.x = ST.pos.x; P.z = ST.pos.z; P.yaw = ST.pos.yaw; P.pitch = -0.05;
+  setFurniture();
+  ['pos', 'shiftbar', 'say'].forEach(id => $(id).classList.add('hide')); $('cross').classList.remove('hide');
+  $('title').classList.add('hide'); $('hud').classList.remove('hide');
+  if (IS_TOUCH) { $('touch').classList.remove('hide'); $('actbtn').classList.remove('hide'); $('movehint').classList.remove('hide'); setTimeout(() => $('movehint').classList.add('hide'), 8000); }
+  MODE = 'walk';
+  if (OPT.lockLand) lockLandscape(true);
+  else if (IS_TOUCH && innerHeight > innerWidth * 1.1) toast('📱 スマホを横にすると大きく遊べるよ');
+  if (!ST.started) {
+    ST.started = true; save();
+    openPanel('🏠 新しい生活のはじまり', `<b>${dateStr(0)} 朝 7:00</b><br>あなたは <b>22さい</b>。大学を出て、ひとりぐらしを始めたばかり。<br>
+      <div class="card">💴 貯金：<b>50万円</b><br>🏠 住まい：アパート「コーポさくら」101号室（1K・家賃 5.8万円）<br>💼 仕事：まだない</div>
+      目標は、<b>はたらいて、お金をためて、自分の家を買う</b>こと。<br>家賃・光熱費・年金・保険… 毎月お金は出ていく。体力とおなかにも気をつけて。<br>
+      <span class="small">まずは近くのコンビニ「まちかどマート」で、アルバイトをさがそう。部屋のパソコンでも情報が見られるよ。</span>`, [{ t: 'はじめる', cls: 'main', f: closePanel }]);
+  }
+}
+$('t-new').onclick = () => { SND.init(); SND.click(); const go = () => startGame(newState()); if (loadSave()) { if (confirm('セーブデータを消して、はじめからにする？')) go(); } else go(); };
+$('t-cont').onclick = () => { SND.init(); SND.click(); const s = loadSave(); if (s) startGame(s); };
+
+// =====================================================================
+//  まいコマの動き
+// =====================================================================
+let last = performance.now(), titleT = 0, autosave = 0;
+function frame(now) {
+  requestAnimationFrame(frame);
+  let dt = (now - last) / 1000; last = now;
+  if (!isFinite(dt) || dt < 0) dt = 0; dt = Math.min(dt, 0.05);
+  if (LW() !== VW || LH() !== VH || FORCE !== wantForce()) onResize();
+  if (!(innerWidth > 0 && innerHeight > 0) || !VW || !VH) return;
+  if (MODE === 'title') {
+    titleT += dt * 0.05;
+    camera.position.set(Math.cos(titleT) * 40, 22, Math.sin(titleT) * 40); camera.lookAt(0, 2, 0);
+    P.x = camera.position.x; P.z = camera.position.z;
+    lightAt(10.5 + Math.sin(titleT * 0.6) * 5.5);
+    const d = sun.userData.dir; sun.target.position.set(0, 0, 0); sun.position.set(d.x * 90, d.y * 90, d.z * 90); sky.position.copy(camera.position);
+  } else {
+    if (MODE === 'walk' && !PAUSE) {
+      updatePlayer(dt);
+      pass(dt * TIME_SCALE);
+      if (ST.energy <= 0) faint('energy'); else if (ST.hunger <= 0) faint('hunger');
+      const f = findInteract(); CUR_I = f;
+      const pr = $('prompt');
+      if (f) { pr.innerHTML = (IS_TOUCH ? '<b>［調べる］</b> ' : '<b>［E］</b> ') + f.lb; pr.classList.remove('hide'); } else pr.classList.add('hide');
+      $('actbtn').style.opacity = f ? 1 : 0.35;
+      autosave += dt; if (autosave > 20) { autosave = 0; save(); }
+    }
+    if (MODE === 'shift') updateShift(dt);
+    applyCamera(); updateLight(); updateHUD(dt);
+  }
+  updateDoors(dt); updateWalkers(dt); updateTraffic(dt);
+  renderer.render(scene, camera);
+}
+
+// =====================================================================
+//  はじめる
+// =====================================================================
+buildTown(); wires(); makeWalkers(); makeTraffic();
+// テスト用の道具（ブラウザのコンソールから）
+window.G = {
+  get ST() { return ST; }, P, PROPS, ECON, SHIFT, pass, newDay, loanMonthly, startGame, newState, save,
+  tp(x, z, yaw = 0) { P.x = x; P.z = z; P.yaw = yaw; },
+  setTime(h) { const m = h * 60 - minOfDay(); pass(m > 0 ? m : m + 1440); ST.energy = Math.max(ST.energy, 80); ST.hunger = Math.max(ST.hunger, 70); },
+  scanAll() { SHIFT.items.forEach(scanItem); },
+  posKey, get cust() { return shiftCust; }, get mode() { return MODE; }, get inter() { return CUR_I && CUR_I.lb; },
+  weekAuto, finishShiftQuiet, bankMenu, realtyMenu, loanReview, buyHome, closePanel, shiftMenu, bossTalk, startShift,
+};
+onResize(); landLabel(); sndLabel();
+requestAnimationFrame(frame);
+toTitle();
+if (Q.has('autostart')) startGame(loadSave() || newState());   // テスト用：?autostart ですぐ始める
+</script>
+</body>
+</html>
