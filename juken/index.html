@@ -1816,15 +1816,15 @@ function buildSchool(log,old,school,rnd=Math.random,n=5){
    ・判定は isPremium() の1か所だけ。FREE_ALL が true の間は全部無料で使える（あとで false にすると区切りが効く）
    ・テスト用：?premium=0（無料の人）／?premium=1（合格パックの人）
    ・本物の課金（Apple のアプリ内課金）はまだつないでいない。purchasePack()・restorePurchases() がつなぐ場所
-   ・無料：標準・上位レベル／くわしい解説・図・式のタップ説明／タイマー・延長・まちがいノート／かんたんな分析／苦手モード1日5問
-   ・合格パック：難関・最難関／志望校モード・学校ごとの傾向／合格の目安とのくらべ／くわしい分析／苦手モード無制限／📐中学の解き方
+   ・無料：標準・上位・難関レベル／くわしい解説・図・式のタップ説明／タイマー・延長・まちがいノート／かんたんな分析／苦手モード1日5問
+   ・合格パック：最難関／志望校モード・学校ごとの傾向／合格の目安とのくらべ／くわしい分析／苦手モード無制限／📐中学の解き方
    ・⚠️ 解説（わかりやすい説明・図）は有料にしない
    ========================================================= */
 const FREE_ALL=true;
 let SAVE=null; // セーブデータ（boot で入る）
 const PREM_Q=(typeof location!=='undefined')?new URLSearchParams(JQ).get('premium'):null;
 function isPremium(){ return JH.isPremium('sansu'); } /* [まとめ版] 判定は外がわの1か所 */
-const FREE_WEAK_PER_DAY=5, FREE_MAX_LV=2;
+const FREE_WEAK_PER_DAY=5, FREE_MAX_LV=3; // 無料は 標準・上位・難関 まで（最難関だけ合格パック）
 // バックアップを読みこむとき：premium は読みこむ中身では書きかえない（ずるで有料にならないように）
 function mergeImport(cur,imp){ const r=Object.assign({},imp&&typeof imp==='object'?imp:{}); r.premium=!!(cur&&cur.premium===true); return r; }
 
@@ -2128,9 +2128,9 @@ function packView(){
   const why=arg&&arg.why==='weak'?`<div class="over">🎯 苦手モードは、無料では1日${FREE_WEAK_PER_DAY}問までです。今日の分は終わりました。</div>`:'';
   return topbar('💎 合格パック','home')+why+`<div class="card center"><div style="font-size:40px">💎</div><b style="font-size:20px">合格パック</b><div class="sub">1回の支払いで、ずっと使える予定です（月額ではありません）</div><div class="big" style="font-size:26px;margin:6px 0">値段：準備中</div></div>
     <div class="card"><b>🆓 いまのまま、ずっと無料</b><ul class="sub" style="line-height:1.9;margin:6px 0">
-      <li>標準・上位レベルの全単元</li><li>くわしい解説・図・式をタップした説明（解説は無料のまま）</li><li>タイマー・延長・まちがいノート</li><li>かんたんな分析（正答率・問題数）</li><li>苦手モード（1日5問まで）</li></ul></div>
+      <li>標準・上位・難関レベルの全単元</li><li>くわしい解説・図・式をタップした説明（解説は無料のまま）</li><li>タイマー・延長・まちがいノート</li><li>かんたんな分析（正答率・問題数）</li><li>苦手モード（1日5問まで）</li></ul></div>
     <div class="card"><b>💎 合格パックでできること</b><ul style="line-height:1.9;margin:6px 0;padding-left:1.2em">
-      <li>難関・最難関レベルの問題</li><li>志望校モード・学校ごとの傾向</li><li>合格の目安とのくらべ（グラフ・表）</li><li>くわしい分析（得意・苦手ランキング・レーダーチャート・14日のグラフ・アドバイス）</li><li>苦手モード 無制限</li><li>📐 中学の解き方（方程式）</li></ul></div>
+      <li>最難関レベルの問題</li><li>志望校モード・学校ごとの傾向</li><li>合格の目安とのくらべ（グラフ・表）</li><li>くわしい分析（得意・苦手ランキング・レーダーチャート・14日のグラフ・アドバイス）</li><li>苦手モード 無制限</li><li>📐 中学の解き方（方程式）</li></ul></div>
     <div class="card"><div class="sub">広告はありません。ガチャや小さな課金もありません。購入するときは、<b>おうちの人といっしょに</b>決めてね。</div></div>
     <button class="btn main wide" data-act="buy">購入する（準備中）</button>
     <button class="btn wide" data-act="restore" style="margin-top:8px">購入を復元する（準備中）</button>
@@ -2183,7 +2183,7 @@ function startWeak(){
   const left=weakLeft(); if(left<=0){ go('pack',{why:'weak'}); return; }
   const w=buildWeak(S.log,S.logOld,Math.random,Math.min(5,left));
   if(!w.items.length){ toast(w.msg); return; }
-  // 無料のあいだは標準・上位まで（難関・最難関は合格パック）
+  // 無料のあいだは標準・上位・難関まで（最難関は合格パック）
   const items=isPremium()?w.items:w.items.map(it=>it.lv>FREE_MAX_LV?{...it,lv:FREE_MAX_LV,seed:findSeed(it.g,FREE_MAX_LV,'',Math.random,0)}:it);
   startSet(items,'weak','🎯 苦手モード');
 }
@@ -3085,9 +3085,9 @@ const SAVE_KEY='kokugo-save-v1';
    ・いまは本物の課金はつないでいない。FREE_ALL が true の間は、全部無料で使える。
    ・あとで FREE_ALL を false にすると、区切りが効く（isPremium() が false の人は合格パックの機能が 🔒 になる）。
    ・判定はこの isPremium() の1か所だけ。S（セーブ。算数アプリでは SAVE）の premium が true なら有料。
-   ・無料（ずっと使える）：標準・上位レベルの全分野／1問ごとの解説・漢字メモ（解説は有料にしない）／タイマー・延長・まちがいノート／
+   ・無料（ずっと使える）：標準・上位・難関レベルの全分野／詩の大問は1つ分（はじめに選んだ1つ）／1問ごとの解説・漢字メモ（解説は有料にしない）／タイマー・延長・まちがいノート／
      かんたんな分析（正答率・問題数）／苦手モード（漢字・語句は1日5問まで・長文は1日1回まで）
-   ・合格パック：難関・最難関レベル／志望校モード・学校ごとの出やすさ／合格の目安との比較／くわしい分析／苦手モード使いほうだい
+   ・合格パック：最難関レベル／詩の大問（2つ目から）／志望校モード・学校ごとの出やすさ／合格の目安との比較／くわしい分析／苦手モード使いほうだい
    ========================================================= */
 const FREE_ALL=JH.FREE_ALL; /* [まとめ版] 外がわと同じ値 */
 const ALLOW_TEST_PARAM=true;     // ?premium=0（区切りをためす）/ ?premium=1（有料にする）。⚠ リリース前に false にする
@@ -3096,8 +3096,10 @@ const FREE_WEAK_DOKU=1;          // 無料の苦手モード（長文・詩）�
 function isPremium(){ return JH.isPremium('kokugo'); } /* [まとめ版] 判定は外がわの1か所 */
 function lk(){return isPremium()?'':'🔒';}                       // ボタンにつける鍵
 function packTag(){return isPremium()?'':'<span class="pk">🔒 合格パック</span>';}   // 見出しにつける小さなしるし
-// 無料のあいだ（有料でない人）は、難関・最難関は使えないので、使うレベルは上位まで
-function curLv(){return isPremium()?S.level:Math.min(S.level,2);}
+// 無料のあいだ（有料でない人）は、最難関は使えないので、使うレベルは難関まで
+function curLv(){return isPremium()?S.level:Math.min(S.level,3);}
+// 詩の大問：無料の人は1つ分だけ（はじめに答え合わせまでした1つ。S.poemFree に端末で覚える）。同じ詩をもう一度解くのは無料
+function poemOK(id){if(isPremium())return true;const p=PASSAGES.find(x=>x.id===id);if(!p||!p.poem)return true;return !S.poemFree||S.poemFree===id;}
 // 苦手モードの「今日の無料分」
 function freeUse(){const t=dayStr();if(!S.freeUse||S.freeUse.d!==t)S.freeUse={d:t,q:0,doku:0};return S.freeUse;}
 function freeLeftQ(){return Math.max(0,FREE_WEAK_Q-freeUse().q);}
@@ -3263,7 +3265,7 @@ function home(){ {const m=mainSchool(); if(m&&S.lvMain!==m.id){S.level=m.level;S
     return '<button class="unit'+(wide?' wide':'')+'" onclick="startUnit(\''+u+'\')"><div class="ic">'+U.ic+'</div><div style="flex:1;width:100%"><div class="nm">'+U.name+'</div>'+
       '<div class="muted">覚えた '+m+' / '+n+'</div><div class="bar"><i style="width:'+(n?m/n*100:0)+'%"></i></div></div></button>';};
   const dokuBtn=k=>{const ps=PASSAGES.filter(p=>p.lv===curLv()&&p.kind===k);
-    return ps.map(p=>'<button class="unit wide" onclick="startDoku(\''+p.id+'\')"><div class="ic">'+(k==='詩'?'詩':k[0])+'</div><div style="flex:1"><div class="nm">'+esc(p.title)+(p.author?' <span class="muted">'+esc(p.author)+'</span>':'')+'</div>'+
+    return ps.map(p=>'<button class="unit wide" onclick="startDoku(\''+p.id+'\')"><div class="ic">'+(k==='詩'?'詩':k[0])+'</div><div style="flex:1"><div class="nm">'+(poemOK(p.id)?'':'🔒 ')+esc(p.title)+(p.author?' <span class="muted">'+esc(p.author)+'</span>':'')+'</div>'+
       '<div class="muted">'+LEVELS[p.lv]+'レベル・'+p.kind+'　⏱ 目安'+p.min+'分'+(p.id in S.doku?'　さいこう '+S.doku[p.id]+'点':'')+'</div></div><div>›</div></button>').join('');};
   // 7日間のグラフ
   let wk='',mx=GOAL;const days=[];for(let k=6;k>=0;k--){const d=new Date();d.setDate(d.getDate()-k);const s=dayStr(d);days.push([s,S.days[s]||0,'日月火水木金土'[d.getDay()]]);mx=Math.max(mx,S.days[s]||0);}
@@ -3271,7 +3273,7 @@ function home(){ {const m=mainSchool(); if(m&&S.lvMain!==m.id){S.level=m.level;S
   app.innerHTML=
   '<div class="top"><div class="logo">国語</div><div class="lv"><b>Lv.'+L.lv+'</b><div class="bar gold" style="width:110px;margin-top:3px"><i style="width:'+(L.p*100)+'%"></i></div></div></div>'+
   '<div class="muted">中学受験の国語 ― 漢字・長文読解・詩を、毎日すこしずつ。</div>'+schoolCardHTML()+
-  '<div class="card"><b>目指す学校のレベル</b><div class="levels">'+[1,2,3,4].map(l=>'<button class="'+(curLv()===l?'on':'')+'" onclick="setLevel('+l+')">'+LEVELS[l]+(l>2?lk():'')+'</button>').join('')+'</div>'+
+  '<div class="card"><b>目指す学校のレベル</b><div class="levels">'+[1,2,3,4].map(l=>'<button class="'+(curLv()===l?'on':'')+'" onclick="setLevel('+l+')">'+LEVELS[l]+(l>3?lk():'')+'</button>').join('')+'</div>'+
    '<div class="muted" style="margin-top:6px">漢字・長文・詩の問題が、このレベルの入試の難しさと出し方になります。</div></div>'+
   '<div class="card today"><div class="fire">🔥'+st+'<small>日連続</small></div>'+
    '<div><div class="row"><b>今日の目標</b><span class="sp"></span><span>'+Math.min(t,GOAL)+' / '+GOAL+'問'+(t>=GOAL?' ✅':'')+'</span></div>'+
@@ -3291,12 +3293,12 @@ function home(){ {const m=mainSchool(); if(m&&S.lvMain!==m.id){S.level=m.level;S
    '<div><b style="font-size:1.3rem">'+(S.ans?Math.round(S.cor/S.ans*100):0)+'%</b><div class="muted">正答率</div></div>'+
    '<div><b style="font-size:1.3rem">'+S.xp+'</b><div class="muted">けいけん値</div></div></div>'+
    '<div class="muted" style="margin:12px 0 4px">この7日間</div><div class="week">'+wk+'</div></div>'+
-  (isPremium()?'':'<div class="card" style="border-color:var(--gold)"><b>🎓 合格パック</b> <span class="tag">準備中</span><div class="muted" style="margin:4px 0 8px">難関・最難関／志望校モード／合格の目安とのくらべ／くわしい分析／苦手モード使いほうだい。解説・タイマー・まちがいノートは、ずっと無料です。</div><button class="btn sub small" onclick="showPack()">紹介を見る</button></div>')+
+  (isPremium()?'':'<div class="card" style="border-color:var(--gold)"><b>🎓 合格パック</b> <span class="tag">準備中</span><div class="muted" style="margin:4px 0 8px">最難関レベル／詩の大問（2つ目から）／志望校モード／合格の目安とのくらべ／くわしい分析／苦手モード使いほうだい。解説・タイマー・まちがいノートは、ずっと無料です。</div><button class="btn sub small" onclick="showPack()">紹介を見る</button></div>')+
   '<div class="row" style="justify-content:center;margin-top:8px"><button class="btn sub small" onclick="toggleMute()">音：'+(S.mute||MUTE?'オフ 🔇':'オン 🔊')+'</button></div>'+
   '<p class="muted" style="text-align:center;margin-top:14px;font-size:.78rem">長文はこのアプリのために書いたオリジナルの文章、詩は著作権の保護期間が終わった作品です。<br>問題は入試と同じ出し方で作ったオリジナルで、実際の入試問題ではありません。<br>タイマーの時間は、合格する人がだいたい解き終える時間の目安です。<br>記録はこの端末だけに保存されます。</p>';
   scrollTo(0,0);
 }
-function setLevel(l){if(l>2&&!isPremium()){showPack('難関・最難関レベル');return;}S.level=l;save();home();}
+function setLevel(l){if(l>3&&!isPremium()){showPack('最難関レベル');return;}S.level=l;save();home();}
 function toggleMute(){S.mute=!S.mute;save();home();}
 
 // ====================== 画面：問題（漢字・ことば） ======================
@@ -3410,6 +3412,7 @@ function passageHTML(p){
   return p.paras.map(s=>'<p>'+mk(s)+'</p>').join('')+'<p class="src">（このアプリのために書いたオリジナルの文章）</p>';
 }
 function startDoku(id,sel,opt){
+  if(!poemOK(id)){showPack('詩の大問（無料は1つ分です）');return;}
   const base=PASSAGES.find(x=>x.id===id);let p=base;
   const sch=opt&&opt.school?opt.school:null;
   // sel（設問の番号の一覧）があるときは、その設問だけの「苦手ミニ演習」
@@ -3497,6 +3500,7 @@ function grade(timeUp){
     if(blank&&!confirm('まだ答えていない問題が'+blank+'問あります。答え合わせしますか？'))return;
   }
   D.inTime=TM.ext===0&&!timeUp;D.usedExt=TM.ext;D.took=(performance.now()-D.t0)/1000;tStop();D.graded=true;
+  if(D.p.poem&&!isPremium()&&!S.poemFree){S.poemFree=D.p.id;save();}     // 詩の無料の1つ分は、答え合わせまでしたら「使った」
   if(D.p.weak&&!isPremium()){freeUse().doku++;save();}     // 苦手ミニ演習（無料）は、答え合わせまでしたらかぞえる
   $('tm').textContent=timeUp?'⏰ 終了':'✔ 終了';
   renderQs();$('qp').scrollTop=0;
@@ -3639,7 +3643,7 @@ function importBackup(){JH.openBackup();return;
     const o=JSON.parse($('bkin').value);
     if(!o||o.app!=='kokugo'||!o.S)throw 0;
     if(!confirm('今の記録は、貼りつけた記録に置きかわります。よいですか？'))return;
-    o.S.premium=S.premium===true;o.S.freeUse=S.freeUse;      // 有料の印と、今日の無料分は、読みこみでは書きかえない
+    o.S.premium=S.premium===true;o.S.freeUse=S.freeUse;o.S.poemFree=S.poemFree;      // 有料の印と、今日の無料分は、読みこみでは書きかえない
     localStorage.setItem(SAVE_KEY,JSON.stringify(o.S));S=load();toast('読みこみました');showStats();
   }catch(e){toast('読みこめませんでした（貼りつけた文字を見直してね）');}
 }
@@ -3678,7 +3682,7 @@ function startWeakKanji(){
   let cap=PER;
   if(!isPremium()){const left=freeLeftQ();if(left<=0){showPack('苦手モードの今日の無料分（'+FREE_WEAK_Q+'問）は終わりました');return;}cap=Math.min(PER,left);}
   const all=[];
-  KANJI_U.forEach(u=>UNITS[u].items.forEach((it,i)=>isPremium()||!UNITS[u].lv||it[it.length-1]<=2?all.push({u,i,key:u+':'+i,w:itemWeak(u+':'+i),word:wordOf(u,i),lvok:!UNITS[u].lv||it[it.length-1]===curLv()}):0));
+  KANJI_U.forEach(u=>UNITS[u].items.forEach((it,i)=>isPremium()||!UNITS[u].lv||it[it.length-1]<=3?all.push({u,i,key:u+':'+i,w:itemWeak(u+':'+i),word:wordOf(u,i),lvok:!UNITS[u].lv||it[it.length-1]===curLv()}):0));
   const cw={};aggregate().forEach(a=>{cw[a.c]=a.weak;});
   const seeds=all.filter(x=>x.w>0.5).sort((a,b)=>b.w-a.w).slice(0,6);
   const sc=[];
@@ -3714,7 +3718,7 @@ function startWeakDoku(){
   const last=[...S.log].reverse().find(e=>String(e.k).indexOf('doku:')===0),lastPid=last?last.k.split(':')[1]:'';
   let best=null;
   PASSAGES.forEach(p=>{
-    if(Math.abs(p.lv-curLv())>1||(!isPremium()&&p.lv>2))return;
+    if(Math.abs(p.lv-curLv())>1||(!isPremium()&&p.lv>3)||!poemOK(p.id))return;
     const other=p.kind==='物語文'?'説明文':p.kind==='説明文'?'物語文':'';
     const ws=p.qs.map((q,i)=>{const sk=skillOf(p.id,i);let w=cw[p.kind+'・'+sk]||0;
       (SK_REL[sk]||[]).forEach(r=>{w=Math.max(w,0.4*(cw[p.kind+'・'+r]||0));});
@@ -3958,8 +3962,8 @@ function showPack(feature){
    (feature?'<div class="card" style="border-color:var(--gold)">🔒 <b>'+esc(feature)+'</b> は、合格パックで使えます。</div>':'')+
    '<div class="card"><div style="font-size:1.2rem;font-weight:700">🎓 合格パック <span class="tag">準備中</span></div>'+
    '<p class="muted" style="margin:6px 0">無料ではじめて、もっと本気で受験にそなえたいときの、<b>1回払い</b>のパックです（毎月の支払いではありません）。</p>'+
-   '<div class="sec" style="margin-top:10px">合格パックでできること</div>'+li(['難関・最難関レベルの問題（漢字・語句・長文・詩）','志望校モードと、学校ごとの国語の出やすさ','合格の目安とのくらべ（グラフ・表）','くわしい分析（得意・苦手ランキング・レーダーチャート・14日間のグラフ・ひとことアドバイス）','苦手モードが使いほうだい'])+
-   '<div class="sec">ずっと無料で使えるもの</div>'+li(['標準・上位レベルの全分野（漢字・語句・長文・詩）','<b>1問ごとの解説・漢字メモ（解説はずっと無料です）</b>','タイマー・延長・まちがいノート','かんたんな分析（正答率・問題数）','苦手モード（漢字・語句は1日'+FREE_WEAK_Q+'問、長文・詩は1日'+FREE_WEAK_DOKU+'回まで）'])+
+   '<div class="sec" style="margin-top:10px">合格パックでできること</div>'+li(['最難関レベルの問題（漢字・語句・長文・詩）','詩の大問（無料は1つ分。2つ目から）','志望校モードと、学校ごとの国語の出やすさ','合格の目安とのくらべ（グラフ・表）','くわしい分析（得意・苦手ランキング・レーダーチャート・14日間のグラフ・ひとことアドバイス）','苦手モードが使いほうだい'])+
+   '<div class="sec">ずっと無料で使えるもの</div>'+li(['標準・上位・難関レベルの全分野（漢字・語句・長文）','詩の大問は1つ分（はじめに選んだ1つ。同じ詩のやり直しは無料）','<b>1問ごとの解説・漢字メモ（解説はずっと無料です）</b>','タイマー・延長・まちがいノート','かんたんな分析（正答率・問題数）','苦手モード（漢字・語句は1日'+FREE_WEAK_Q+'問、長文・詩は1日'+FREE_WEAK_DOKU+'回まで）'])+
    '<p style="margin:12px 0 4px">値段：<b>準備中</b></p>'+
    '<div class="muted" style="margin-bottom:10px">⚠ 購入は、<b>おうちの人といっしょに</b>。購入の前に、大人の確認があります。合格をやくそくするものではありません。</div>'+
    '<button class="btn" onclick="startPurchase()">購入する（準備中）</button><div style="height:8px"></div><button class="btn sub" onclick="restorePurchases()">購入を復元する（準備中）</button></div>'+
@@ -4051,6 +4055,10 @@ function saveU(){ try{ localStorage.setItem(KEY,JSON.stringify(U)); }catch(e){} 
 function mergeImport(cur,imp){
   const r={v:1,shared:Object.assign(defShared(),(imp&&imp.shared)||{}),sansu:(imp&&imp.sansu)||null,kokugo:(imp&&imp.kokugo)||null};
   r.shared.premium=Object.assign({sansu:false,kokugo:false},(cur&&cur.shared&&cur.shared.premium)||{});
+  // 無料の分の記録（国語の詩の1つ分・無料の苦手モードの数・算数の苦手モードの日数）も、読みこむ中身では書きかえない
+  const ck=(cur&&cur.kokugo)||{}, cs=(cur&&cur.sansu)||{};
+  if(r.kokugo){ r.kokugo=Object.assign({},r.kokugo); r.kokugo.freeUse=ck.freeUse; r.kokugo.poemFree=ck.poemFree; }
+  if(r.sansu){ r.sansu=Object.assign({},r.sansu); r.sansu.weakDay=cs.weakDay; }
   r.shared.migrated=true; return r;
 }
 const exportBackup=()=>JSON.stringify({app:'juken',v:1,U});
