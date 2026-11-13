@@ -154,7 +154,6 @@ h1,h2,h3{margin:.2em 0 .5em}
 .chip span{flex:1}
 .chip button{padding:4px 8px;border-radius:8px;background:var(--card);font-size:12px}
 input[type=text],input[type=search]{font:inherit;width:100%;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
-.sqi{margin:8px 0 0 .1em}
 .idea{background:var(--y2);border-radius:12px;padding:8px 10px;font-size:13px;margin:8px 0}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .lv.l3{background:#3b2950;color:#d7a8ff}:root:not([data-theme="light"]) .lv.l4{background:#4a2530;color:#ff8da1}}
 .lv .st{display:block;font-size:12px;line-height:1}
@@ -1578,372 +1577,9 @@ G.tsuuka.alg=(p,P)=>{ if(p.t==='len') return [alg1(P,{set:'電車の長さを x 
 function attachAlg(P){ const g=G[P.g]; if(P.lv>=2&&g.alg){ const r=g.alg(P.p,P); if(r&&r.length) P.alg=r; } }
 
 /* =========================================================
-   🔥 難関・最難関 用の型
-   ・小問（1）（2）（3）と進む「大問」の形（（1）が（2）のヒントになる）
-   ・条件が2〜3つ重なる／途中で状況が変わる／2つの単元をあわせる
-   ・problem の parts：小問ごとの答え。ans は最後の小問の答え。solve は小問ぜんぶの答えの配列を返す
-   ・minLv:3 …難関・最難関だけ（標準・上位にはない）
-   ========================================================= */
-const fact=n=>n<=1?1:n*fact(n-1);
-const sq=(stem,qs)=>stem+qs.map((t,i)=>`<div class="sqi">(${i+1}) ${t}</div>`).join('');
-const mkParts=a=>a.map(x=>({a:F(x[0]),u:x[1]||'',f:x[2]||'int'}));
-const finish=(o,parts)=>{ const L=parts[parts.length-1]; return Object.assign(o,{parts,ans:L.a,fmt:L.f,unit:L.u}); };
-const sumArr=a=>a.reduce((x,y)=>x+y,0);
-
-/* ===== N進法・重さの量り方（数の性質） ===== */
-def('nshin',{unit:'seishitsu',name:'N進法・天びんと分銅',desc:'位取りのきまりを使う大問',minLv:3,tm:[0,0,300,480],
-  idea:'N進法は「N個集まると次の位へ1繰り上がる」位取り。右から N⁰・N¹・N²・… の位になる。',
-  gen(r,lv){
-    if(lv===3){
-      const b=r.pick([2,3,4,5,6,7,8,9]), n=r.int(b**3,Math.min(b**5-1,3000));
-      const dg=[r.int(1,b-1),r.int(0,b-1),r.int(0,b-1),r.int(0,b-1)], mStr=dg.join(''), mVal=dg.reduce((s,d)=>s*b+d,0);
-      let maxd=3; while(b**maxd<=2500&&maxd<5) maxd++; const dd=r.int(3,maxd), K=r.int(b**(dd-1),Math.min(3000,b**dd+b**(dd-1)));
-      // (1) わり算をくり返す
-      let x=n, lines=[], ds=''; while(x>0){ lines.push(`${x} ÷ ${b} = ${Math.floor(x/b)} あまり ${x%b}`); ds=(x%b)+ds; x=Math.floor(x/b); }
-      const cnt=Math.max(0,Math.min(K,b**dd-1)-b**(dd-1)+1);
-      const parts=mkParts([[+ds,''],[mVal,''],[cnt,'個']]);
-      const st=[
-        W(`(1) ${b}でわり続けて、あまりを下から読む：<br>${lines.join('<br>')}<br>→ <b>${ds}</b>`,`${b}進法では、${b}で何回もわって、出てきた「あまり」を、最後のものから順に（下から上へ）並べる。あまりは、小さい位から順に出てくるから。`),
-        W(`(2) ${mStr} = ${dg.map((d,i)=>`${d}×${b**(3-i)}`).join(' + ')} = <b>${mVal}</b>`,`${b}進法の数は、右から ${b}⁰（=1）・${b}¹・${b}²・${b}³ の位。各けたの数に、その位の大きさをかけてたす。`),
-        W(`(3) ${dd}けたの数は ${b**(dd-1)} 〜 ${b**dd-1}（${b}進法で ${'1'+'0'.repeat(dd-1)} 〜 ${String(b-1).repeat(dd)}）`,`${b}進法で${dd}けたになる最小の数は「1のあとに0が${dd-1}個」＝${b}の${dd-1}乗。最大は「${b-1}が${dd}個」＝${b}の${dd}乗−1。`),
-        W(`1〜${K}にふくまれるのは ${Math.min(K,b**dd-1)} − ${b**(dd-1)} + 1 = <b>${cnt}</b>個`,`${K}が範囲の最大より小さいときは、${K}までで打ち切る。（のこりを数えまちがえやすい）`)];
-      return finish({q:sq(`${b}進法について答えましょう。`,[`10進法の ${n} を、${b}進法で表しましょう。`,`${b}進法で書かれた数 ${mStr} は、10進法ではいくつですか。`,`10進法の1以上${K}以下の整数のうち、${b}進法で表したときにちょうど${dd}けたになる数は何個ありますか。`]),hint:'位取りの考え方。わり算のくり返し／各位の大きさ',steps:st,p:{t:'conv',b,n,m:mStr,K,dd}},parts);
-    }
-    const k=r.pick([4,5]), mx=(3**k-1)/2, Wt=r.int(Math.floor(mx/3),mx);
-    // 平衡3進法：Wt を 1,3,9,… で表す（右の皿 +1、左の皿 -1）
-    let y=Wt, dgt=[]; for(let i=0;i<k;i++){ let d=y%3; if(d===2){ d=-1; y=(y+1)/3; } else y=(y-d)/3; dgt.push(d); }
-    const used=dgt.filter(d=>d!==0).length, names=Array.from({length:k},(_,i)=>3**i);
-    const parts=mkParts([[2**k-1,'通り'],[mx,'g'],[used,'個']]);
-    const st=[
-      W(`(1) 分銅${k}個のうち、使うものをえらぶ：2×2×…（${k}個）−（何も使わない1通り）= <b>${2**k-1}</b>通り`,'一方の皿だけに置くときは、それぞれの分銅を「使う・使わない」の2通りからえらぶ。ただし何も使わないときは重さが0なので、1通りをのぞく。1,3,9,…は、どの組み合わせでも合計がちがう重さになる。'),
-      W(`(2) 両方の皿が使えるとき、品物のとなりに置く分銅は「ひく」ことになる。最大は、全部をはんたいの皿に置いたとき：${names.join(' + ')} = <b>${mx}</b>g`,`品物と同じ皿に分銅を置くと、その分だけ はかる重さはへる（式では−）。いちばん重いものがはかれるのは、全部を品物と はんたいの皿に置いたとき。1+3+9+…= ${mx}。`),
-      W(`(3) ${Wt}g ＝ ${dgt.map((d,i)=>d===0?null:`${d>0?'+':'−'}${3**i}`).filter(Boolean).join(' ')}（＋は品物のはんたいの皿、−は品物と同じ皿）`,`3で何回もわって考える。あまりが2のときは「3の次の位を1ふやして、この位を−1」にすると、使う分銅がふえない（「3進法」を、−1・0・1で表す考え方）。${Wt}を3でわる→…とくり返すと、各位の使い方が決まる。`),
-      W(`使う分銅は <b>${used}</b>個`,'0でない位の数＝使う分銅の個数。')];
-    return finish({q:sq(`${names.join('g、')}g の分銅が1個ずつと、てんびんがあります。`,[`分銅を、てんびんの一方の皿だけに置いてよいとき、はかれる重さ（1g以上の整数g）は何通りありますか。`,`品物をのせた皿に分銅を置いてもよいとき、はかれるいちばん重い品物は何gですか。`,`${Wt}gの品物をはかるとき、使う分銅は全部で何個ですか。`]),hint:'1,3,9,…は3倍ずつ。使い方は「使わない・品物のはんたい側・品物と同じ側」の3通り',steps:st,p:{t:'wt',k,W:Wt}},parts);
-  },
-  solve(p){
-    if(p.t==='conv') return [+p.n.toString(p.b), parseInt(p.m,p.b), (()=>{let c=0;for(let x=1;x<=p.K;x++) if(x.toString(p.b).length===p.dd)c++;return c;})()];
-    const w=Array.from({length:p.k},(_,i)=>3**i), one=new Set(), both=new Set(); let usedN=null;
-    for(let m=1;m<(1<<p.k);m++){ let s=0; for(let i=0;i<p.k;i++) if(m>>i&1) s+=w[i]; one.add(s); }
-    const tot=3**p.k; for(let c=0;c<tot;c++){ let x=c,s=0,u=0; for(let i=0;i<p.k;i++){ const d=x%3-1; x=Math.floor(x/3); s+=d*w[i]; if(d) u++; } if(s>0) both.add(s); if(s===p.W){ if(usedN!==null) return null; usedN=u; } }
-    return [one.size, Math.max(...both), usedN];
-  }});
-
-/* ===== 倍数・約数・あまり（数の性質×場合の数） ===== */
-def('amari2',{unit:'seishitsu',name:'約数・倍数・あまりの大問',desc:'条件を重ねて数える',minLv:3,tm:[0,0,300,480],
-  idea:'倍数の個数は「N÷a の商」。2つの条件が重なるときは、重なりを引く（ベン図）。約数の個数・和は、素数のかけ算（素因数分解）で考える。',
-  gen(r,lv){
-    if(lv===3){
-      let a,b,N,r1,r2; do{ a=r.int(3,9); b=r.int(3,9); N=r.int(150,600); r1=r.int(1,a-1); r2=r.int(1,b-1); }while(a===b||gcd(a,b)!==1||r1===r2);
-      const ab=a*b, c1=N-Math.floor(N/a)-Math.floor(N/b)+Math.floor(N/ab), c2=Math.floor((N-r1)/a)+1;
-      let x0=r1; while(x0%b!==r2) x0+=a; const c3=N>=x0?Math.floor((N-x0)/ab)+1:0;
-      const parts=mkParts([[c1,'個'],[c2,'個'],[c3,'個']]);
-      const st=[
-        W(`(1) ${a}の倍数：${Math.floor(N/a)}個、${b}の倍数：${Math.floor(N/b)}個、両方（${ab}の倍数）：${Math.floor(N/ab)}個 → ${N} − ${Math.floor(N/a)} − ${Math.floor(N/b)} + ${Math.floor(N/ab)} = <b>${c1}</b>個`,`「${a}の倍数でも${b}の倍数でもない」＝全体から、どちらかの倍数をのぞく。${a}の倍数と${b}の倍数を両方ひくと、両方の倍数（${a}と${b}の最小公倍数 ${ab}）を2回ひいてしまうので、1回分もどす。`,svg(220,110,`<circle cx="85" cy="55" r="45" class="sv-a" opacity=".8"/><circle cx="135" cy="55" r="45" class="sv-b" opacity=".7"/>${T(65,60,a+'の倍数')}${T(155,60,b+'の倍数')}${T(110,60,'両方','sv-tb')}`)),
-        W(`(2) ${a}で割ると${r1}あまる数：${r1}, ${r1+a}, ${r1+2*a}, … 最後は ${r1+a*(c2-1)} → (${N} − ${r1}) ÷ ${a} の商 ${Math.floor((N-r1)/a)} に1を足して <b>${c2}</b>個`,`「あまりが${r1}」の数は、${r1}から始めて${a}ずつふえる列（等差数列）。何個あるかは、「ふえた回数＋1」。`),
-        W(`(3) ${a}で${r1}あまり、${b}で${r2}あまる最小の数：${r1}, ${r1+a}, … と調べて <b>${x0}</b>。このあとは ${ab}（${a}と${b}の最小公倍数）ごとにくり返す`,`${a}で割って${r1}あまる数を小さい方から書き、${b}で割ったあまりが${r2}になるものをさがす。見つかったら、次は ${a}と${b}の最小公倍数 ${ab} ずつ大きい数が条件に合う。`),
-        W(`${x0}, ${x0+ab}, ${x0+2*ab}, … のうち ${N}以下は (${N} − ${x0}) ÷ ${ab} の商 ${Math.floor((N-x0)/ab)} に1を足して <b>${c3}</b>個`,'最初の数 ＋ くり返しの幅×回数 ≦ N になる回数を数える。')];
-      return finish({q:sq(`1から${N}までの整数について答えましょう。`,[`${a}でも${b}でも割り切れない数は何個ありますか。`,`${a}で割ると${r1}あまる数は何個ありますか。`,`${a}で割ると${r1}あまり、${b}で割ると${r2}あまる数は何個ありますか。`]),hint:'倍数の個数＝商。重なりは1回だけ数える',steps:st,p:{t:'cnt',a,b,N,r1,r2}},parts);
-    }
-    if(r()<0.5){ // 約数の個数・和
-      const e2=r.int(2,4), e3=r.int(1,3), e5=r.int(1,2), N=2**e2*3**e3*5**e5;
-      const sg=(p,e)=>(p**(e+1)-1)/(p-1);
-      const parts=mkParts([[(e2+1)*(e3+1)*(e5+1),'個'],[(e2+1)*(e5+1),'個'],[sg(2,e2)*sg(3,e3)*sg(5,e5),'']]);
-      const st=[
-        W(`(1) ${N} = 2を${e2}個 × 3を${e3}個 × 5を${e5}個（2の${e2}乗 × 3の${e3}乗 × 5の${e5}乗）。約数は「2を0〜${e2}個、3を0〜${e3}個、5を0〜${e5}個」えらんでかけたもの → ${e2+1} × ${e3+1} × ${e5+1} = <b>${(e2+1)*(e3+1)*(e5+1)}</b>個`,'まず素数のかけ算（素因数分解）に直す。約数は、それぞれの素数を「何個ふくめるか」で決まる。ふくめ方は（個数＋1）通りずつ。かけ算で数えられる。'),
-        W(`(2) 3の倍数でない約数は、3を0個しか使わない：${e2+1} × 1 × ${e5+1} = <b>${(e2+1)*(e5+1)}</b>個`,'「3の倍数でない」＝3をふくまない。3の使い方が1通り（0個）に決まるので、そのぶんだけ減る。'),
-        W(`(3) 約数の和 ＝ (1+2+…+${2**e2}) × (1+3+…+${3**e3}) × (1+5${e5>1?'+25':''}) = ${sg(2,e2)} × ${sg(3,e3)} × ${sg(5,e5)} = <b>${sg(2,e2)*sg(3,e3)*sg(5,e5)}</b>`,'約数の和は、素数ごとの「1＋その素数＋…」の和をかけ合わせたものになる（かっこをはずすと、全部の約数が1回ずつ出てくる）。')];
-      return finish({q:sq(`${N}について答えましょう。`,[`${N}の約数は全部で何個ありますか。`,`${N}の約数のうち、3の倍数でないものは何個ありますか。`,`${N}の約数をすべてたすと、いくつになりますか。`]),hint:'素数のかけ算（素因数分解）にして、使い方を数える',steps:st,p:{t:'div',e2,e3,e5}},parts);
-    }
-    // 最大公約数・最小公倍数から2数をさがす
-    for(;;){ const g=r.int(2,12); let x=r.int(2,9), y=r.int(2,9); if(x>=y||gcd(x,y)!==1) continue; const L=g*x*y, S=g*(x+y);
-      const pairs=[]; for(let a=g;a<=L;a+=g){ const b=S-a; if(b>=a&&gcd(a,b)===g&&lcm(a,b)===L) pairs.push([a,b]); } if(pairs.length!==1) continue;
-      const parts=mkParts([[g*L,''],[g*x,''],[g*(y-x),'']]);
-      const st=[
-        W(`(1) 2数を ${g}×□、${g}×△（□と△は、1以外の公約数がない数）とすると、積は ${g}×${g}×□×△、最小公倍数は ${g}×□×△。だから 積 ＝ 最大公約数 × 最小公倍数 = ${g} × ${L} = <b>${g*L}</b>`,'どんな2つの整数でも「2数の積 ＝ 最大公約数 × 最小公倍数」。'),
-        W(`(2) 最小公倍数 ÷ 最大公約数 = ${L} ÷ ${g} = ${x*y} ＝ □×△。□と△は組み合わせが限られる：${[...Array(x*y)].map((_,i)=>i+1).filter(d=>(x*y)%d===0&&d<=(x*y)/d&&gcd(d,(x*y)/d)===1).map(d=>`${d}×${x*y/d}`).join('、')}。和 ${g}×(□＋△) = ${S} から □＋△ = ${S/g} になる組は ${x}と${y} → 小さい方 ${g}×${x} = <b>${g*x}</b>`,'最大公約数でわった数は「たがいに素」（1以外の公約数がない）になる。積が決まっていて、たがいに素になる組を全部書き出し、和が合うものをさがす。'),
-        W(`(3) 大きい方は ${g}×${y} = ${g*y}。差は ${g*y} − ${g*x} = <b>${g*(y-x)}</b>`,'')];
-      return finish({q:sq(`2つの整数があります。2つの数の最大公約数は${g}、最小公倍数は${L}、和は${S}です。`,[`2つの数の積はいくつですか。`,`2つの数のうち、小さい方の数はいくつですか。`,`2つの数の差はいくつですか。`]),hint:'積＝最大公約数×最小公倍数。2数を「最大公約数×たがいに素な数」と表す',steps:st,p:{t:'gl',g,L,S}},parts);
-    }
-  },
-  solve(p){
-    if(p.t==='cnt'){ let c1=0,c2=0,c3=0; for(let x=1;x<=p.N;x++){ if(x%p.a&&x%p.b)c1++; if(x%p.a===p.r1)c2++; if(x%p.a===p.r1&&x%p.b===p.r2)c3++; } return [c1,c2,c3]; }
-    if(p.t==='div'){ const N=2**p.e2*3**p.e3*5**p.e5; let n=0,m=0,s=0; for(let i=1;i<=N;i++) if(N%i===0){ n++; if(i%3) m++; s+=i; } return [n,m,s]; }
-    const pairs=[]; for(let a=1;a<=p.S;a++){ const b=p.S-a; if(b>=a&&ctxGcd(a,b)===p.g&&a*b/ctxGcd(a,b)===p.L) pairs.push([a,b]); }
-    if(pairs.length!==1) return null; const [a,b]=pairs[0]; return [a*b,a,b-a];
-  }});
-const ctxGcd=(a,b)=>{ while(b){ [a,b]=[b,a%b]; } return a; };
-
-/* ===== 条件つきの並べ方（場合の数・場合分け） ===== */
-const LETS='ABCDEFG';
-const CS={
-  adj:(x,y)=>({t:`${x}と${y}がとなり合う`,f:p=>Math.abs(p.indexOf(x)-p.indexOf(y))===1}),
-  notadj:(x,y)=>({t:`${x}と${y}がとなり合わない`,f:p=>Math.abs(p.indexOf(x)-p.indexOf(y))!==1}),
-  first:x=>({t:`${x}が左はしにくる`,f:p=>p[0]===x}),
-  last:x=>({t:`${x}が右はしにくる`,f:p=>p[p.length-1]===x}),
-  endAny:x=>({t:`${x}が左はしか右はしにくる`,f:p=>p[0]===x||p[p.length-1]===x}),
-  seq:(x,y)=>({t:`${x}が${y}のすぐ左にいる`,f:p=>p.indexOf(y)-p.indexOf(x)===1}),
-  ord3:(x,y,z)=>({t:`左から${x}・${y}・${z}の順になる（間に人が入ってもよい）`,f:p=>p.indexOf(x)<p.indexOf(y)&&p.indexOf(y)<p.indexOf(z)}),
-};
-// 条件の組ごとの「数え方」（式と説明）。n＝人数
-const CHAINS={
-  A:[ {c:[['adj','A','B']],f:n=>2*fact(n-1),how:n=>`AとBをひとまとまり（ブロック）と考える。ブロックの中の並び方 2通り × ブロックと残りの${n-2}人、合わせて${n-1}個の並び方 ${n-1}! = 2 × ${fact(n-1)}`},
-      {c:[['adj','A','B'],['endAny','C']],f:n=>4*fact(n-2),how:n=>`Cの場所（左はし・右はし）2通り。残りの${n-1}個の場所に、ブロック（中の並び方2通り）と残り${n-3}人の${n-2}個を並べる：2 × 2 × ${n-2}! = 4 × ${fact(n-2)}`},
-      {c:[['adj','A','B'],['first','C'],['last','D']],f:n=>2*fact(n-3),how:n=>`Cを左はし、Dを右はしに決める。まん中の${n-2}か所に、ブロック（中の並び方2通り）と残り${n-4}人の${n-3}個を並べる：2 × ${n-3}! = 2 × ${fact(n-3)}`}],
-  B:[ {c:[['seq','A','B']],f:n=>fact(n-1),how:n=>`「AがBのすぐ左」はブロックの中の並びが1通りに決まっている。ブロックと残り${n-2}人の${n-1}個を並べる：${n-1}! = ${fact(n-1)}`},
-      {c:[['seq','A','B'],['first','C']],f:n=>fact(n-2),how:n=>`Cを左はしに決める。残りの${n-1}か所に、ブロックと残り${n-3}人の${n-2}個を並べる：${n-2}! = ${fact(n-2)}`}],
-  C:[ {c:[['notadj','A','B']],f:n=>fact(n)-2*fact(n-1),how:n=>`「となり合わない」＝（全部の並び方）−（となり合う並び方）。${n}! − 2×${n-1}! = ${fact(n)} − ${2*fact(n-1)}`},
-      {c:[['notadj','A','B'],['first','C']],f:n=>fact(n-1)-2*fact(n-2),how:n=>`Cを左はしに決めると、残り${n-1}人の並び方は ${n-1}!。そのうちAとBがとなり合う並び方は 2×${n-2}!。引いて ${fact(n-1)} − ${2*fact(n-2)}`},
-      {c:[['notadj','A','B'],['first','C'],['last','D']],f:n=>fact(n-2)-2*fact(n-3),how:n=>`CとDも決めると、まん中の${n-2}人の並び方は ${n-2}!。そのうちAとBがとなり合う並び方は 2×${n-3}!。引いて ${fact(n-2)} − ${2*fact(n-3)}`}],
-  D:[ {c:[['ord3','C','A','B']],f:n=>fact(n)/6,how:n=>`C・A・Bの3人の並び方は 3! = 6 通りあって、どれも同じ数ずつ。その中で「C・A・Bの順」は1通りだけだから、全体の 1/6：${n}! ÷ 6 = ${fact(n)/6}`},
-      {c:[['ord3','C','A','B'],['first','D']],f:n=>fact(n-1)/6,how:n=>`Dを左はしに決める。残りの${n-1}人で、C・A・Bの順になる並び方は 1/6：${n-1}! ÷ 6 = ${fact(n-1)/6}`},
-      {c:[['ord3','C','A','B'],['first','D'],['last','E']],f:n=>fact(n-2)/6,how:n=>`D・Eも決める。残りの${n-2}人で、C・A・Bの順になる並び方は 1/6：${n-2}! ÷ 6 = ${fact(n-2)/6}`}],
-};
-def('narabi',{unit:'baai',name:'条件つきの並べ方（大問）',desc:'となり合う・はし・順番が重なる',minLv:3,tm:[0,0,300,480],
-  idea:'「となり合う」はブロックにする。「となり合わない」は（全体）−（となり合う）。「順番が決まっている」は、全体の何分の1かで考える。',
-  gen(r,lv){
-    const key=lv===3?r.pick(['A','B']):r.pick(['A','C','D']); const chain=CHAINS[key]; const n=lv===3?r.int(5,6):r.int(6,7);
-    const k=lv===3?Math.min(2,chain.length):chain.length;
-    const names=LETS.slice(0,n).split('').join('、');
-    const qs=[], parts=[], st=[], conds=[];
-    for(let i=0;i<k;i++){ const cs=chain[i].c.map(c=>CS[c[0]](...c.slice(1)));
-      qs.push(i===0?`${cs[0].t}並び方は何通りありますか。`:`（${i}）の条件にくわえて、${cs[cs.length-1].t}並び方は何通りありますか。`); const v=chain[i].f(n); parts.push([v,'通り']);
-      st.push(W(`(${i+1}) ${chain[i].how(n)} = <b>${v}</b>通り`,`${i===0?'':'前の小問の条件に、もう1つ条件がふえた。ふえた条件のぶん、場所が決まって数えやすくなる。'}場合の数は、「ものごとの決め方を順に数えてかけ算」する。`)); conds.push(chain[i].c); }
-    return finish({q:sq(`${names}の${n}人が、1列に並びます。`,qs.map((t,i)=>i===0?t:t)),hint:'ブロック・はしを先に決める・全体からひく',steps:st,p:{t:'line',n,key,k}},mkParts(parts));
-  },
-  solve(p){
-    const chain=CHAINS[p.key], arr=LETS.slice(0,p.n).split(''), all=perms(arr,p.n), out=[];
-    for(let i=0;i<p.k;i++){ const cs=chain[i].c.map(c=>CS[c[0]](...c.slice(1))); out.push(all.filter(x=>cs.every(c=>c.f(x))).length); }
-    return out;
-  }});
-
-/* ===== 道順（通れない所・必ず通る所） ===== */
-function pathCount(x1,y1,x2,y2,blocked){ // 右か上だけにすすむ道順（blocked＝通れない交差点の集合）
-  const key=(x,y)=>x+','+y; if(blocked.has(key(x1,y1))) return 0;
-  const dp={}; for(let x=x1;x<=x2;x++)for(let y=y1;y<=y2;y++){ if(blocked.has(key(x,y))){dp[key(x,y)]=0;continue;} dp[key(x,y)]=(x===x1&&y===y1)?1:((x>x1?dp[key(x-1,y)]:0)+(y>y1?dp[key(x,y-1)]:0)); }
-  return dp[key(x2,y2)];
-}
-def('michijun2',{unit:'baai',name:'道順の大問（通れない所・必ず通る所）',desc:'交差点に道順の数を書きこむ',minLv:3,tm:[0,0,300,480],
-  idea:'各交差点に「そこまでの道順の数」を書きこむ（左の数＋下の数）。通れない所は0。「必ず通る所」があるときは、そこまでとそこからをかけ算。',
-  gen(r,lv){
-    for(;;){ const a=r.int(5,6), b=r.int(4,5); const X=[r.int(1,a-1),r.int(1,b-1)], P=[r.int(1,a-1),r.int(1,b-1)]; if(X[0]===P[0]&&X[1]===P[1]) continue;
-      const blk=new Set([X.join(',')]), t=pathCount(0,0,a,b,new Set()), c2=pathCount(0,0,a,b,blk), c3=pathCount(0,0,P[0],P[1],blk)*pathCount(P[0],P[1],a,b,blk);
-      if(c3===0||c2===t||c3>=c2) continue;
-      const s=Math.min(190/a,105/b),x0=45,y0=135; let o='';
-      for(let i=0;i<=a;i++)o+=`<line x1="${x0+i*s}" y1="${y0}" x2="${x0+i*s}" y2="${y0-b*s}" class="sv"/>`; for(let j=0;j<=b;j++)o+=`<line x1="${x0}" y1="${y0-j*s}" x2="${x0+a*s}" y2="${y0-j*s}" class="sv"/>`;
-      for(let i=0;i<=a;i++)for(let j=0;j<=b;j++) o+=`<text x="${x0+i*s+3}" y="${y0-j*s-4}" class="sv-t" style="font-size:10px">${pathCount(0,0,i,j,blk)}</text>`;
-      o+=T(x0-14,y0+16,'A','sv-tb')+T(x0+a*s+14,y0-b*s-4,'B','sv-tb')+`<circle cx="${x0+P[0]*s}" cy="${y0-P[1]*s}" r="6" class="sv-b"/>`+T(x0+P[0]*s+12,y0-P[1]*s-8,'P','sv-tb')+T(x0+X[0]*s+12,y0-X[1]*s+16,'×X','sv-tb');
-      const fig=svg(300,155,o); const ap=pathCount(0,0,P[0],P[1],blk), pb=pathCount(P[0],P[1],a,b,blk);
-      const parts=mkParts([[t,'通り'],[c2,'通り'],[c3,'通り']]);
-      const st=[
-        W(`(1) 遠回りしない道順の数 ＝ 右に${a}回・上に${b}回の並べ方 ＝ ${a+b}か所のうち上に行く${b}回をえらぶ → <b>${t}</b>通り`,'交差点に「そこまでの道順の数」を、左下から順に書きこんでいく（左の数＋下の数）。Bの数が答え。または「右と上の並べ方」として数える。'),
-        W(`(2) Xは通れないので、Xの数を0にして書きなおす。Bの数は <b>${c2}</b>通り`,'図は、Xを通れないとして書きこんだ数。Xの先の交差点は、Xからの道順がなくなるので、数がへる。',fig),
-        W(`(3) AからPまで（Xを通らない）${ap}通り × PからBまで（Xを通らない）${pb}通り = <b>${c3}</b>通り`,'「Pを必ず通る」は、Pまでの道順とPからの道順を、それぞれ数えてかけ算。どちらの区間でもXを通らないように数える。')];
-      return finish({q:sq(`図のような、ごばんの目の道があります。AからBまで、遠回りしないで（右か上にだけ進んで）行きます。交差点Xは工事で通れません。`,[`Xが通れるとして、AからBまでの道順は何通りありますか。`,`Xを通らないとき、AからBまでの道順は何通りありますか。`,`Xを通らず、Pを必ず通るとき、道順は何通りありますか。`]),hint:'交差点に数を書きこむ。Xは0。必ず通るPで区切る',steps:st,fig,p:{t:'grid',a,b,X,P}},parts); }
-  },
-  solve(p){
-    let c1=0,c2=0,c3=0; const go=(x,y,hitX,hitP)=>{ if(x===p.a&&y===p.b){ c1++; if(!hitX){ c2++; if(hitP) c3++; } return; } const nx=(nx_,ny_)=>go(nx_,ny_,hitX||(nx_===p.X[0]&&ny_===p.X[1]),hitP||(nx_===p.P[0]&&ny_===p.P[1])); if(x<p.a) nx(x+1,y); if(y<p.b) nx(x,y+1); };
-    go(0,0,false,false); return [c1,c2,c3];
-  }});
-
-/* ===== 面積比・相似（図形×比） ===== */
-function triArea(a,b,c){ return b[0].sub(a[0]).mul(c[1].sub(a[1])).sub(c[0].sub(a[0]).mul(b[1].sub(a[1]))).mul(F('1/2')); }
-def('menseki2',{unit:'heimen',name:'面積比と相似（大問）',desc:'辺の比から面積を出す',minLv:3,tm:[0,0,300,480],
-  idea:'高さが同じ三角形の面積比は、底辺の比。相似な図形では、長さの比がa:bなら、面積の比は a²:b²。',
-  gen(r,lv){
-    if(r()<0.6){ // 三角形と2本の線
-      for(;;){
-        const m1=r.int(1,4),n1=r.int(1,4),m2=r.int(1,4),n2=r.int(1,4);
-        const u=new Frac(m1,m1+n1), v=new Frac(m2,m2+n2);
-        const x=n1*n2, y=m1*n2, z=m2*n1, Tt=x+y+z;                    // 三角形 PBC : PCA : PAB
-        const rPBC=new Frac(x,Tt), rPCA=new Frac(y,Tt), rPAB=new Frac(z,Tt);
-        const rADE=u.mul(v), rQuad=rPAB.mul(u).add(rPCA.mul(v));      // ADPE ＝ PAD ＋ PAE
-        const need=[rADE,rPBC,rQuad,rPAB,rPCA,rPAB.mul(u),rPCA.mul(v)];
-        const S=need.reduce((a,f)=>lcm(a,f.d),1)*r.int(1,3); if(S>2400) continue;
-        const A=[130,14],B=[28,150],C=[262,150], D=[A[0]+(B[0]-A[0])*u.val(),A[1]+(B[1]-A[1])*u.val()], E=[A[0]+(C[0]-A[0])*v.val(),A[1]+(C[1]-A[1])*v.val()];
-        const px=(()=>{const x1=B[0],y1=B[1],x2=E[0],y2=E[1],x3=C[0],y3=C[1],x4=D[0],y4=D[1];const d=(x1-x2)*(y3-y4)-(y1-y2)*(x3-x4);const t=((x1-x3)*(y3-y4)-(y1-y3)*(x3-x4))/d;return [x1+t*(x2-x1),y1+t*(y2-y1)];})();
-        const fig=svg(300,175,`<polygon points="${A} ${B} ${C}" class="sv-a"/><line x1="${B[0]}" y1="${B[1]}" x2="${E[0].toFixed(1)}" y2="${E[1].toFixed(1)}" class="sv"/><line x1="${C[0]}" y1="${C[1]}" x2="${D[0].toFixed(1)}" y2="${D[1].toFixed(1)}" class="sv"/>${T(A[0],A[1]-2,'A')}${T(B[0]-8,B[1]+14,'B')}${T(C[0]+8,C[1]+14,'C')}${T(D[0]-10,D[1],'D')}${T(E[0]+10,E[1],'E')}<circle cx="${px[0].toFixed(1)}" cy="${px[1].toFixed(1)}" r="3.5" class="sv-b"/>${T(px[0]+12,px[1]+4,'P','sv-tb')}`);
-        const aADE=rADE.mul(S), aPBC=rPBC.mul(S), aPCA=rPCA.mul(S), aPAB=rPAB.mul(S), aQ=rQuad.mul(S);
-        const parts=lv===3?[[aADE,'cm²'],[aPBC,'cm²']]:[[aADE,'cm²'],[aPBC,'cm²'],[aQ,'cm²']];
-        const st=[
-          W(`(1) 三角形ADE：頂点Aをはさむ2辺の長さが、ABの ${exprHTML(`${m1}/${m1+n1}`)}、ACの ${exprHTML(`${m2}/${m2+n2}`)} → 面積は ${S} × ${exprHTML(`${m1}/${m1+n1}`)} × ${exprHTML(`${m2}/${m2+n2}`)} = <b>${decStr(aADE)}</b>cm²`,'頂点を共有する2つの三角形では、その頂点をはさむ2辺の長さの比をかけたものが、面積の比になる（高さの比×底辺の比）。'),
-          W(`(2) 点Pと頂点A・B・Cを結ぶと、三角形が3つできる。CD上の点Pで、三角形CADとCDBは高さが同じなので、面積比は AD:DB = ${m1}:${n1}。三角形PADとPDBも同じ比。どちらも引くと、三角形PCA：PCB = <b>${m1}:${n1}</b>`,`P は CD の上にあるので、三角形CAD ＝ 三角形PAD ＋ 三角形PCA、三角形CDB ＝ 三角形PDB ＋ 三角形PCB。2つの比が同じ（${m1}:${n1}）なので、それぞれから同じ比の部分（PADとPDB）を引いても、のこり（PCAとPCB）の比は ${m1}:${n1} のまま。`,fig),
-          W(`BE上の点Pでも同じように、三角形PAB：PBC = ${m2}:${n2}。だから PBC：PCA：PAB ＝ ${n1}×${n2} : ${m1}×${n2} : ${m2}×${n1} = ${x} : ${y} : ${z}（合計 ${Tt}）。三角形PBC ＝ ${S} × ${exprHTML(`${x}/${Tt}`)} = <b>${decStr(aPBC)}</b>cm²`,`PBCを基準に、PCA は PBC の ${m1}/${n1} 倍、PAB は PBC の ${m2}/${n2} 倍。PBC を ${n1}×${n2} とおくと、PCA は ${m1}×${n2}、PAB は ${m2}×${n1}。3つの合計が全体の三角形ABCの面積になる。`)];
-        if(lv===4) st.push(W(`(3) 四角形ADPE ＝ 三角形PAD ＋ 三角形PAE。PAD は PAB（${decStr(aPAB)}cm²）の ${exprHTML(`${m1}/${m1+n1}`)}、PAE は PCA（${decStr(aPCA)}cm²）の ${exprHTML(`${m2}/${m2+n2}`)} → ${decStr(aPAB.mul(u))} + ${decStr(aPCA.mul(v))} = <b>${decStr(aQ)}</b>cm²`,'四角形は、対角線APで2つの三角形に分ける。PABをADとDBで分けたものがPAD、PCAをAEとECで分けたものがPAE。'));
-        return finish({q:sq(`三角形ABCの面積は${S}cm²です。辺AB上に点D、辺AC上に点E があり、AD:DB = ${m1}:${n1}、AE:EC = ${m2}:${n2} です。BEとCDが交わる点をPとします。`,lv===3?['三角形ADEの面積は何cm²ですか。','三角形PBCの面積は何cm²ですか。']:['三角形ADEの面積は何cm²ですか。','三角形PBCの面積は何cm²ですか。','四角形ADPEの面積は何cm²ですか。']),hint:'面積比＝底辺の比（高さが同じ）。点PとA・B・Cを結んで3つの三角形に分ける',steps:st,fig,p:{t:'cev',m1,n1,m2,n2,S,k:parts.length}},mkParts(parts));
-      }
-    }
-    // 台形の対角線
-    const pr=r.pick([[3,6],[2,6],[4,12],[6,12],[5,20],[6,30],[10,15],[15,30]]), a=pr[0], b=pr[1], kk=r.int(1,4), s=a*a*kk;
-    const EF=2*a*b/(a+b), hasEF=lv===4&&Number.isInteger(EF);
-    const parts=lv===3?[[a*b*kk,'cm²'],[b*b*kk,'cm²']]:[[a*b*kk,'cm²'],[b*b*kk,'cm²'],[kk*(a+b)**2,'cm²']];
-    if(hasEF) parts.push([EF,'cm']);
-    const fig=svg(300,150,`<polygon points="70,25 170,25 250,125 20,125" class="sv-a"/><line x1="70" y1="25" x2="250" y2="125" class="sv"/><line x1="170" y1="25" x2="20" y2="125" class="sv"/>${T(70,18,'A')}${T(170,18,'D')}${T(14,140,'B')}${T(256,140,'C')}${T(120,86,'P','sv-tb')}${T(120,12,'AD='+a+'cm','sv-t')}${T(135,142,'BC='+b+'cm','sv-t')}`);
-    const st=[W(`(1) AD∥BC なので、三角形PADと三角形PCBは相似で、相似比は AD:CB = ${a}:${b}。よって DP:PB = ${a}:${b}。三角形PADとPABは、底辺がDPとPBで、高さが同じ → 面積比も ${a}:${b}。三角形PAB ＝ ${s} × ${b}/${a} = <b>${decStr(F(a*b*kk))}</b>cm²`,'平行な辺をもつ図形では、2つの三角形が「相似」になる。相似比がa:bなら、辺の比も a:b、面積の比は a²:b²。'),
-      W(`(2) 三角形PBCは三角形PADと相似で、相似比 ${b}/${a}。面積は相似比の2乗倍：${s} × (${b}/${a})² = <b>${decStr(F(b*b*kk))}</b>cm²`,`面積比は相似比の2乗。${a}:${b} なら ${a*a}:${b*b}。三角形PAD（${s}）が ${a*a} にあたるので、1にあたる量は ${kk}。PBC は ${b*b} にあたる。`)];
-    if(lv===4){ st.push(W(`(3) 台形全体 ＝ PAD + PAB + PCD + PBC。三角形PABとPCDの面積は等しい。${s} + ${a*b*kk} + ${a*b*kk} + ${b*b*kk} = <b>${kk*(a+b)**2}</b>cm²`,'三角形ABDと三角形ACDは、底辺ADが共通で高さも同じ（AD∥BC）ので、面積が等しい。そこから共通部分PADをのぞくと、PABとPCDの面積が等しいとわかる。'));
-      if(hasEF) st.push(W(`(4) Pを通ってBCに平行な直線がAB・DCと交わる点をE・Fとすると、三角形AEP∽三角形ABC。AP:AC = ${a}:${a+b} なので EP = BC × ${a}/${a+b} = ${exprHTML(`${a*b}/${a+b}`)}cm。PFも同じ長さなので EF = <b>${EF}</b>cm`,'Pを通る平行線は、頂点Aをもとにした相似な三角形（AEP と ABC）を作る。APとACの比が a:(a+b) なので、EP は BC の a/(a+b)。')); }
-    return finish({q:sq(`図のような台形ABCDで、AD∥BC です。対角線ACとBDが交わる点をPとします。三角形PADの面積は${s}cm²です。`,(lv===3?['三角形PABの面積は何cm²ですか。','三角形PBCの面積は何cm²ですか。']:['三角形PABの面積は何cm²ですか。','三角形PBCの面積は何cm²ですか。','台形ABCD全体の面積は何cm²ですか。']).concat(hasEF?['Pを通ってBCに平行な直線が、辺AB・辺DCと交わる点をE・Fとします。EFの長さは何cmですか。']:[])),hint:'平行な辺のある台形は、対角線でできる三角形が相似。面積比＝相似比の2乗',steps:st,fig,p:{t:'trap',a,b,s,n:parts.length,ef:hasEF}},mkParts(parts));
-  },
-  solve(p){
-    const abs=f=>f.n<0?F(0).sub(f):f;
-    const inter=(P1,P2,P3,P4)=>{ const x1=P1[0],y1=P1[1],x2=P2[0],y2=P2[1],x3=P3[0],y3=P3[1],x4=P4[0],y4=P4[1]; const den=x1.sub(x2).mul(y3.sub(y4)).sub(y1.sub(y2).mul(x3.sub(x4))); const tt=x1.sub(x3).mul(y3.sub(y4)).sub(y1.sub(y3).mul(x3.sub(x4))).div(den); return [x1.add(tt.mul(x2.sub(x1))),y1.add(tt.mul(y2.sub(y1)))]; };
-    if(p.t==='cev'){ const u=new Frac(p.m1,p.m1+p.n1), v=new Frac(p.m2,p.m2+p.n2); const A=[F(0),F(0)],B=[F(1),F(0)],C=[F(0),F(1)], D=[u,F(0)], E=[F(0),v];
-      const P=inter(B,E,C,D), sc=F(p.S).div(abs(triArea(A,B,C)));
-      const poly=(...pts)=>{ let s=F(0); for(let i=0;i<pts.length;i++){ const a=pts[i],b=pts[(i+1)%pts.length]; s=s.add(a[0].mul(b[1]).sub(b[0].mul(a[1]))); } return abs(s.mul(F('1/2'))).mul(sc); };
-      const out=[abs(triArea(A,D,E)).mul(sc),abs(triArea(P,B,C)).mul(sc)]; if(p.k===3) out.push(poly(A,D,P,E)); return out; }
-    const h=6, A=[F(1),F(h)], Dp=[F(1+p.a),F(h)], B=[F(0),F(0)], C=[F(p.b),F(0)];
-    const P=inter(A,C,Dp,B), sc=F(p.s).div(abs(triArea(A,Dp,P)));
-    const out=[abs(triArea(A,B,P)).mul(sc),abs(triArea(P,B,C)).mul(sc)];
-    if(p.n>=3){ out.push(abs(triArea(A,B,C)).mul(sc).add(abs(triArea(A,C,Dp)).mul(sc)));
-      if(p.ef){ const yP=P[1]; const xAB=B[0].add(A[0].sub(B[0]).mul(yP.div(F(h)))), xDC=C[0].add(Dp[0].sub(C[0]).mul(yP.div(F(h)))); out.push(xDC.sub(xAB)); } }
-    return out;
-  }});
-
-/* ===== 立体の切断・回転体（図形×体積） ===== */
-function cubeFig(L,p,q,r_){ const s=118/(L+L*0.5), ox=30, oy=140; const pt=(x,y,z)=>[ox+s*(x+0.5*y), oy-s*(z+0.4*y)]; const E=[[0,0,0],[L,0,0],[L,L,0],[0,L,0],[0,0,L],[L,0,L],[L,L,L],[0,L,L]]; const pj=E.map(e=>pt(...e)); let o='';
-  [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]].forEach(([i,j])=>{ o+=`<line x1="${pj[i][0].toFixed(1)}" y1="${pj[i][1].toFixed(1)}" x2="${pj[j][0].toFixed(1)}" y2="${pj[j][1].toFixed(1)}" class="${(i===3||j===3)?'sv-d':'sv'}"/>`; });
-  const P=pt(p,0,0),Q=pt(0,q,0),R=pt(0,0,r_); o+=`<polygon points="${P} ${Q} ${R}" class="sv-b" opacity=".85"/>`+T(pj[0][0]-8,pj[0][1]+14,'A')+T(P[0]+2,P[1]+14,'P','sv-tb')+T(Q[0]+10,Q[1]+4,'Q','sv-tb')+T(R[0]-10,R[1],'R','sv-tb');
-  return svg(240,160,o); }
-def('kiri',{unit:'rittai',name:'立体の切断・回転体（大問）',desc:'三角すいの体積・回転させた立体',minLv:3,tm:[0,0,300,480],
-  idea:'すい体の体積は「底面積×高さ÷3」。回転体は、円柱・円すい・円すい台に分けて、体積をたす（ひく）。',
-  gen(r,lv){
-    if(r()<0.5){ // 立方体の角を切る
-      for(;;){ const L=r.pick([6,8,10,12]), p=r.int(2,L/2),q=r.int(2,L/2),rr=r.int(2,L/2); if((p*q*rr)%6) continue; const p2=r.int(2,L/2),q2=r.int(2,L/2),r2=r.int(2,L/2); if((p2*q2*r2)%6) continue;
-        const V1=p*q*rr/6, V2=p2*q2*r2/6; const parts=lv===3?[[V1,'cm³'],[L**3-V1,'cm³']]:[[V1,'cm³'],[L**3-V1,'cm³'],[L**3-V1-V2,'cm³']];
-        const fig=cubeFig(L,p,q,rr);
-        const st=[W(`(1) 切り取られる三角すいは、底面が直角三角形APQ（直角の辺 ${p}cm・${q}cm）で、高さがAR = ${rr}cm。底面積 ${p}×${q}÷2 = ${p*q/2}cm²、体積 ${p*q/2} × ${rr} ÷ 3 = <b>${V1}</b>cm³`,'角を切り取る平面が、頂点Aから出る3本の辺と交わる点をP・Q・Rとすると、切り取られる立体は三角すい（頂点R、底面APQ）。すい体の体積は「底面積×高さ÷3」。',fig),
-          W(`(2) 立方体 ${L}×${L}×${L} = ${L**3}cm³ から ${V1}cm³ を引いて <b>${L**3-V1}</b>cm³`,'残りの立体の体積＝もとの立体の体積−切り取った立体の体積。')];
-        if(lv===4) st.push(W(`(3) 頂点Aの反対側のすみ（頂点G）も、GからそれぞれのGに向かう3辺上に ${p2}cm・${q2}cm・${r2}cm の点をとって切る。${p2}×${q2}×${r2}÷6 = ${V2}cm³。2つの三角すいは、どれも辺の半分以下で、おたがいに重ならない → ${L**3} − ${V1} − ${V2} = <b>${L**3-V1-V2}</b>cm³`,'2つの切り取る部分が重ならないことを確かめる（どちらも立方体の半分より内側のすみにおさまる）。重ならなければ、引き算を2回すればよい。三角すいの体積は、直角をはさむ3つの辺の積÷6 でも出せる。'));
-        return finish({q:sq(`1辺が${L}cmの立方体があります。頂点Aから出る3本の辺の上に、Aからそれぞれ${p}cm、${q}cm、${rr}cmはなれた点P・Q・Rをとり、3点を通る平面で、Aをふくむ角を切り取ります。`+(lv===4?`さらに、Aと向かい合う頂点Gについても、Gから出る3本の辺の上に、Gからそれぞれ${p2}cm、${q2}cm、${r2}cmはなれた点をとり、3点を通る平面で角を切り取ります。`:''),lv===3?['切り取った三角すいの体積は何cm³ですか。','残った立体の体積は何cm³ですか。']:['Aの角を切り取った三角すいの体積は何cm³ですか。','Aの角だけを切り取ったあとの立体の体積は何cm³ですか。','A・Gの2つの角を切り取ったあとの立体の体積は何cm³ですか。']),hint:'すい体＝底面積×高さ÷3。2つが重ならないか確かめる',steps:st,fig,p:{t:'cut',L,p,q,r:rr,p2:lv===4?p2:0,q2:lv===4?q2:0,r2:lv===4?r2:0}},mkParts(parts)); }
-    }
-    // 回転体
-    const r0=r.int(2,6), h1=r.int(2,6), h2=3*r.int(1,2), r1=lv===3?0:r.int(1,r0-1), h3=lv===3?0:3*r.int(1,2);
-    const PI=F('3.14');
-    const cyl=PI.mul(r0*r0*h1), cone2=lv===3?PI.mul(r0*r0).mul(h2).div(3):PI.mul(h2).mul(r0*r0+r0*r1+r1*r1).div(3), cone3=lv===3?F(0):PI.mul(r1*r1).mul(h3).div(3);
-    const tot=cyl.add(cone2).add(cone3);
-    const parts=lv===3?[[cyl,'cm³','dec'],[tot,'cm³','dec']]:[[cyl,'cm³','dec'],[cone2,'cm³','dec'],[tot,'cm³','dec']];
-    const sc=Math.min(16,110/(h1+h2+h3)), W_=r0*sc, y0=145; const Y=y=>y0-y*sc, X=x=>130+x*sc;
-    const prof=lv===3?[[0,0],[r0,0],[r0,h1],[0,h1+h2]]:[[0,0],[r0,0],[r0,h1],[r1,h1+h2],[0,h1+h2+h3]];
-    const fig=svg(260,170,`<line x1="130" y1="10" x2="130" y2="160" class="sv-d"/><polygon points="${prof.map(q=>X(q[0]).toFixed(1)+','+Y(q[1]).toFixed(1)).join(' ')}" class="sv-a"/>${T(X(r0/2),y0+14,'半径'+r0+'cm','sv-t')}${T(X(r0)+4,Y(h1/2),h1+'cm','sv-tb','start')}${T(X(r0)+4,Y(h1+h2/2),h2+'cm','sv-tb','start')}${lv===4?T(X(r1)+4,Y(h1+h2+h3/2),h3+'cm','sv-tb','start'):''}${lv===4?T(X(r1/2),Y(h1+h2)-4,'半径'+r1+'cm','sv-t'):''}`);
-    const st=[W(`(1) 円柱の部分：${r0} × ${r0} × 3.14 × ${h1} = <b>${decStr(cyl)}</b>cm³`,'図形を、まん中の線（軸）のまわりに1回転させる。長方形の部分は、円柱（底面の円の半径＝軸からのはば）になる。'),
-      lv===3?W(`(2) 全体 ＝ 円柱 + 円すい。円すい：${r0}×${r0}×3.14×${h2}÷3 = ${decStr(cone2)}cm³ → ${decStr(cyl)} + ${decStr(cone2)} = <b>${decStr(tot)}</b>cm³`,'三角形の部分は円すいになる。円すいの体積は「底面積×高さ÷3」。全体はたし算。'):
-      W(`(2) 円すい台の部分：（大きい円すい）−（小さい円すい）、または 高さ×(R²+R×r+r²)×3.14÷3 で ${h2}×(${r0*r0}+${r0*r1}+${r1*r1})×3.14÷3 = <b>${decStr(cone2)}</b>cm³`,'台形の部分を回転させると「円すい台」。上にとびだした部分（小さい円すい）をつけたして大きな円すいを作り、そこから小さい円すいをひいてもよい。公式：高さ×（R×R＋R×r＋r×r）×3.14÷3。'),
-      ...(lv===4?[W(`(3) 上の円すい：${r1}×${r1}×3.14×${h3}÷3 = ${decStr(cone3)}cm³ → ${decStr(cyl)} + ${decStr(cone2)} + ${decStr(cone3)} = <b>${decStr(tot)}</b>cm³`,'全体は、円柱＋円すい台＋円すい の体積の和。')]:[])];
-    return finish({q:sq(`図のような図形を、直線ℓ（図の点線）のまわりに1回転させてできる立体について答えましょう。円周率は3.14とします。`,lv===3?['円柱の部分の体積は何cm³ですか。','立体全体の体積は何cm³ですか。']:['円柱の部分の体積は何cm³ですか。','円すい台の部分の体積は何cm³ですか。','立体全体の体積は何cm³ですか。']),hint:'軸のまわりに回して、円柱・円すい・円すい台に分けてたす',steps:st,fig,p:{t:'rot',r0,h1,h2,r1,h3,lv}},mkParts(parts));
-  },
-  solve(p){
-    if(p.t==='cut'){ // 切り口の面積をかさねる（シンプソン）。三角すい：z での切り口は直角三角形
-      const vol=(pp,qq,rr)=>{ const n=60,h=rr/n; let s=0; for(let i=0;i<=n;i++){ const z=i*h, a=pp*(1-z/rr)*qq*(1-z/rr)/2, w=i===0||i===n?1:(i%2?4:2); s+=w*a; } return s*h/3; };
-      const v1=vol(p.p,p.q,p.r), out=[v1,p.L**3-v1]; if(p.p2) out.push(p.L**3-v1-vol(p.p2,p.q2,p.r2)); return out; }
-    // 回転体：半径をyの関数にして、うすい円ばんを重ねる（シンプソン・各区間ごと）
-    const seg=(ra,rb,h)=>{ const n=40,hh=h/n; let s=0; for(let i=0;i<=n;i++){ const rr=ra+(rb-ra)*i/n, w=i===0||i===n?1:(i%2?4:2); s+=w*rr*rr; } return 3.14*s*hh/3; };
-    const cyl=seg(p.r0,p.r0,p.h1); let mid=0, top=0; if(p.lv===3){ mid=seg(p.r0,0,p.h2); return [cyl,cyl+mid]; }
-    mid=seg(p.r0,p.r1,p.h2); top=seg(p.r1,0,p.h3); return [cyl,mid,cyl+mid+top];
-  }});
-
-/* ===== 速さ：途中で速さがかわる旅人算（図・グラフの考え方） ===== */
-def('tabi3',{unit:'hayasa',name:'速さの変化・おくれて出発（大問）',desc:'時間をいくつかに区切って考える',minLv:3,tm:[0,0,300,480],
-  idea:'速さがかわる所・出発の時刻で、時間を「区間」に区切る。区間ごとに「2人の道のりの和」を調べる。',
-  gen(r,lv){
-    for(;;){
-      const a1=r.step(40,100,10), a2=a1+r.pick([-20,-10,10,20,30]), b1=r.step(40,90,10), b2=b1+r.pick([-10,10,20]);
-      if(a2<=0||b2<=0) continue;
-      const t1=r.int(5,15), s=lv===3?0:r.int(2,8), u=lv===3?0:r.int(5,12), T=Math.max(t1,s+u)+r.int(3,12);
-      const posA=t=>a1*Math.min(t,t1)+a2*Math.max(0,t-t1), posB=t=>{ const tt=Math.max(0,t-s); return lv===3?b1*t:b1*Math.min(tt,u)+b2*Math.max(0,tt-u); };
-      const D=posA(T)+posB(T); if(D>9000) continue;
-      const parts=lv===3?[[a1*t1,'m'],[T,'分後'],[posA(T),'m']]:[[posA(s),'m'],[T,'分後'],[posA(T),'m']];
-      // 区間の表
-      const bps=[...new Set([0,t1,s,s+u,T])].filter(x=>x<=T).sort((x,y)=>x-y); const rows=[]; let gone=0;
-      for(let i=0;i<bps.length-1;i++){ const m=(bps[i]+bps[i+1])/2, va=m<t1?a1:a2, vb=lv===3?b1:(m<s?0:(m<s+u?b1:b2)), len=bps[i+1]-bps[i]; gone+=(va+vb)*len; rows.push(`${bps[i]}〜${bps[i+1]}分：Aは分速${va}m、Bは分速${vb}m → 2人の進む道のりの和 ${(va+vb)*len}m（ここまでの合計 ${gone}m）`); }
-      const st=[ W(lv===3?`(1) Aは最初の${t1}分は分速${a1}m → ${a1} × ${t1} = <b>${a1*t1}</b>m`:`(1) Bが出発する${s}分後までは、Aだけが進む。${s<=t1?`Aは分速${a1}mで${s}分 → ${a1} × ${s}`:`${t1}分までは分速${a1}m、そのあとは分速${a2}m`} = <b>${posA(s)}</b>m`,'速さがかわるときは、「分速○mで□分」のように、区間ごとに道のり＝速さ×時間を出してたす。'),
-        W(`(2) 出会うまでに、2人の道のりの和が ${D}m になる。区間ごとに調べる：<br>${rows.join('<br>')}<br>→ <b>${T}</b>分後`,'2人が向かい合って進むとき、出会うのは「2人の進んだ道のりの和」が、はじめのきょりになったとき。速さがかわるたびに、区間を区切る。'),
-        W(`(3) Aが${T}分で進んだ道のり：${t1<=T?`${a1}×${t1} + ${a2}×${T-t1}`:''} = <b>${posA(T)}</b>m（Pから）`,'出会った地点は、Aが出発してからの道のりそのもの。') ];
-      return finish({q:sq(`P地点とQ地点は${D}mはなれています。Aさんは、P地点から Q地点に向かって、はじめの${t1}分間は分速${a1}m、そのあとは分速${a2}mで進みます。`+(lv===3?`Bさんは、Aさんと同時にQ地点から P地点に向かって、分速${b1}mで進みます。`:`Bさんは、Aさんが出発した${s}分後に、Q地点から P地点に向かって出発し、はじめの${u}分間は分速${b1}m、そのあとは分速${b2}mで進みます。`),lv===3?[`Aさんが最初の${t1}分間に進む道のりは何mですか。`,`2人が出会うのは、Aさんが出発してから何分後ですか。`,`2人が出会うのは、P地点から何mの地点ですか。`]:[`Bさんが出発するとき、AさんはP地点から何mの地点にいますか。`,`2人が出会うのは、Aさんが出発してから何分後ですか。`,`2人が出会うのは、P地点から何mの地点ですか。`]),hint:'時間を区間に区切って、区間ごとに2人の道のりの和を足していく',steps:st,p:{t:lv===3?'v3':'v4',a1,a2,b1,b2,t1,s,u,D,T}},mkParts(parts));
-    }
-  },
-  solve(p){
-    const posA=t=>p.a1*Math.min(t,p.t1)+p.a2*Math.max(0,t-p.t1), posB=t=>{ const tt=Math.max(0,t-p.s); return p.t==='v3'?p.b1*t:p.b1*Math.min(tt,p.u)+p.b2*Math.max(0,tt-p.u); };
-    for(let t=1;t<=500;t++){ const g=posA(t)+posB(t); if(g>=p.D){ if(g!==p.D) return null; return [p.t==='v3'?p.a1*p.t1:posA(p.s), t, posA(t)]; } }
-    return null;
-  }});
-G.tabi3.alg=(p,P)=>{ // 出会うまでの時間 T を x として方程式（Tが区間のあとにあるとき）
-  const ts=p.t==='v3'?0:p.s, uu=p.t==='v3'?0:p.u; if(p.T<=Math.max(p.t1,ts+uu)) return null;
-  if(p.t==='v3'){ const raw=`${p.a1}×${p.t1} + ${p.a2}×(x − ${p.t1}) + ${p.b1}×x = ${p.D}`; return [alg1(P,{set:'2人が出会うまでの時間を x 分とする',raw,eqWhy:'Aの道のり＋Bの道のり＝PQ間のきょり。Aは最初の'+p.t1+'分と、それ以後に分けて表す。',a:p.a2+p.b1,c:p.a1*p.t1-p.a2*p.t1,b:0,d:p.D,out:[p.a2,p.a1*p.t1-p.a2*p.t1],outTxt:'Pからの道のり'})]; }
-  const raw=`${p.a1}×${p.t1} + ${p.a2}×(x − ${p.t1}) + ${p.b1}×${p.u} + ${p.b2}×(x − ${p.s} − ${p.u}) = ${p.D}`;
-  return [alg1(P,{set:'2人が出会うまでの時間（Aが出発してから）を x 分とする',raw,eqWhy:'Aが出発してから x 分後。Bは x − '+p.s+' 分だけ進んでいる。それぞれ、速さがかわる前後に分けて表す。',a:p.a2+p.b2,c:p.a1*p.t1-p.a2*p.t1+p.b1*p.u-p.b2*(p.s+p.u),b:0,d:p.D,out:[p.a2,p.a1*p.t1-p.a2*p.t1],outTxt:'Pからの道のり'})];
-};
-
-/* ===== ニュートン算（行列・牧草） ===== */
-def('newton',{unit:'tokushu',name:'ニュートン算（行列・牧場）',desc:'ふえる量と、へらす量をくらべる',minLv:3,tm:[0,0,300,480],
-  idea:'もとからある量（はじめ）と、毎分ふえる量を分けて考える。「へらす量 − ふえる量」が、1分あたりの正味のへり方。',
-  gen(r,lv){
-    for(;;){
-      const c=r.int(2,6), y=r.int(2,Math.max(3,c*2)), k1=r.int(2,4), k2=k1+r.int(1,3); if(c*k1<=y) continue;
-      const q1=c*k1-y, q2=c*k2-y, m=r.int(1,3), t1=q2*m, t2=q1*m, N0=q1*q2*m; if(t1>90||t2>90) continue;
-      const k3=k2+r.int(1,3), q3=c*k3-y; if(N0%q3) continue; const t3=N0/q3, T0=r.int(5,15), kmin=Math.ceil((N0+y*T0)/(c*T0));
-      const story=r()<0.5?'queue':'ranch';
-      const stem=story==='queue'?`チケット売り場に行列ができています。開場のとき、すでに何人か並んでいて、そのあとも毎分${y}人ずつ新しく人が並びます。窓口は1つあたり、1分間に${c}人をさばきます。窓口を${k1}つあけると${t1}分で行列がなくなり、窓口を${k2}つあけると${t2}分で行列がなくなります。`
-        :`ある牧場に、草がはえています。草は毎日${y}ずつ生えます。牛1頭は1日に草を${c}食べます。牛を${k1}頭放すと${t1}日で草がなくなり、牛を${k2}頭放すと${t2}日で草がなくなります。`;
-      const w=story==='queue'?'窓口':'牛', un=story==='queue'?'分':'日', hu=story==='queue'?'つ':'頭', pn=story==='queue'?'人':'';
-      const qs=[ `はじめにあった${story==='queue'?'行列の人数':'草の量'}は何${story==='queue'?'人':''}ですか。`, `${w}を${k3}${hu}にすると、何${un}でなくなりますか。` ];
-      if(lv===4) qs.push(`${T0}${un}以内になくするには、${w}を最低でも何${hu}にすればよいですか。`);
-      const parts=lv===3?[[N0,pn],[t3,un]]:[[N0,pn],[t3,un],[kmin,hu]];
-      const st=[ W(`(1) ${k1}${hu}で${t1}${un}：へらす量 ${c}×${k1}×${t1} = ${c*k1*t1}、ふえる量 ${y}×${t1} = ${y*t1}。はじめの量 ＝ へらした量 − ふえた量 = ${c*k1*t1} − ${y*t1} = <b>${N0}</b>`,`「はじめの量 ＋ ふえた量 ＝ へらした量」。${k1}${hu}・${t1}${un}で、へらした量は 1つ${c}×${k1}${hu}×${t1}${un}、ふえた量は ${y}×${t1}${un}。`),
-        W(`（たしかめ）${k2}${hu}・${t2}${un}：${c*k2*t2} − ${y*t2} = ${N0}。同じになる`,'2通りの条件が同じ「はじめの量」になることで、答えが正しいかたしかめられる。（はじめの量は、1つの方で出せる）'),
-        W(`(2) ${k3}${hu}のとき、1${un}あたりの正味のへり：${c}×${k3} − ${y} = ${q3}。${N0} ÷ ${q3} = <b>${t3}</b>${un}`,'1つの時間（1分・1日）に、へらす量とふえる量のさ（正味）が、はじめの量をけずっていく。はじめの量÷正味のへり ＝ かかる時間。')];
-      if(lv===4) st.push(W(`(3) ${T0}${un}でなくなるには、はじめの量${N0} ＋ ふえる量 ${y}×${T0} = ${N0+y*T0} を、${T0}${un}でへらしきる。1${w}が${T0}${un}でへらす量は ${c*T0}。${N0+y*T0} ÷ ${c*T0} = ${((N0+y*T0)/(c*T0)).toFixed(2)} → 切り上げて <b>${kmin}</b>${hu}`,'「ちょうど」ではなく「以内」なので、計算の結果が小数になったら、切り上げる（足りないと間に合わない）。'));
-      return finish({q:sq(`${stem}`,qs),hint:'はじめの量＋ふえた量＝へらした量。1つの時間のへりを比べる',steps:st,p:{t:story,c,y,k1,t1,k2,t2,k3,T0,lv}},mkParts(parts));
-    }
-  },
-  solve(p){
-    let N0=null; for(let n=1;n<=9000;n++){ if(n+p.y*p.t1===p.c*p.k1*p.t1&&n+p.y*p.t2===p.c*p.k2*p.t2){ if(N0!==null) return null; N0=n; } }
-    if(N0===null) return null; let t3=null; for(let t=1;t<=1000;t++) if(N0+p.y*t<=p.c*p.k3*t){ t3=t; break; }
-    const out=[N0,t3]; if(p.lv===4){ let k=1; while(N0+p.y*p.T0>p.c*k*p.T0) k++; out.push(k); } return out;
-  }});
-
-/* ===== 規則性（図形・数表）の大問 ===== */
-def('kisoku2',{unit:'seishitsu',name:'規則性の大問（中空方陣・数表）',desc:'図や表のきまりを式にする',minLv:3,tm:[0,0,300,480],
-  idea:'図や表を、何個ずつのかたまりに分けて数える。かたまりの数は等差数列になることが多い。「n番目」を式にして、逆算もできるようにする。',
-  gen(r,lv){
-    if(r()<0.5){ // 中空方陣
-      const k=r.int(2,4), m=r.int(2*k+1,2*k+6); const ring=i=>4*(m-2*i-1); const total=sumArr(Array.from({length:k},(_,i)=>ring(i)));
-      const k2=k+1, m2=r.int(2*k2+1,2*k2+7), total2=sumArr(Array.from({length:k2},(_,i)=>4*(m2-2*i-1)));
-      const parts=lv===3?[[4*(m-1),'個'],[total,'個']]:[[4*(m-1),'個'],[total,'個'],[m2,'個']];
-      const rings=Array.from({length:k},(_,i)=>ring(i));
-      const st=[W(`(1) 1辺${m}個の正方形のまわりに並べた個数：4つのかどをふくめて、1辺に${m}個。4辺の合計から、かどを2回数えた分（4個）をひく：${m}×4 − 4 = <b>${4*(m-1)}</b>個`,'まわりの碁石の数＝（1辺の個数−1）×4。（かどの石を2回数えないように。1辺ずつ「かどを1つ入れない」ように数えてもよい）'),
-        W(`(2) 外がわから ${k}重。内側にいくほど、1辺が2個ずつへる：${rings.join(' + ')} = <b>${total}</b>個`,`${k}重の方陣は、1辺が ${m}, ${m-2}, ${m-4}, … 個の中空方陣（1重）を、1つずつ内側へ重ねたもの。各層は（1辺−1）×4 で、層ごとに 8 ずつ少なくなる（等差数列）。`)];
-      if(lv===4) st.push(W(`(3) ${k2}重の合計の式：4 × { ${k2}×(1辺−1) − ${k2*(k2-1)} } = ${total2}。${total2} ÷ 4 = ${total2/4}、${total2/4} + ${k2*(k2-1)} = ${total2/4+k2*(k2-1)}、${total2/4+k2*(k2-1)} ÷ ${k2} = ${m2-1}（＝1辺−1）→ 1辺は <b>${m2}</b>個`,`${k2}重の個数は、各層の「（1辺−1）×4」をたしたもの。層ごとに、1辺−1 が 2 ずつ少なくなる（${m2-1}, ${m2-3}, …）。たし算を式にまとめると 4×{ ${k2}×(1辺−1) − 2×(0+1+…+${k2-1}) } になる。この式をさかさまにたどると、1辺が求まる。`));
-      return finish({q:sq(`碁石を、正方形のふちにそって、すきまなく並べていきます。1辺に${m}個の碁石が並ぶ中空方陣（中がからっぽの正方形）を、外から${k}重に重ねます。`,lv===3?[`いちばん外がわ（1重めだけ）に並ぶ碁石は何個ですか。`,`${k}重の方陣に使う碁石は、全部で何個ですか。`]:[`いちばん外がわ（1重めだけ）に並ぶ碁石は何個ですか。`,`${k}重の方陣に使う碁石は、全部で何個ですか。`,`つぎに、同じように${k2}重の方陣を作ったところ、碁石が全部で${total2}個になりました。この方陣の、いちばん外がわの1辺には何個の碁石が並んでいますか。`]),hint:'1重分は（1辺−1）×4。内側ほど1辺が2ずつ少ない',steps:st,p:{t:'hollow',m,k,k2,total2,lv}},mkParts(parts));
-    }
-    // 斜めに番号をつけた表
-    const rr=r.int(3,9), cc=r.int(3,9), d=rr+cc-1, val=d*(d-1)/2+cc; const N=r.int(60,250);
-    let dd=1; while(dd*(dd+1)/2<N) dd++; const cN=N-dd*(dd-1)/2, rN=dd+1-cN, Dd=r.int(5,10);
-    const dsum=Dd*(Dd*(Dd-1)/2)+Dd*(Dd+1)/2;
-    const parts=lv===3?[[val,''],[rN,'行目']]:[[val,''],[rN,'行目'],[dsum,'']];
-    const st=[W(`(1) 第${rr}行・第${cc}列は、${rr+cc-1}番目の斜めの列の ${cc}番目。その前の斜めの列に全部で 1+2+…+${d-1} = ${d*(d-1)/2}個 の数があるので ${d*(d-1)/2} + ${cc} = <b>${val}</b>`,'斜めの列を1本目・2本目・…と数える。n本目の斜めの列には、n個の数が並ぶ。前の列まで全部の個数は 1+2+…+(n−1)。'),
-      W(`(2) ${N}は、斜めの列の ${dd}本目（1+2+…+${dd-1} = ${dd*(dd-1)/2} 個までで ${dd*(dd-1)/2}、${dd}本目までで ${dd*(dd+1)/2}）。${dd}本目の中で ${N} − ${dd*(dd-1)/2} = ${cN}番目。${cN}列目のとき、行は ${dd} + 1 − ${cN} = <b>${rN}</b>行目`,`数が ${N}（${dd*(dd-1)/2}より大きく${dd*(dd+1)/2}以下）だから、${dd}本目の斜めの列にある。その列は、左下から右上に向かって数が大きくなる。行と列の和は、列の本目＋1（ここでは ${dd+1}）。`)];
-    if(lv===4) st.push(W(`(3) ${Dd}本目の斜めの列の数は、${Dd*(Dd-1)/2+1}から${Dd*(Dd+1)/2}までの${Dd}個。その合計 ＝ (最初＋最後) × 個数 ÷ 2 = (${Dd*(Dd-1)/2+1} + ${Dd*(Dd+1)/2}) × ${Dd} ÷ 2 = <b>${dsum}</b>`,'連続した整数の和は、（はじめ＋おわり）×個数÷2。'));
-    return finish({q:sq(`1行目・1列目から数えて、次のように1, 2, 3, … と、斜めに順に数を入れた表があります。（第1行・第1列は1、その右の斜めの列は左下から右上へ 2→3、その次の列は 4→5→6、…）`,lv===3?[`第${rr}行・第${cc}列には、どんな数が入りますか。`,`${N}は、第何行にありますか。`]:[`第${rr}行・第${cc}列には、どんな数が入りますか。`,`${N}は、第何行にありますか。`,`斜めの列の ${Dd}本目に並ぶ数を、すべてたすといくつですか。`]),hint:'斜めの列の何本目の何番目かで考える',steps:st,fig:svg(260,125,`<g class="sv-t">${[['1',40,20],['3',100,20],['6',160,20],['10',220,20],['2',40,50],['5',100,50],['9',160,50],['4',40,80],['8',100,80],['7',40,110]].map(a=>`<text x="${a[1]}" y="${a[2]}" text-anchor="middle" style="font-size:16px">${a[0]}</text>`).join('')}</g>`+T(190,100,'（左上の一部）','sv-t')),p:{t:'table',rr,cc,N,Dd,lv}},mkParts(parts));
-  },
-  solve(p){
-    if(p.t==='hollow'){       const one=(m)=>{ let c=0; for(let x=0;x<m;x++)for(let y=0;y<m;y++) if(Math.min(x,y,m-1-x,m-1-y)===0) c++; return c; };
-      let tot=0; for(let i=0;i<p.k;i++){ const mm=p.m-2*i; let c=0; for(let x=0;x<mm;x++)for(let y=0;y<mm;y++) if(Math.min(x,y,mm-1-x,mm-1-y)===0) c++; tot+=c; }
-      const out=[one(p.m),tot]; if(p.lv===4){ let found=null; for(let m=2*p.k2;m<=100;m++){ let t=0; for(let i=0;i<p.k2;i++){ const mm=m-2*i; let c=0; for(let x=0;x<mm;x++)for(let y=0;y<mm;y++) if(Math.min(x,y,mm-1-x,mm-1-y)===0) c++; t+=c; } if(t===p.total2){ found=m; break; } } out.push(found); } return out; }
-    // 表：斜めに数を入れていく
-    const tab={}; let n=1, diag=1; const last={}; while(n<=700){ for(let c=1;c<=diag;c++){ const r_=diag+1-c; tab[r_+','+c]=n; if(!(('n'+n) in last)) last['n'+n]=[r_,c]; n++; } diag++; }
-    const out=[tab[p.rr+','+p.cc], last['n'+p.N][0]]; if(p.lv===4){ let s=0; for(let c=1;c<=p.Dd;c++){ const r_=p.Dd+1-c; s+=tab[r_+','+c]; } out.push(s); } return out;
-  }});
-
-/* =========================================================
    自動チェック（たくさん問題を作って、答えをくらべる）
    ========================================================= */
-// 難関・最難関では、いまの型をもっと難しい大問（小問つき・条件が重なる・単元をまたぐ）にさしかえることがある
-const HARDER={yakusu:['amari2','nshin'],kisoku:['kisoku2','nshin'],baai:['narabi','michijun2'],menseki:['menseki2'],kakudo:['menseki2'],taiseki:['kiri'],tabibito:['tabi3'],hayasa:['tabi3'],shigoto:['newton']};
-function makeProblem(gid,lv,seed){
-  lv=Math.max(lv,G[gid].minLv||1);
-  if(lv>=3&&HARDER[gid]){ const rr=mkRng((seed^0x9e3779b9)>>>0); if(rr()<(lv>=4?0.8:0.6)) gid=rr.pick(HARDER[gid]); }
-  const P=G[gid].gen(mkRng(seed),lv); P.g=gid; P.lv=lv; P.seed=seed;
+function makeProblem(gid,lv,seed){ const P=G[gid].gen(mkRng(seed),lv); P.g=gid; P.lv=lv; P.seed=seed;
   P.steps=(P.steps||[]).map(x=>typeof x==='string'?W(x,''):x); P.tm=G[gid].tm[lv-1]; attachAlg(P); return P; }
 function checkInput(str,P){ // 入力をしらべる → {ok, msg}
   let f; try{ f=parseNum(str); }catch(e){ return {ok:false,bad:true,msg:'数の書き方をたしかめてね'}; }
@@ -1954,7 +1590,7 @@ function checkInput(str,P){ // 入力をしらべる → {ok, msg}
 function selfTest(N=300,only){
   const report=[]; let total=0,bad=0,algN=0;
   for(const g of GL){ if(only&&g.id!==only) continue;
-    for(let lv=Math.max(1,g.minLv||1);lv<=4;lv++){ let ok=0; const errs=[];
+    for(let lv=1;lv<=4;lv++){ let ok=0; const errs=[];
       for(let i=0;i<N;i++){ total++; const seed=(i*7919+lv*104729+g.id.length*31)>>>0; let P;
         try{
           P=makeProblem(g.id,lv,seed);
@@ -1967,18 +1603,10 @@ function selfTest(N=300,only){
           const all=P.q+P.steps.map(x=>x.t+(x.why||'')+(x.fig||'')).join('')+(P.hint||'')+(P.fig||'')+(G[P.g].idea||'');
           if(/NaN|undefined|Infinity|null|\[object/.test(all)) throw Error('文におかしな文字');
           const s=ansStr(P.ans,P.fmt); if(!checkInput(s,P).ok) throw Error('答えを入力できない: '+s);
-          const sv=G[P.g].solve(P.p);
+          const sv=g.solve(P.p);
           if(sv===null||sv===undefined) throw Error('solve が答えを出せない（答えが1つでない？）');
-          const eqv=(v,a)=> v instanceof Frac? v.eq(a) : Math.abs(v-a.val())<1e-9*Math.max(1,Math.abs(v));
-          if(P.parts){
-            if(!Array.isArray(sv)||sv.length!==P.parts.length) throw Error('小問の数がちがう');
-            P.parts.forEach((x,i)=>{ if(sv[i]===null||sv[i]===undefined) throw Error('小問'+(i+1)+'を解けない'); if(!eqv(sv[i],x.a)) throw Error(`小問${i+1}の答えがちがう gen=${fracStr(x.a)} solve=${sv[i] instanceof Frac?fracStr(sv[i]):sv[i]}`); if(x.f==='int'&&x.a.d!==1) throw Error('小問が整数でない'); });
-            if(!P.ans.eq(P.parts[P.parts.length-1].a)) throw Error('最後の小問と答えがちがう');
-            if(P.steps.length<P.parts.length) throw Error('解き方が小問より少ない');
-          } else {
-            if(Array.isArray(sv)) throw Error('小問がないのに配列');
-            if(!eqv(sv,P.ans)) throw Error(`答えがちがう gen=${fracStr(P.ans)} solve=${sv instanceof Frac?fracStr(sv):sv}`);
-          }
+          const same= sv instanceof Frac? sv.eq(P.ans) : Math.abs(sv-P.ans.val())<1e-9*Math.max(1,Math.abs(sv));
+          if(!same) throw Error(`答えがちがう gen=${fracStr(P.ans)} solve=${sv instanceof Frac?fracStr(sv):sv}`);
           if(!P.steps.some(x=>x.t.includes('<b>'))) throw Error('解き方に答えがない');
           if(!(P.tm>=20&&P.tm<=600)) throw Error('目安時間がおかしい');
           if(P.steps.length<1||P.steps.some(x=>!x.t)) throw Error('解き方の行が空');
@@ -2057,7 +1685,7 @@ function adviceOf(an,nameOf){
   return L;
 }
 // 似た系統の型（苦手のときに出す）
-const REL={tsurukame:['kabusoku','wasa'],kabusoku:['tsurukame','wasa'],wasa:['tsurukame','kabusoku','nenrei'],nenrei:['wasa','hi','shigoto'],shigoto:['hi','wariai'],hi:['wariai','nenrei'],wariai:['hi','hayasa'],hayasa:['tabibito','tsuuka','diagram'],tabibito:['hayasa','diagram','tsuuka'],tsuuka:['tabibito','hayasa'],ryusui:['tabibito','hayasa'],diagram:['tabibito','hayasa'],ueki:['kisoku','kabusoku'],kisoku:['ueki','yakusu'],yakusu:['kisoku','baai'],baai:['yakusu','kisoku'],kumi:['bunsu','kufu','gyakusan'],bunsu:['kumi','gyakusan','kufu'],gyakusan:['kumi','bunsu'],kufu:['kumi','bunsu'],kakudo:['menseki','idou'],menseki:['kakudo','taiseki','idou'],idou:['menseki','tabibito'],taiseki:['menseki','kakudo'],nshin:['amari2','kisoku2'],amari2:['nshin','yakusu'],narabi:['michijun2','baai'],michijun2:['narabi','baai'],menseki2:['menseki','kakudo'],kiri:['taiseki','menseki2'],tabi3:['tabibito','hayasa'],newton:['shigoto','tsurukame'],kisoku2:['kisoku','nshin']};
+const REL={tsurukame:['kabusoku','wasa'],kabusoku:['tsurukame','wasa'],wasa:['tsurukame','kabusoku','nenrei'],nenrei:['wasa','hi','shigoto'],shigoto:['hi','wariai'],hi:['wariai','nenrei'],wariai:['hi','hayasa'],hayasa:['tabibito','tsuuka','diagram'],tabibito:['hayasa','diagram','tsuuka'],tsuuka:['tabibito','hayasa'],ryusui:['tabibito','hayasa'],diagram:['tabibito','hayasa'],ueki:['kisoku','kabusoku'],kisoku:['ueki','yakusu'],yakusu:['kisoku','baai'],baai:['yakusu','kisoku'],kumi:['bunsu','kufu','gyakusan'],bunsu:['kumi','gyakusan','kufu'],gyakusan:['kumi','bunsu'],kufu:['kumi','bunsu'],kakudo:['menseki','idou'],menseki:['kakudo','taiseki','idou'],idou:['menseki','tabibito'],taiseki:['menseki','kakudo']};
 const subOf=P=>(P.p&&(P.p.t||P.p.typ||P.p.v))||'';
 // 同じ型（g・レベル・小さい型 sub）で、数字だけちがう問題のたねをさがす
 function findSeed(g,lv,sub,rnd,not){
@@ -2289,7 +1917,7 @@ function render(){
 
 function home(){
   const L=lvOf(S.xp), nx=xpAt(L+1), cur=xpAt(L), d=S.days[today()]||{n:0};
-  const units=UNITS.map(u=>{ const gs=GL.filter(g=>g.unit===u.id); const stars=gs.reduce((s,g)=>s+[1,2,3,4].filter(l=>S.prog[g.id+'_'+l]?.star).length,0), max=gs.reduce((a,g)=>a+5-(g.minLv||1),0);
+  const units=UNITS.map(u=>{ const gs=GL.filter(g=>g.unit===u.id); const stars=gs.reduce((s,g)=>s+[1,2,3,4].filter(l=>S.prog[g.id+'_'+l]?.star).length,0), max=gs.length*4;
     return `<button class="unit" data-unit="${u.id}"><div class="emo">${u.emo}</div><div class="nm">${u.name}</div><div class="pr">⭐ ${stars} / ${max}</div><div class="bar"><i style="width:${stars/max*100}%"></i></div></button>`; }).join('');
   return `<div class="logo">算数</div><div class="subt">中学受験の算数を、毎日すこしずつ</div>
   <div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline"><b>Lv.${L}</b><small class="sub">${S.xp-cur} / ${nx-cur} XP</small></div>
@@ -2312,7 +1940,7 @@ function home(){
 
 function unitView(){
   const u=UNITS.find(x=>x.id===arg);
-  const rows=GL.filter(g=>g.unit===u.id).map(g=>`<div class="topic"><div class="tn"><b>${g.name}</b><small>${g.desc}</small></div><div class="lvs">${[1,2,3,4].filter(l=>l>=(g.minLv||1)).map(l=>{const pr=S.prog[g.id+'_'+l];return `<button class="lv l${l}" data-start="${g.id}" data-lv="${l}">${l>FREE_MAX_LV&&!isPremium()?'🔒':''}${LVN[l]}<span class="st">${pr?.star?'⭐':pr?Math.round(pr.ok/pr.n*100)+'%':'　'}</span></button>`;}).join('')}</div></div>`).join('');
+  const rows=GL.filter(g=>g.unit===u.id).map(g=>`<div class="topic"><div class="tn"><b>${g.name}</b><small>${g.desc}</small></div><div class="lvs">${[1,2,3,4].map(l=>{const pr=S.prog[g.id+'_'+l];return `<button class="lv l${l}" data-start="${g.id}" data-lv="${l}">${l>FREE_MAX_LV&&!isPremium()?'🔒':''}${LVN[l]}<span class="st">${pr?.star?'⭐':pr?Math.round(pr.ok/pr.n*100)+'%':'　'}</span></button>`;}).join('')}</div></div>`).join('');
   return topbar(`${u.emo} ${u.name}`)+`<div class="card">${rows}</div><p class="note-s">1セット5問。4問以上正解で⭐</p><div class="card sub">${LVDESC.slice(1).join('<br>')}<br>※目安です。問題は全部このアプリが作ったオリジナルで、実際の入試問題ではありません。</div>`;
 }
 
@@ -2358,7 +1986,6 @@ function playView(){
     <div class="acts"><button class="btn" data-act="hint">💡 ヒント</button><button class="btn" data-act="giveup">わからない（答えを見る）</button></div>`;
   }else if(!sess.done){
     const val=sess.input?exprHTML(sess.input):'<span class="val ph">答えを入力</span>';
-    if(P.parts) body+=`<div class="sub center" style="margin-bottom:6px">いちばん最後の小問（${P.parts.length}）の答えを入力してね</div>`;
     body+=`<div class="ansbox" id="ab"><div class="val${sess.input?'':' ph'}">${sess.input?val:'答えを入力'}</div><div class="u">${P.unit}</div></div>
     <div class="pad">${['7','8','9','⌫','4','5','6','/','1','2','3','.','0','と','C'].map(k=>`<button class="key${'⌫/.とC'.includes(k)?' s':''}" data-key="${k}">${k}</button>`).join('')}<button class="key s" data-act="hint">💡</button></div>
     <div class="acts"><button class="btn" data-act="skip">わからない</button><button class="btn main" data-act="answer">こたえる</button></div>
@@ -2367,7 +1994,7 @@ function playView(){
   }else{
     const ok=sess.done.ok;
     body+=`<div class="judge ${ok?'ok':'ng'} pop">${ok?'⭕ 正解！':'❌ ざんねん'}</div>
-      ${ok?(sess.done.gain?`<div class="center sub">+${sess.done.gain} XP ${S.combo>=3?`・🔥${S.combo}連続`:''}</div>`:''):`<div class="correct">答え：${ansLine(P)}</div>${sess.done.your?`<div class="center sub">あなたの答え：${exprHTML(sess.done.your)}</div>`:''}`}
+      ${ok?(sess.done.gain?`<div class="center sub">+${sess.done.gain} XP ${S.combo>=3?`・🔥${S.combo}連続`:''}</div>`:''):`<div class="correct">答え：${H(P.ans,P.fmt)} ${P.unit}</div>${sess.done.your?`<div class="center sub">あなたの答え：${exprHTML(sess.done.your)}</div>`:''}`}
       ${explHTML(P,ok)}${algView(P)}
       <button class="btn main wide" data-act="next">${sess.i+1<n?'つぎの問題へ ▶':'結果を見る ▶'}</button>`;
   }
@@ -2378,7 +2005,7 @@ function playView(){
 function explHTML(P,ok){ return `<div class="card expl" style="margin-top:10px"><b>📝 解き方</b><div class="sub">わからない式は、タップするとくわしい説明が出るよ</div><div class="idea">📖 考え方：${G[P.g].idea||''}</div><ol>${P.steps.map((x,i)=>`<li class="stp" data-st="${i}"><div>${x.t}</div>${(x.why||x.fig)?(sess.open&&sess.open[i]?`<div class="why">${x.why||''}${x.fig||''}</div><span class="tp">▲ とじる</span>`:`<span class="tp">▼ くわしく</span>`):''}</li>`).join('')}</ol>${!ok?'<div class="sub">この問題は「まちがいノート」に入れたよ。</div>':''}</div>`; }
 // 紙（ノート）で解く形：答えを入力せず、「解き終わった」を押す → 答えと解き方 → 自分で採点
 function paperDone(P,n){
-  const d=sess.done, ans=`<div class="correct" style="${P.parts?'font-size:16px;line-height:1.9':''}">答え：${ansLine(P)}</div>`;
+  const d=sess.done, ans=`<div class="correct">答え：${H(P.ans,P.fmt)} ${P.unit}</div>`;
   const nxt=`<button class="btn main wide" data-act="next">${sess.i+1<n?'つぎの問題へ ▶':'結果を見る ▶'}</button>`;
   if(d.phase==='grade') return `<div class="judge" style="font-size:26px">答え合わせ</div>${ans}${explHTML(P,true)}${algView(P)}
     <div class="card center"><b>自分で採点しよう</b><div class="sub">紙に書いた答えと見くらべてね</div><div class="row" style="justify-content:center;margin-top:10px"><button class="btn main" data-act="selfok">⭕ 合っていた</button><button class="btn orange" data-act="selfng">❌ ちがった</button></div></div>`;
@@ -2390,7 +2017,6 @@ function paperDone(P,n){
   else top=`<div class="judge ng pop">❌ ちがった</div><div class="idea">👇 下の解き方の式をタップして、どこで答えがずれたか確かめよう。</div>`;
   return top+ans+explHTML(P,d.ok&&!d.timeout&&!d.giveUp)+algView(P)+extra+nxt;
 }
-const ansLine=P=>P.parts?P.parts.map((x,i)=>`(${i+1}) ${H(x.a,x.f)}${x.u?' '+x.u:''}`).join('　'):`${H(P.ans,P.fmt)} ${P.unit}`;
 const clampSec=x=>Math.max(1,Math.min(900,Math.round(x)));
 function algView(P){
   if(!P.alg) return '';
@@ -3486,7 +3112,6 @@ const UNITS={
  yoji:{name:'四字熟語',ic:'四',items:YOJI,sec:15},
  koto:{name:'ことわざ・慣用句',ic:'諺',items:KOTO,sec:20},
  taigi:{name:'対義語・類義語',ic:'対',items:TAIGI,sec:12},
- tsukai:{name:'語句の使い分け',ic:'用',items:TSUKAI,lv:true,sec:25},   // 文の中での正しい使い方（難関・最難関）
 };
 const GOAL=10;            // 1日の目標（問）
 const PER=10;             // 1回の問題数
@@ -3541,12 +3166,7 @@ function title(lv){return lv<3?'ことばのたね':lv<5?'ことばの芽':lv<8?
 function streakNow(){return(S.lastDay===dayStr()||S.lastDay===yesterday())?S.streak:0;}
 const KANA='アイウエオカキ';
 // 単元のうち、いまのレベルで出る問題の番号
-// 問題の「レベル」：データの最後が数字なら、それがレベル（1標準〜4最難関）。数字がない問題は、標準・上位の共通の問題
-function itemLv(it){const l=it[it.length-1];return typeof l==='number'?l:0;}
-// この問題を、レベル L のときに出すか：読み・書き取り・使い分けは、同じレベルの問題だけ。
-// ほかの語句の単元（同音異義語・四字熟語・ことわざ・対義語）は、レベルの印がある問題はそのレベルだけ、印がない問題は標準・上位（1〜2）だけ
-function inLevel(u,it,L){const l=itemLv(it);return UNITS[u].lv?l===L:(l?l===L:L<=2);}
-function unitIdx(u){const U=UNITS[u],c=curLv();return U.items.map((_,i)=>i).filter(i=>inLevel(u,U.items[i],c));}
+function unitIdx(u){const U=UNITS[u];return U.items.map((_,i)=>i).filter(i=>!U.lv||U.items[i][U.items[i].length-1]===curLv());}
 function mastered(u){return unitIdx(u).filter(i=>{const r=S.items[u+':'+i];return r&&r.s>=2;}).length;}
 function fmt(sec){sec=Math.max(0,Math.ceil(sec));return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0');}
 
@@ -3640,7 +3260,7 @@ function makeQ(u,i){
       const w=it[0].split('');w[it[2]]='□';
       q=choiceQ(id,u,'<span class="big">'+w.join('')+'</span><span class="ask">意味：'+esc(it[1])+'</span>','□に入る漢字を選ぼう',it[0][it[2]],it[3],true,ex);
     }else{
-      const yp=YOJI.filter(x=>x!==it&&itemLv(x)===itemLv(it)),others=shuffle(yp.length>=3?yp:YOJI.filter(x=>x!==it)).slice(0,3).map(x=>x[0]);
+      const others=shuffle(YOJI.filter(x=>x!==it)).slice(0,3).map(x=>x[0]);
       q=choiceQ(id,u,esc(it[1]),'この意味の四字熟語を選ぼう',it[0],others,true,ex);
     }
   }
@@ -3650,25 +3270,15 @@ function makeQ(u,i){
       q=choiceQ(id,u,'<span class="big">'+esc(it[0].replace(it[4],'□'))+'</span><span class="ask">意味：'+esc(it[1])+'</span>','□に入る漢字（体の部分）を選ぼう',it[4],it[5],true,ex);
     }else{
       const wrong=[];if(it[3])wrong.push(it[3]);
-      const kp=KOTO.filter(x=>x!==it&&itemLv(x)===itemLv(it));
-      shuffle(kp.length>=4?kp:KOTO.filter(x=>x!==it)).forEach(x=>{if(wrong.length<3)wrong.push(x[1]);});
+      shuffle(KOTO.filter(x=>x!==it)).forEach(x=>{if(wrong.length<3)wrong.push(x[1]);});
       q=choiceQ(id,u,'<span class="big" style="font-size:1.6rem;letter-spacing:.05em">'+esc(it[0])+'</span>','この'+it[2]+'の意味を選ぼう',it[1],wrong,false,ex);
     }
   }
   if(u==='taigi'){
     const rev=Math.random()<0.5,a=rev?it[1]:it[0],b=rev?it[0]:it[1],k=it[2]==='対'?'対義語（反対の意味）':'類義語（にた意味）';
-    const wd=f=>TAIGI.filter(f).map(x=>x[Math.random()<0.5?0:1]);
-    let pool=shuffle(wd(x=>x!==it&&x[2]===it[2]&&itemLv(x)===itemLv(it)));
-    if(pool.length<3)pool=pool.concat(shuffle(wd(x=>x!==it&&x[2]===it[2])));
-    pool=pool.filter((w,k,arr)=>arr.indexOf(w)===k&&w!==a&&w!==b).slice(0,3);
+    const pool=shuffle(TAIGI.filter(x=>x!==it&&x[2]===it[2]).map(x=>x[Math.random()<0.5?0:1])).slice(0,3);
     q=choiceQ(id,u,'<span class="big">'+a+'</span>','「'+a+'」の'+k+'を選ぼう',b,pool,true,
       '<span class="ans">'+a+(it[2]==='対'?' ⇔ ':' ＝ ')+b+'</span>');
-  }
-  if(u==='tsukai'){
-    // 文の中に入る言葉をえらぶ。選択肢はどれも、ぱっと見ると合いそうな言葉にしてある
-    const ex='<span class="ans">'+esc(it[0].replace(/【.+?】/,it[1]))+'</span><br>'+esc(it[3]);
-    const short=[it[1]].concat(it[2]).every(x=>[...x].length<=5);
-    q=choiceQ(id,u,mark(it[0]),'文に合う言葉を選ぼう',it[1],it[2],short,ex);
   }
   if(!q.sec)q.sec=UNITS[u].sec;
   return q;
@@ -3709,7 +3319,7 @@ function home(){ {const m=mainSchool(); if(m&&S.lvMain!==m.id){S.level=m.level;S
   '<div class="sec">漢字 <span class="tag">'+LEVELS[curLv()]+'</span>　<span class="muted">⏱ 1問ごとにタイマー</span></div><div class="units">'+unitBtn('yomi')+unitBtn('kaki')+'</div>'+
   '<div class="sec">長文読解 <span class="tag">'+LEVELS[curLv()]+'</span></div><div class="units">'+dokuBtn('物語文')+dokuBtn('説明文')+'</div>'+
   '<div class="sec">詩 <span class="tag">'+LEVELS[curLv()]+'</span></div><div class="units">'+dokuBtn('詩')+'</div>'+
-  '<div class="sec">ことばの知識 <span class="muted">（レベルに合わせて出ます）</span></div><div class="units">'+unitBtn('douon',true)+unitBtn('yoji')+unitBtn('koto')+unitBtn('taigi',true)+(unitIdx('tsukai').length?unitBtn('tsukai',true):'')+'</div>'+
+  '<div class="sec">ことばの知識 <span class="muted">（全レベル共通）</span></div><div class="units">'+unitBtn('douon',true)+unitBtn('yoji')+unitBtn('koto')+unitBtn('taigi',true)+'</div>'+
   '<div class="sec">ふくしゅう</div><button class="unit wide" onclick="startNote()"><div class="ic" style="background:var(--red2);color:var(--red)">誤</div><div style="flex:1"><div class="nm">まちがいノート</div><div class="muted">まちがえた問題に、もう一度。2回続けて正解で卒業。</div></div>'+(missN?'<span class="pill">'+missN+'</span>':'<span class="muted">0</span>')+'</button>'+
   '<div class="sec">苦手をなくす <span class="muted">（記録から自動で分析）</span></div><div class="units">'+
    '<button class="unit" onclick="startWeakKanji()"><div class="ic" style="background:var(--gold2);color:#8a6418">🎯</div><div class="nm">苦手モード<br><span class="muted">漢字・語句'+(isPremium()?'':'<br>無料：今日あと'+freeLeftQ()+'問')+'</span></div></button>'+
@@ -3777,7 +3387,7 @@ function finishOne(q,ok,inTime,timeout,meta){
   Q.xp+=record(q.id,ok);
   if(Q.weakMode&&!isPremium()){freeUse().q++;save();}     // 苦手モード（無料）は、答えた問題の数をかぞえる
   {const it=UNITS[q.unit].items[+q.id.split(':')[1]];
-   logQ({c:q.unit,d:UNITS[q.unit].name,s:'',f:q.kind==='write'?'write':'choice',lv:itemLv(it),sc:ok?1:0,tm:Math.round(meta.tm),tg:q.sec,ex:meta.ext?1:0,k:q.id});}if(ok){Q.ok++;if(inTime)Q.inTime++;}else Q.wrong.push(q);
+   logQ({c:q.unit,d:UNITS[q.unit].name,s:'',f:q.kind==='write'?'write':'choice',lv:UNITS[q.unit].lv?it[it.length-1]:0,sc:ok?1:0,tm:Math.round(meta.tm),tg:q.sec,ex:meta.ext?1:0,k:q.id});}if(ok){Q.ok++;if(inTime)Q.inTime++;}else Q.wrong.push(q);
   snd(ok?'ok':'ng');
   $('after').innerHTML='<div class="expl'+(ok?'':' ng')+'"><h3>'+(ok?'⭕ 正解！':timeout?'⏰ 時間切れ':'❌ ざんねん')+(ok&&!inTime?' <span class="muted">（延長して正解）</span>':'')+'</h3>'+q.expl+(q.memo?kanjiMemo(q.memo,!ok):'')+'</div>'+
     '<div class="stick"><button class="btn" id="next" onclick="nextQ()">'+(Q.i+1<Q.list.length?'つぎへ':'結果を見る')+'</button></div>';
@@ -3907,7 +3517,7 @@ function resultBox(q,i){
   if(q.t==='kiji'){
     const v=String(D.ans[i]).replace(/\n/g,''),warn=[];
     if(v.length>q.limit)warn.push('字数オーバー（'+v.length+'字）。本番では0点になることもあるので、この問題は0点にします。');
-    if(v&&q.must)(Array.isArray(q.must)?q.must:[q.must]).forEach(w=>{if(v.indexOf(w)<0)warn.push('指定された言葉「'+w+'」が入っていないよ。');});
+    if(v&&q.must&&!v.includes(q.must))warn.push('指定された言葉「'+q.must+'」が入っていないよ。');
     if(!v)warn.push('何も書いていないので、解答例を読んでから書き直してみよう。');
     h+='<div class="ex"><b>解答例</b><br><span style="font-family:var(--kanji);font-weight:600">'+esc(q.ex)+'</span></div>'+
       (warn.length?'<p style="color:var(--red);font-size:.9rem;margin:6px 0">⚠ '+warn.join('<br>⚠ ')+'</p>':'')+
@@ -3988,8 +3598,7 @@ const KANJI_ADV={
  douon:'同音異義語は、意味のちがいを短い言葉で言えるようにすると迷わなくなる。',
  yoji:'四字熟語は、意味とセットで声に出して覚えよう。',
  koto:'ことわざ・慣用句は、使う場面を思いうかべて覚えると、意味を取りちがえにくい。',
- taigi:'対義語・類義語は、ペアで覚えて、にた言葉との使い分けも確かめよう。',
- tsukai:'文の中での使い方は、前後の言葉とのつながりと、似た言葉との意味のちがいを確かめて選ぼう。'};
+ taigi:'対義語・類義語は、ペアで覚えて、にた言葉との使い分けも確かめよう。'};
 const SKILL_ADV={
  心情:'心情は「前の気持ち→きっかけ→後の気持ち」の順で。言葉・行動・表情・情景に注目しよう。',
  理由:'「なぜ」の答えは、傍線部の前後の「だから・ので」に注目。記述は文末を「〜から。」に。',
@@ -4084,13 +3693,12 @@ function itemWeak(key){
     if(e.sc<1)w+=3*rec*(1-e.sc);else if(e.ex)w+=1.5*rec;else if(e.tg>0&&e.tm>e.tg*0.8)w+=rec;else w-=rec;});
   return Math.max(-2,w);
 }
-const KANJI_U=['yomi','kaki','douon','yoji','koto','taigi','tsukai'];
+const KANJI_U=['yomi','kaki','douon','yoji','koto','taigi'];
 function wordOf(u,i){
   const it=UNITS[u].items[i];
   if(u==='yomi')return it[0].match(/【(.+?)】/)[1];
   if(u==='kaki'||u==='douon')return it[1];
   if(u==='yoji'||u==='koto')return it[0];
-  if(u==='tsukai')return it[1];
   return it[0]+it[1];
 }
 // 2つの言葉が「なかま」か：同じ漢字／同じ音読み／同じ部首
@@ -4111,7 +3719,7 @@ function startWeakKanji(){
   let cap=PER;
   if(!isPremium()){const left=freeLeftQ();if(left<=0){showPack('苦手モードの今日の無料分（'+FREE_WEAK_Q+'問）は終わりました');return;}cap=Math.min(PER,left);}
   const all=[];
-  KANJI_U.forEach(u=>UNITS[u].items.forEach((it,i)=>isPremium()||itemLv(it)<=3?all.push({u,i,key:u+':'+i,w:itemWeak(u+':'+i),word:wordOf(u,i),lvok:inLevel(u,it,curLv())}):0));
+  KANJI_U.forEach(u=>UNITS[u].items.forEach((it,i)=>isPremium()||!UNITS[u].lv||it[it.length-1]<=3?all.push({u,i,key:u+':'+i,w:itemWeak(u+':'+i),word:wordOf(u,i),lvok:!UNITS[u].lv||it[it.length-1]===curLv()}):0));
   const cw={};aggregate().forEach(a=>{cw[a.c]=a.weak;});
   const seeds=all.filter(x=>x.w>0.5).sort((a,b)=>b.w-a.w).slice(0,6);
   const sc=[];
@@ -4289,10 +3897,10 @@ function startSchoolKanji(){
   const sc=mainSchool();if(!sc){showSetup(false);return;}
   const ko=KO[sc.id]||{},L=sc.level,kj=[],vc=[];
   // 漢字（読み・書き取り）と語句に分けて、決まった数ずつ出す。漢字がよく出る学校は漢字を多めに（7問／ふつう5問）
-  Object.keys(UNITS).forEach(u=>{const U=UNITS[u];U.items.forEach((it,i)=>{if(!inLevel(u,it,L))return;
+  Object.keys(UNITS).forEach(u=>{const U=UNITS[u];U.items.forEach((it,i)=>{if(U.lv&&it[it.length-1]!==L)return;
     const key=u+':'+i,r=S.items[key],unseen=!r||r.s<2;
     const w=(1+(unseen?0.8:0)+Math.max(0,itemWeak(key))*0.4)*(u==='kaki'&&ko.kanji?1.6:1);
-    ((u==='yomi'||u==='kaki')?kj:vc).push({u,i,k:Math.pow(Math.random(),1/w)});});});
+    (U.lv?kj:vc).push({u,i,k:Math.pow(Math.random(),1/w)});});});
   const nk=Math.min(kj.length,ko.kanji?7:5);
   kj.sort((a,b)=>b.k-a.k);vc.sort((a,b)=>b.k-a.k);
   const list=shuffle(kj.slice(0,nk).concat(vc.slice(0,PER-nk))).map(c=>{const q=makeQ(c.u,c.i);
@@ -4322,7 +3930,7 @@ function startSchoolDoku(){
 
 // ---------- 分析：得意・目安との比較・レーダー ----------
 const AXES=[
- {k:'読み',f:e=>e.c==='yomi'},{k:'書き取り',f:e=>e.c==='kaki'},{k:'語句',f:e=>['douon','yoji','koto','taigi','tsukai'].indexOf(e.c)>=0},
+ {k:'読み',f:e=>e.c==='yomi'},{k:'書き取り',f:e=>e.c==='kaki'},{k:'語句',f:e=>['douon','yoji','koto','taigi'].indexOf(e.c)>=0},
  {k:'物語文',f:e=>e.d==='物語文'},{k:'説明文',f:e=>e.d==='説明文'},{k:'詩',f:e=>e.d==='詩'},{k:'記述',f:e=>e.f==='kiji'},{k:'速さ',time:true}];
 function radarData(L){
   const last=S.log.slice(-200),vals=[],tgs=[];
