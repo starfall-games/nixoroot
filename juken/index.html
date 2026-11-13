@@ -1637,11 +1637,13 @@ const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 // 型ごとの「苦手の点数」(0〜100)。新しい記録ほど重く見る。最近、時間内に正解をつづけると点数がへる
 function weakScore(es){ // es：その型の記録（古い順）
   const n=es.length; if(n<3) return {n,score:null,acc:null,ratio:null,extRate:null,streak:0};
-  const last=es.slice(-40); let w=1,sw=0,a=0,r=0,x=0;
-  for(let i=last.length-1;i>=0;i--){ const e=last[i]; sw+=w; a+=w*e[3]; r+=w*Math.min(3,e[4]/e[5]); x+=w*(e[6]>0?1:0); w*=0.92; }
+  const last=es.slice(-40); let w=1,sw=0,a=0,r=0,x=0,tq=0;
+  for(let i=last.length-1;i>=0;i--){ const e=last[i]; sw+=w; a+=w*e[3]; r+=w*Math.min(3,e[4]/e[5]); x+=w*(e[6]>0?1:0); tq+=w*(e[10]?1:0); w*=0.92; }
   const acc=a/sw, ratio=r/sw, extRate=x/sw;
+  const toRate=tq/sw;
   let streak=0; for(let i=es.length-1;i>=0;i--){ const e=es[i]; if(e[3]&&e[4]<=e[5]) streak++; else break; }
   let score=100*(0.55*(1-acc)+0.3*clamp((ratio-0.7)/1.0,0,1)+0.15*Math.min(1,extRate*2.5));
+  score=Math.min(100,score+10*Math.min(1,toRate*3)); // 時間切れは苦手の点数を上げる
   score*= streak>=5?0.2: streak>=3?0.5:1;
   score*= Math.min(1,n/6);
   return {n,score:Math.round(score*10)/10,acc,ratio,extRate,streak};
@@ -1656,7 +1658,7 @@ function analyze(log,old,now=Date.now()){
     // よく開いた解説の行（主な解き方の何番目か）
     const tc={}; es.forEach(e=>{ if(e[7]) String(e[7]).split(',').forEach(t=>{ if(/^\d+$/.test(t)) tc[t]=(tc[t]||0)+1; }); });
     const tt=Object.entries(tc).sort((a,b)=>b[1]-a[1])[0];
-    byG.push({g,n:nAll,acc:nAll?okAll/nAll:0,ratio:nAll?rsAll/nAll:0,ext:extAll,taps:tapAll,tapTop:tt?+tt[0]:null,recent:ws}); });
+    byG.push({g,n:nAll,acc:nAll?okAll/nAll:0,ratio:nAll?rsAll/nAll:0,ext:extAll,taps:tapAll,tos:es.filter(e=>e[10]).length,tapTop:tt?+tt[0]:null,recent:ws}); });
   const ranked=byG.filter(x=>x.recent.score!==null).sort((a,b)=>b.recent.score-a.recent.score);
   const few=byG.filter(x=>x.recent.score===null);
   // 日ごと
@@ -1675,6 +1677,7 @@ function adviceOf(an,nameOf){
     else if(r.ratio>1.2) L.push(`「${nm}」は正解できているけれど、めやす時間より${Math.round((r.ratio-1)*100)}%長くかかっているよ。式を立てる速さをあげよう。`);
     else if(r.extRate>0.3) L.push(`「${nm}」は延長することが多いよ。まず図や線分図をかくところから、すばやく始めよう。`);
     else L.push(`「${nm}」をもう少し練習すると、もっと安定するよ。`);
+    if(w.tos>=2) L.push(`「${nm}」は時間切れが${w.tos}回あるよ。図や線分図を先にかいて、めやすの時間内に解き終える練習をしよう。`);
     if(w.tapTop!==null) L.push(`「${nm}」の解説は、${w.tapTop+1}行目の式をよく開いているよ。そこの意味をおさらいしよう。`); }
   else L.push('いまのところ、大きな苦手はないよ。難しいレベルにもちょうせんしてみよう！');
   if(an.recent&&an.prev){ const d=Math.round((an.recent.acc-an.prev.acc)*100); if(d>=3)L.push(`最近7日の正答率は、その前の7日より${d}%上がったよ。いい調子！`); else if(d<=-3)L.push(`最近7日の正答率は、その前の7日より${-d}%下がったよ。ゆっくり確かめながら解いてみよう。`); else L.push('正答率は安定しているよ。'); }
@@ -1690,7 +1693,7 @@ function findSeed(g,lv,sub,rnd,not){
   for(let i=0;i<120;i++){ seed=(rnd()*2**32)>>>0; if(seed===not) continue; const P=makeProblem(g,lv,seed); if(!sub||subOf(P)===sub) return seed; }
   return seed;
 }
-const isBad=e=>!e[3]||e[4]>e[5]*1.2||e[6]>0; // まちがい・時間がかかった・延長した
+const isBad=e=>!e[3]||e[4]>e[5]*1.2||e[6]>0||!!e[10]; // まちがい・時間がかかった・延長した
 // 苦手モードの5問（同じ型で数字だけ変えた問題 ＋ 似た系統の問題）
 function buildWeak(log,old,rnd=Math.random,n=5,now=Date.now()){
   const an=analyze(log,old,now); let pool=an.ranked.filter(x=>x.recent.score>=8);
@@ -1844,7 +1847,7 @@ function defHost(S){ const D=(k,get,set)=>Object.defineProperty(S,k,{get,set,enu
   D('timer',()=>JH.getSetting('timer')!==false,v=>JH.setSetting('timer',!!v)); }
 const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
 const dayShift=(s,k)=>{const d=new Date(s+'T12:00:00');d.setDate(d.getDate()+k);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
-const defSave=()=>({v:1,xp:0,goal:10,snd:true,timer:true,premium:false,weakDay:{d:'',n:0},log:[],logOld:{},schools:[],schoolsAsked:false,days:{},prog:{},note:[],badges:{},streak:{cnt:0,last:''},ta:{best:0},combo:0,maxCombo:0,total:0,correct:0});
+const defSave=()=>({v:1,xp:0,goal:10,snd:true,timer:true,paper:true,premium:false,weakDay:{d:'',n:0},log:[],logOld:{},schools:[],schoolsAsked:false,days:{},prog:{},note:[],badges:{},streak:{cnt:0,last:''},ta:{best:0},combo:0,maxCombo:0,total:0,correct:0});
 let S; try{ S=Object.assign(defSave(),JSON.parse(JH.load('sansu')||'{}')); }catch(e){ S=defSave(); }
 SAVE=S; defHost(S); if(!S.weakDay||typeof S.weakDay!=='object') S.weakDay={d:'',n:0}; if(!Array.isArray(S.schools)) S.schools=[]; if(!Array.isArray(S.log)) S.log=[]; if(!S.logOld||typeof S.logOld!=='object') S.logOld={};
 const save=()=>{ try{ JH.save('sansu',JSON.stringify(S)); }catch(e){} };
@@ -1948,7 +1951,7 @@ function startSet(items,mode,label,extra){
 function nextQ(){
   const it=sess.items[sess.i];
   sess.P=makeProblem(it.g,it.lv,it.seed); sess.input=''; sess.hint=false; sess.done=null; sess.retry=false; sess.open={};
-  sess.ext=0; sess.timeUp=false; sess.tleft=sess.P.tm; sess.qt0=performance.now(); sess.hid=0; sess.lastLog=null; startQ();
+  sess.ext=0; sess.timeUp=false; sess.tleft=sess.P.tm; sess.qt0=performance.now(); sess.hid=0; sess.lastLog=null; sess.finSec=null; sess.pendTaps=[]; startQ();
 }
 // 問題ごとのタイマー（合格する人がだいたい解く時間）
 function stopQ(){ if(qTimer){ clearInterval(qTimer); qTimer=null; } }
@@ -1959,7 +1962,7 @@ function startQ(){
     const now=performance.now(), dt=(now-last)/1000; last=now;
     if(!sess||view!=='play'||sess.done||sess.timeUp) return;
     sess.tleft-=dt;
-    if(sess.tleft<=0){ sess.tleft=0; sess.timeUp=true; render(); return; }
+    if(sess.tleft<=0){ sess.tleft=0; sess.timeUp=true; if(S.paper&&sess.ext>=MAXEXT){ commit(false,{paper:true,timeout:true}); return; } render(); return; }
     const tb=document.getElementById('tbar'), ts=document.getElementById('tsec');
     if(tb){ tb.firstElementChild.style.width=(sess.tleft/(sess.P.tm+sess.ext)*100)+'%'; tb.classList.toggle('low',sess.tleft<=10); }
     if(ts) ts.textContent=Math.ceil(sess.tleft)+'秒';
@@ -1975,25 +1978,45 @@ function playView(){
   if(sess.mode==='school'){ body+=`<div class="idea" style="margin-top:0">🏫 志望校モード（${sess.school.name}・${LEVEL_NAME[sess.school.level]}レベルの目安）</div>`; }
   if(sess.mode==='weak'){ const it=sess.items[sess.i]; body+=`<div class="idea" style="margin-top:0">🎯 ${it.tag==='same'?'苦手な型を、数字をかえて もう一度':'苦手に似た系統の問題（'+nameOfG(it.from)+'の仲間）'}</div>`; }
   if(S.timer&&!sess.done) body+=`<div class="tinfo"><span>⏱ めやす ${Math.floor(P.tm/60)?Math.floor(P.tm/60)+'分':''}${P.tm%60?P.tm%60+'秒':''}${sess.ext?`（のばした：${sess.ext}秒）`:''}</span><span id="tsec">${Math.ceil(sess.tleft)}秒</span></div><div class="tbar${sess.tleft<=10?' low':''}" id="tbar"><i style="width:${sess.tleft/(P.tm+sess.ext)*100}%"></i></div>`;
-  if(sess.timeUp&&!sess.done) body+=`<div class="over">⏰ 時間です！<div class="row" style="justify-content:center;margin-top:8px"><button class="btn main" data-act="answer">答え合わせ</button>${sess.ext<MAXEXT?`<button class="btn orange" data-act="extend">延長 +${EXTSTEP}秒（あと${MAXEXT-sess.ext}秒まで）</button>`:'<span class="sub">これ以上は延長できません</span>'}</div></div>`;
+  if(sess.timeUp&&!sess.done) body+=`<div class="over">⏰ 時間です！<div class="row" style="justify-content:center;margin-top:8px">${S.paper?'<button class="btn main" data-act="timeoutshow">答えを見る</button>':'<button class="btn main" data-act="answer">答え合わせ</button>'}${sess.ext<MAXEXT?`<button class="btn orange" data-act="extend">延長 +${EXTSTEP}秒（あと${MAXEXT-sess.ext}秒まで）</button>`:'<span class="sub">これ以上は延長できません</span>'}</div></div>`;
   body+=`<div class="card qcard">${P.q}${P.fig?P.fig:''}</div>`;
   if(sess.hint&&!sess.done) body+=`<div class="hintbox">💡 ${P.hint}</div>`;
-  if(!sess.done){
+  if(!sess.done&&S.paper){
+    body+=`<div class="card center" style="padding:16px"><div class="sub">紙（ノート）で解いてね。終わったらボタンを押そう</div><button class="btn main wide" style="font-size:22px;padding:22px 10px;margin-top:10px" data-act="finished">✅ 解き終わった</button></div>
+    <div class="acts"><button class="btn" data-act="hint">💡 ヒント</button><button class="btn" data-act="giveup">わからない（答えを見る）</button></div>`;
+  }else if(!sess.done){
     const val=sess.input?exprHTML(sess.input):'<span class="val ph">答えを入力</span>';
     body+=`<div class="ansbox" id="ab"><div class="val${sess.input?'':' ph'}">${sess.input?val:'答えを入力'}</div><div class="u">${P.unit}</div></div>
     <div class="pad">${['7','8','9','⌫','4','5','6','/','1','2','3','.','0','と','C'].map(k=>`<button class="key${'⌫/.とC'.includes(k)?' s':''}" data-key="${k}">${k}</button>`).join('')}<button class="key s" data-act="hint">💡</button></div>
     <div class="acts"><button class="btn" data-act="skip">わからない</button><button class="btn main" data-act="answer">こたえる</button></div>
     <p class="note-s">分数は 3/4 のように「/」、帯分数は 1と3/4 のように「と」を使う</p>`;
+  }else if(sess.done.paper){ body+=paperDone(P,n);
   }else{
     const ok=sess.done.ok;
     body+=`<div class="judge ${ok?'ok':'ng'} pop">${ok?'⭕ 正解！':'❌ ざんねん'}</div>
       ${ok?(sess.done.gain?`<div class="center sub">+${sess.done.gain} XP ${S.combo>=3?`・🔥${S.combo}連続`:''}</div>`:''):`<div class="correct">答え：${H(P.ans,P.fmt)} ${P.unit}</div>${sess.done.your?`<div class="center sub">あなたの答え：${exprHTML(sess.done.your)}</div>`:''}`}
-      <div class="card expl" style="margin-top:10px"><b>📝 解き方</b><div class="sub">わからない式は、タップするとくわしい説明が出るよ</div><div class="idea">📖 考え方：${G[P.g].idea||''}</div><ol>${P.steps.map((x,i)=>`<li class="stp" data-st="${i}"><div>${x.t}</div>${(x.why||x.fig)?(sess.open&&sess.open[i]?`<div class="why">${x.why||''}${x.fig||''}</div><span class="tp">▲ とじる</span>`:`<span class="tp">▼ くわしく</span>`):''}</li>`).join('')}</ol>${!ok?'<div class="sub">この問題は「まちがいノート」に入れたよ。</div>':''}</div>${algView(P)}
+      ${explHTML(P,ok)}${algView(P)}
       <button class="btn main wide" data-act="next">${sess.i+1<n?'つぎの問題へ ▶':'結果を見る ▶'}</button>`;
   }
   return `<div class="qhead"><button class="back btn" style="padding:8px 12px" data-act="quit">✕</button><div class="dots">${dots}</div><span class="tag">${g.name}・${LVN[P.lv]}</span></div>${body}`;
 }
 
+// くわしい解き方（式をタップすると説明が開く）
+function explHTML(P,ok){ return `<div class="card expl" style="margin-top:10px"><b>📝 解き方</b><div class="sub">わからない式は、タップするとくわしい説明が出るよ</div><div class="idea">📖 考え方：${G[P.g].idea||''}</div><ol>${P.steps.map((x,i)=>`<li class="stp" data-st="${i}"><div>${x.t}</div>${(x.why||x.fig)?(sess.open&&sess.open[i]?`<div class="why">${x.why||''}${x.fig||''}</div><span class="tp">▲ とじる</span>`:`<span class="tp">▼ くわしく</span>`):''}</li>`).join('')}</ol>${!ok?'<div class="sub">この問題は「まちがいノート」に入れたよ。</div>':''}</div>`; }
+// 紙（ノート）で解く形：答えを入力せず、「解き終わった」を押す → 答えと解き方 → 自分で採点
+function paperDone(P,n){
+  const d=sess.done, ans=`<div class="correct">答え：${H(P.ans,P.fmt)} ${P.unit}</div>`;
+  const nxt=`<button class="btn main wide" data-act="next">${sess.i+1<n?'つぎの問題へ ▶':'結果を見る ▶'}</button>`;
+  if(d.phase==='grade') return `<div class="judge" style="font-size:26px">答え合わせ</div>${ans}${explHTML(P,true)}${algView(P)}
+    <div class="card center"><b>自分で採点しよう</b><div class="sub">紙に書いた答えと見くらべてね</div><div class="row" style="justify-content:center;margin-top:10px"><button class="btn main" data-act="selfok">⭕ 合っていた</button><button class="btn orange" data-act="selfng">❌ ちがった</button></div></div>`;
+  let top='', extra='';
+  if(d.timeout){ top=`<div class="judge ng" style="font-size:30px">⏰ 時間切れ</div><div class="center sub">めやすの時間内に解けなかったので、「時間切れ」として記録したよ（苦手の点数に入ります）。</div>`;
+    extra=`<div class="card center"><div class="sub">答えだけは出ていた？（記録は時間切れのままです）</div><div class="row" style="justify-content:center;margin-top:8px"><button class="btn" data-act="tonote1">⭕ 合っていた</button><button class="btn" data-act="tonote0">❌ ちがった</button></div></div>`; }
+  else if(d.giveUp) top=`<div class="judge ng" style="font-size:30px">❌ 解けなかった</div><div class="center sub">まちがいノートに入れたよ。解き方を見てみよう。</div>`;
+  else if(d.ok) top=`<div class="judge ok pop">⭕ 合っていた</div>${d.gain?`<div class="center sub">+${d.gain} XP ${S.combo>=3?`・🔥${S.combo}連続`:''}</div>`:''}`;
+  else top=`<div class="judge ng pop">❌ ちがった</div><div class="idea">👇 下の解き方の式をタップして、どこで答えがずれたか確かめよう。</div>`;
+  return top+ans+explHTML(P,d.ok&&!d.timeout&&!d.giveUp)+algView(P)+extra+nxt;
+}
 const clampSec=x=>Math.max(1,Math.min(900,Math.round(x)));
 function algView(P){
   if(!P.alg) return '';
@@ -2013,14 +2036,20 @@ function answer(skip){
     if(c.bad||c.retry){ toast(c.msg); return; }
     sess.done={ok:c.ok,your:sess.input};
   } else sess.done={ok:false,your:''};
-  const ok=sess.done.ok;
+  commit(sess.done.ok,{your:sess.done.your});
+}
+// 記録する（入力する形・紙で解く形の どちらも、ここを通る）：info={paper,timeout,giveUp,your}
+function commit(ok,info){
+  info=info||{}; const P=sess.P; if(sess.res.length>sess.i) return; // 二重に記録しない
+  sess.done=Object.assign({ok,your:info.your||''},info.paper?{paper:true,phase:'final'}:{},info.timeout?{timeout:true}:{},info.giveUp?{giveUp:true}:{});
   sess.res.push(ok); stopQ();
   const gain=record(P,ok,sess.hint); sess.done.gain=gain; sess.gain+=gain;
   if(sess.mode==='weak'&&!isPremium()){ const d=today(); if(S.weakDay.d!==d) S.weakDay={d,n:0}; S.weakDay.n++; }
   // 1問ごとの記録（分析用）：かかった秒・めやす・延長・あとでタップした式
-  const sec=clampSec((performance.now()-sess.qt0)/1000-(sess.hid||0));
-  const ent=[Date.now(),P.g,P.lv,ok?1:0,sec,P.tm,sess.ext||0,'',subOf(P),P.seed];
-  S.log.push(ent); sess.lastLog=ent;
+  const sec=sess.finSec||clampSec((performance.now()-sess.qt0)/1000-(sess.hid||0));
+  const ent=[Date.now(),P.g,P.lv,ok?1:0,sec,P.tm,sess.ext||0,(sess.pendTaps||[]).join(','),subOf(P),P.seed];
+  if(info.timeout) ent[10]=1;   // 時間切れ（めやす＋延長を使いきっても解き終わらなかった）
+  S.log.push(ent); sess.lastLog=ent; sess.pendTaps=[];
   if(S.log.length>LOG_MAX){ const f=foldLog(S.log,S.logOld); S.log=f.log; S.logOld=f.old; }
   // まちがいノート
   const key=n=>n.g===P.g&&n.lv===P.lv&&n.seed===P.seed;
@@ -2240,6 +2269,7 @@ function badgeView(){
 function settingsView(){
   return topbar('⚙️ 設定')+`<div class="card"><div class="topic"><div class="tn"><b>1日の目標</b></div><select id="goal">${[5,10,20,30].map(g=>`<option ${S.goal===g?'selected':''}>${g}</option>`).join('')}</select></div>
     <div class="topic"><div class="tn"><b>志望校</b><small>${S.schools.length?S.schools.map(x=>x.name).join('、'):'まだ入力していません'}</small></div><button class="btn" data-go="setup">かえる</button></div>
+    <div class="topic"><div class="tn"><b>答え方</b><small>${S.paper?'紙（ノート）で解いて、終わったらボタンを押す':'答えを数字キーで入力する'}</small></div><button class="btn" data-act="paper">${S.paper?'📝 紙で解く':'⌨️ 入力する'}</button></div>
     <div class="topic"><div class="tn"><b>問題ごとのタイマー</b><small>めやすの時間で答え合わせ。のばせるのは最大2分</small></div><button class="btn" data-act="timer">${S.timer?'⏱ オン':'オフ'}</button></div>
     <div class="topic"><div class="tn"><b>音</b></div><button class="btn" data-act="snd">${S.snd?'🔊 オン':'🔇 オフ'}</button></div>
     <div class="topic"><div class="tn"><b>記録を全部消す</b><small>レベル・バッジ・ノート・分析の記録も消えます</small></div><button class="btn" data-act="reset">消す</button></div></div>
@@ -2268,6 +2298,7 @@ function key(k){
 const randomSet=()=>{ const items=[]; for(let i=0;i<5;i++){ const g=GL[Math.floor(Math.random()*GL.length)]; items.push({g:g.id,lv:1+Math.floor(Math.random()*2),seed:newSeed()}); } startSet(items,'random','おまかせ5問'); };
 app.addEventListener('click',e=>{
   const st=e.target.closest('.stp'); if(st&&sess&&view==='play'){ sess.open=sess.open||{}; const i=st.dataset.st; sess.open[i]=!sess.open[i];
+    if(sess.open[i]&&!sess.lastLog){ sess.pendTaps=sess.pendTaps||[]; if(!sess.pendTaps.includes(i)) sess.pendTaps.push(i); }
     if(sess.open[i]&&sess.lastLog){ const t=String(sess.lastLog[7]||'').split(',').filter(Boolean); if(!t.includes(i)){ t.push(i); sess.lastLog[7]=t.join(','); save(); } } const y=window.scrollY; render(); window.scrollTo(0,y); return; }
   const b=e.target.closest('button'); if(!b) return;
   if(b.dataset.sch){ const id=b.dataset.sch, i=S.schools.findIndex(x=>x.id===id); if(i>=0) S.schools.splice(i,1); else if(S.schools.length<3){ const sc=SCHOOLS.find(x=>x.id===id); S.schools.push({id,name:sc.name,level:sc.level}); } else toast('えらべるのは3校までです'); save(); const q=document.getElementById('sf'); const v=q?q.value:''; setupQ=v; const y=window.scrollY; render(); window.scrollTo(0,y); return; }
@@ -2279,6 +2310,12 @@ app.addEventListener('click',e=>{
   if(b.dataset.noteone!==undefined){ const n=S.note[+b.dataset.noteone]; startSet([n],'note','まちがいノート'); return; }
   if(b.dataset.key){ if(view==='ta') taKey(b.dataset.key); else key(b.dataset.key); return; }
   const a=b.dataset.act;
+  if(a==='finished'&&sess&&!sess.done){ sess.finSec=clampSec((performance.now()-sess.qt0)/1000-(sess.hid||0)); sess.done={paper:true,phase:'grade'}; stopQ(); render(); window.scrollTo(0,0); }
+  if(a==='selfok'||a==='selfng') commit(a==='selfok',{paper:true});
+  if(a==='giveup'&&sess&&!sess.done) commit(false,{paper:true,giveUp:true});
+  if(a==='timeoutshow'&&sess&&!sess.done) commit(false,{paper:true,timeout:true});
+  if(a==='tonote1'||a==='tonote0'){ if(sess&&sess.lastLog){ sess.lastLog[11]=a==='tonote1'?1:0; save(); toast('メモしたよ（記録は時間切れのままです）'); } }
+  if(a==='paper'){ S.paper=!S.paper; save(); render(); }
   if(a==='answer') answer(false);
   if(a==='skip') answer(true);
   if(a==='extend') extend();
@@ -2310,7 +2347,7 @@ document.addEventListener('keydown',e=>{
   const inTA=view==='ta'&&sess&&sess.mode==='ta'&&!sess.over;
   if(/^[0-9]$/.test(k)||k==='/'||k==='.') { inTA?taKey(k):key(k); }
   else if(k==='Backspace'){ inTA?taKey('⌫'):key('⌫'); e.preventDefault(); }
-  else if(k==='Enter'){ if(inTA) taAnswer(); else if(view==='play'){ if(sess.done) app.querySelector('[data-act=next]')?.click(); else answer(false);} }
+  else if(k==='Enter'){ if(inTA) taAnswer(); else if(view==='play'){ if(sess.done&&!(sess.done.paper&&sess.done.phase==='grade')) app.querySelector('[data-act=next]')?.click(); else if(!sess.done&&S.paper) app.querySelector('[data-act=finished]')?.click(); else if(!sess.done) answer(false);} }
 });
 
 // テスト用：?test で自動チェック画面、window.SANSU でいろいろ呼べる
