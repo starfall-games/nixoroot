@@ -154,6 +154,7 @@ h1,h2,h3{margin:.2em 0 .5em}
 .chip span{flex:1}
 .chip button{padding:4px 8px;border-radius:8px;background:var(--card);font-size:12px}
 input[type=text],input[type=search]{font:inherit;width:100%;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.sqi{margin:8px 0 0 .1em}
 .idea{background:var(--y2);border-radius:12px;padding:8px 10px;font-size:13px;margin:8px 0}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .lv.l3{background:#3b2950;color:#d7a8ff}:root:not([data-theme="light"]) .lv.l4{background:#4a2530;color:#ff8da1}}
 .lv .st{display:block;font-size:12px;line-height:1}
@@ -1577,9 +1578,606 @@ G.tsuuka.alg=(p,P)=>{ if(p.t==='len') return [alg1(P,{set:'電車の長さを x 
 function attachAlg(P){ const g=G[P.g]; if(P.lv>=2&&g.alg){ const r=g.alg(P.p,P); if(r&&r.length) P.alg=r; } }
 
 /* =========================================================
+   🔥 難関・最難関 用の型
+   ・小問（1）（2）（3）と進む「大問」の形（（1）が（2）のヒントになる）
+   ・条件が2〜3つ重なる／途中で状況が変わる／2つの単元をあわせる
+   ・problem の parts：小問ごとの答え。ans は最後の小問の答え。solve は小問ぜんぶの答えの配列を返す
+   ・minLv:3 …難関・最難関だけ（標準・上位にはない）
+   ========================================================= */
+const fact=n=>n<=1?1:n*fact(n-1);
+const sq=(stem,qs)=>stem+qs.map((t,i)=>`<div class="sqi">(${i+1}) ${t}</div>`).join('');
+const mkParts=a=>a.map(x=>({a:F(x[0]),u:x[1]||'',f:x[2]||'int'}));
+const finish=(o,parts)=>{ const L=parts[parts.length-1]; return Object.assign(o,{parts,ans:L.a,fmt:L.f,unit:L.u}); };
+const sumArr=a=>a.reduce((x,y)=>x+y,0);
+
+/* ===== N進法・重さの量り方（数の性質） ===== */
+def('nshin',{unit:'seishitsu',name:'N進法・天びんと分銅',desc:'位取りのきまりを使う大問',minLv:3,tm:[0,0,300,480],
+  idea:'N進法は「N個集まると次の位へ1繰り上がる」位取り。右から N⁰・N¹・N²・… の位になる。',
+  gen(r,lv){
+    if(lv===3){
+      const b=r.pick([2,3,4,5,6,7,8,9]), n=r.int(b**3,Math.min(b**5-1,3000));
+      const dg=[r.int(1,b-1),r.int(0,b-1),r.int(0,b-1),r.int(0,b-1)], mStr=dg.join(''), mVal=dg.reduce((s,d)=>s*b+d,0);
+      let maxd=3; while(b**maxd<=2500&&maxd<5) maxd++; const dd=r.int(3,maxd), K=r.int(b**(dd-1),Math.min(3000,b**dd+b**(dd-1)));
+      // (1) わり算をくり返す
+      let x=n, lines=[], ds=''; while(x>0){ lines.push(`${x} ÷ ${b} = ${Math.floor(x/b)} あまり ${x%b}`); ds=(x%b)+ds; x=Math.floor(x/b); }
+      const cnt=Math.max(0,Math.min(K,b**dd-1)-b**(dd-1)+1);
+      const parts=mkParts([[+ds,''],[mVal,''],[cnt,'個']]);
+      const st=[
+        W(`(1) ${b}でわり続けて、あまりを下から読む：<br>${lines.join('<br>')}<br>→ <b>${ds}</b>`,`${b}進法では、${b}で何回もわって、出てきた「あまり」を、最後のものから順に（下から上へ）並べる。あまりは、小さい位から順に出てくるから。`),
+        W(`(2) ${mStr} = ${dg.map((d,i)=>`${d}×${b**(3-i)}`).join(' + ')} = <b>${mVal}</b>`,`${b}進法の数は、右から ${b}⁰（=1）・${b}¹・${b}²・${b}³ の位。各けたの数に、その位の大きさをかけてたす。`),
+        W(`(3) ${dd}けたの数は ${b**(dd-1)} 〜 ${b**dd-1}（${b}進法で ${'1'+'0'.repeat(dd-1)} 〜 ${String(b-1).repeat(dd)}）`,`${b}進法で${dd}けたになる最小の数は「1のあとに0が${dd-1}個」＝${b}の${dd-1}乗。最大は「${b-1}が${dd}個」＝${b}の${dd}乗−1。`),
+        W(`1〜${K}にふくまれるのは ${Math.min(K,b**dd-1)} − ${b**(dd-1)} + 1 = <b>${cnt}</b>個`,`${K}が範囲の最大より小さいときは、${K}までで打ち切る。（のこりを数えまちがえやすい）`)];
+      return finish({q:sq(`${b}進法について答えましょう。`,[`10進法の ${n} を、${b}進法で表しましょう。`,`${b}進法で書かれた数 ${mStr} は、10進法ではいくつですか。`,`10進法の1以上${K}以下の整数のうち、${b}進法で表したときにちょうど${dd}けたになる数は何個ありますか。`]),hint:'位取りの考え方。わり算のくり返し／各位の大きさ',steps:st,p:{t:'conv',b,n,m:mStr,K,dd}},parts);
+    }
+    const k=r.pick([4,5]), mx=(3**k-1)/2, Wt=r.int(Math.floor(mx/3),mx);
+    // 平衡3進法：Wt を 1,3,9,… で表す（右の皿 +1、左の皿 -1）
+    let y=Wt, dgt=[]; for(let i=0;i<k;i++){ let d=y%3; if(d===2){ d=-1; y=(y+1)/3; } else y=(y-d)/3; dgt.push(d); }
+    const used=dgt.filter(d=>d!==0).length, names=Array.from({length:k},(_,i)=>3**i);
+    const parts=mkParts([[2**k-1,'通り'],[mx,'g'],[used,'個']]);
+    const st=[
+      W(`(1) 分銅${k}個のうち、使うものをえらぶ：2×2×…（${k}個）−（何も使わない1通り）= <b>${2**k-1}</b>通り`,'一方の皿だけに置くときは、それぞれの分銅を「使う・使わない」の2通りからえらぶ。ただし何も使わないときは重さが0なので、1通りをのぞく。1,3,9,…は、どの組み合わせでも合計がちがう重さになる。'),
+      W(`(2) 両方の皿が使えるとき、品物のとなりに置く分銅は「ひく」ことになる。最大は、全部をはんたいの皿に置いたとき：${names.join(' + ')} = <b>${mx}</b>g`,`品物と同じ皿に分銅を置くと、その分だけ はかる重さはへる（式では−）。いちばん重いものがはかれるのは、全部を品物と はんたいの皿に置いたとき。1+3+9+…= ${mx}。`),
+      W(`(3) ${Wt}g ＝ ${dgt.map((d,i)=>d===0?null:`${d>0?'+':'−'}${3**i}`).filter(Boolean).join(' ')}（＋は品物のはんたいの皿、−は品物と同じ皿）`,`3で何回もわって考える。あまりが2のときは「3の次の位を1ふやして、この位を−1」にすると、使う分銅がふえない（「3進法」を、−1・0・1で表す考え方）。${Wt}を3でわる→…とくり返すと、各位の使い方が決まる。`),
+      W(`使う分銅は <b>${used}</b>個`,'0でない位の数＝使う分銅の個数。')];
+    return finish({q:sq(`${names.join('g、')}g の分銅が1個ずつと、てんびんがあります。`,[`分銅を、てんびんの一方の皿だけに置いてよいとき、はかれる重さ（1g以上の整数g）は何通りありますか。`,`品物をのせた皿に分銅を置いてもよいとき、はかれるいちばん重い品物は何gですか。`,`${Wt}gの品物をはかるとき、使う分銅は全部で何個ですか。`]),hint:'1,3,9,…は3倍ずつ。使い方は「使わない・品物のはんたい側・品物と同じ側」の3通り',steps:st,p:{t:'wt',k,W:Wt}},parts);
+  },
+  solve(p){
+    if(p.t==='conv') return [+p.n.toString(p.b), parseInt(p.m,p.b), (()=>{let c=0;for(let x=1;x<=p.K;x++) if(x.toString(p.b).length===p.dd)c++;return c;})()];
+    const w=Array.from({length:p.k},(_,i)=>3**i), one=new Set(), both=new Set(); let usedN=null;
+    for(let m=1;m<(1<<p.k);m++){ let s=0; for(let i=0;i<p.k;i++) if(m>>i&1) s+=w[i]; one.add(s); }
+    const tot=3**p.k; for(let c=0;c<tot;c++){ let x=c,s=0,u=0; for(let i=0;i<p.k;i++){ const d=x%3-1; x=Math.floor(x/3); s+=d*w[i]; if(d) u++; } if(s>0) both.add(s); if(s===p.W){ if(usedN!==null) return null; usedN=u; } }
+    return [one.size, Math.max(...both), usedN];
+  }});
+
+/* ===== 倍数・約数・あまり（数の性質×場合の数） ===== */
+def('amari2',{unit:'seishitsu',name:'約数・倍数・あまりの大問',desc:'条件を重ねて数える',minLv:3,tm:[0,0,300,480],
+  idea:'倍数の個数は「N÷a の商」。2つの条件が重なるときは、重なりを引く（ベン図）。約数の個数・和は、素数のかけ算（素因数分解）で考える。',
+  gen(r,lv){
+    if(lv===3){
+      let a,b,N,r1,r2; do{ a=r.int(3,9); b=r.int(3,9); N=r.int(150,600); r1=r.int(1,a-1); r2=r.int(1,b-1); }while(a===b||gcd(a,b)!==1||r1===r2);
+      const ab=a*b, c1=N-Math.floor(N/a)-Math.floor(N/b)+Math.floor(N/ab), c2=Math.floor((N-r1)/a)+1;
+      let x0=r1; while(x0%b!==r2) x0+=a; const c3=N>=x0?Math.floor((N-x0)/ab)+1:0;
+      const parts=mkParts([[c1,'個'],[c2,'個'],[c3,'個']]);
+      const st=[
+        W(`(1) ${a}の倍数：${Math.floor(N/a)}個、${b}の倍数：${Math.floor(N/b)}個、両方（${ab}の倍数）：${Math.floor(N/ab)}個 → ${N} − ${Math.floor(N/a)} − ${Math.floor(N/b)} + ${Math.floor(N/ab)} = <b>${c1}</b>個`,`「${a}の倍数でも${b}の倍数でもない」＝全体から、どちらかの倍数をのぞく。${a}の倍数と${b}の倍数を両方ひくと、両方の倍数（${a}と${b}の最小公倍数 ${ab}）を2回ひいてしまうので、1回分もどす。`,svg(220,110,`<circle cx="85" cy="55" r="45" class="sv-a" opacity=".8"/><circle cx="135" cy="55" r="45" class="sv-b" opacity=".7"/>${T(65,60,a+'の倍数')}${T(155,60,b+'の倍数')}${T(110,60,'両方','sv-tb')}`)),
+        W(`(2) ${a}で割ると${r1}あまる数：${r1}, ${r1+a}, ${r1+2*a}, … 最後は ${r1+a*(c2-1)} → (${N} − ${r1}) ÷ ${a} の商 ${Math.floor((N-r1)/a)} に1を足して <b>${c2}</b>個`,`「あまりが${r1}」の数は、${r1}から始めて${a}ずつふえる列（等差数列）。何個あるかは、「ふえた回数＋1」。`),
+        W(`(3) ${a}で${r1}あまり、${b}で${r2}あまる最小の数：${r1}, ${r1+a}, … と調べて <b>${x0}</b>。このあとは ${ab}（${a}と${b}の最小公倍数）ごとにくり返す`,`${a}で割って${r1}あまる数を小さい方から書き、${b}で割ったあまりが${r2}になるものをさがす。見つかったら、次は ${a}と${b}の最小公倍数 ${ab} ずつ大きい数が条件に合う。`),
+        W(`${x0}, ${x0+ab}, ${x0+2*ab}, … のうち ${N}以下は (${N} − ${x0}) ÷ ${ab} の商 ${Math.floor((N-x0)/ab)} に1を足して <b>${c3}</b>個`,'最初の数 ＋ くり返しの幅×回数 ≦ N になる回数を数える。')];
+      return finish({q:sq(`1から${N}までの整数について答えましょう。`,[`${a}でも${b}でも割り切れない数は何個ありますか。`,`${a}で割ると${r1}あまる数は何個ありますか。`,`${a}で割ると${r1}あまり、${b}で割ると${r2}あまる数は何個ありますか。`]),hint:'倍数の個数＝商。重なりは1回だけ数える',steps:st,p:{t:'cnt',a,b,N,r1,r2}},parts);
+    }
+    if(r()<0.5){ // 約数の個数・和
+      const e2=r.int(2,4), e3=r.int(1,3), e5=r.int(1,2), N=2**e2*3**e3*5**e5;
+      const sg=(p,e)=>(p**(e+1)-1)/(p-1);
+      const parts=mkParts([[(e2+1)*(e3+1)*(e5+1),'個'],[(e2+1)*(e5+1),'個'],[sg(2,e2)*sg(3,e3)*sg(5,e5),'']]);
+      const st=[
+        W(`(1) ${N} = 2を${e2}個 × 3を${e3}個 × 5を${e5}個（2の${e2}乗 × 3の${e3}乗 × 5の${e5}乗）。約数は「2を0〜${e2}個、3を0〜${e3}個、5を0〜${e5}個」えらんでかけたもの → ${e2+1} × ${e3+1} × ${e5+1} = <b>${(e2+1)*(e3+1)*(e5+1)}</b>個`,'まず素数のかけ算（素因数分解）に直す。約数は、それぞれの素数を「何個ふくめるか」で決まる。ふくめ方は（個数＋1）通りずつ。かけ算で数えられる。'),
+        W(`(2) 3の倍数でない約数は、3を0個しか使わない：${e2+1} × 1 × ${e5+1} = <b>${(e2+1)*(e5+1)}</b>個`,'「3の倍数でない」＝3をふくまない。3の使い方が1通り（0個）に決まるので、そのぶんだけ減る。'),
+        W(`(3) 約数の和 ＝ (1+2+…+${2**e2}) × (1+3+…+${3**e3}) × (1+5${e5>1?'+25':''}) = ${sg(2,e2)} × ${sg(3,e3)} × ${sg(5,e5)} = <b>${sg(2,e2)*sg(3,e3)*sg(5,e5)}</b>`,'約数の和は、素数ごとの「1＋その素数＋…」の和をかけ合わせたものになる（かっこをはずすと、全部の約数が1回ずつ出てくる）。')];
+      return finish({q:sq(`${N}について答えましょう。`,[`${N}の約数は全部で何個ありますか。`,`${N}の約数のうち、3の倍数でないものは何個ありますか。`,`${N}の約数をすべてたすと、いくつになりますか。`]),hint:'素数のかけ算（素因数分解）にして、使い方を数える',steps:st,p:{t:'div',e2,e3,e5}},parts);
+    }
+    // 最大公約数・最小公倍数から2数をさがす
+    for(;;){ const g=r.int(2,12); let x=r.int(2,9), y=r.int(2,9); if(x>=y||gcd(x,y)!==1) continue; const L=g*x*y, S=g*(x+y);
+      const pairs=[]; for(let a=g;a<=L;a+=g){ const b=S-a; if(b>=a&&gcd(a,b)===g&&lcm(a,b)===L) pairs.push([a,b]); } if(pairs.length!==1) continue;
+      const parts=mkParts([[g*L,''],[g*x,''],[g*(y-x),'']]);
+      const st=[
+        W(`(1) 2数を ${g}×□、${g}×△（□と△は、1以外の公約数がない数）とすると、積は ${g}×${g}×□×△、最小公倍数は ${g}×□×△。だから 積 ＝ 最大公約数 × 最小公倍数 = ${g} × ${L} = <b>${g*L}</b>`,'どんな2つの整数でも「2数の積 ＝ 最大公約数 × 最小公倍数」。'),
+        W(`(2) 最小公倍数 ÷ 最大公約数 = ${L} ÷ ${g} = ${x*y} ＝ □×△。□と△は組み合わせが限られる：${[...Array(x*y)].map((_,i)=>i+1).filter(d=>(x*y)%d===0&&d<=(x*y)/d&&gcd(d,(x*y)/d)===1).map(d=>`${d}×${x*y/d}`).join('、')}。和 ${g}×(□＋△) = ${S} から □＋△ = ${S/g} になる組は ${x}と${y} → 小さい方 ${g}×${x} = <b>${g*x}</b>`,'最大公約数でわった数は「たがいに素」（1以外の公約数がない）になる。積が決まっていて、たがいに素になる組を全部書き出し、和が合うものをさがす。'),
+        W(`(3) 大きい方は ${g}×${y} = ${g*y}。差は ${g*y} − ${g*x} = <b>${g*(y-x)}</b>`,'')];
+      return finish({q:sq(`2つの整数があります。2つの数の最大公約数は${g}、最小公倍数は${L}、和は${S}です。`,[`2つの数の積はいくつですか。`,`2つの数のうち、小さい方の数はいくつですか。`,`2つの数の差はいくつですか。`]),hint:'積＝最大公約数×最小公倍数。2数を「最大公約数×たがいに素な数」と表す',steps:st,p:{t:'gl',g,L,S}},parts);
+    }
+  },
+  solve(p){
+    if(p.t==='cnt'){ let c1=0,c2=0,c3=0; for(let x=1;x<=p.N;x++){ if(x%p.a&&x%p.b)c1++; if(x%p.a===p.r1)c2++; if(x%p.a===p.r1&&x%p.b===p.r2)c3++; } return [c1,c2,c3]; }
+    if(p.t==='div'){ const N=2**p.e2*3**p.e3*5**p.e5; let n=0,m=0,s=0; for(let i=1;i<=N;i++) if(N%i===0){ n++; if(i%3) m++; s+=i; } return [n,m,s]; }
+    const pairs=[]; for(let a=1;a<=p.S;a++){ const b=p.S-a; if(b>=a&&ctxGcd(a,b)===p.g&&a*b/ctxGcd(a,b)===p.L) pairs.push([a,b]); }
+    if(pairs.length!==1) return null; const [a,b]=pairs[0]; return [a*b,a,b-a];
+  }});
+const ctxGcd=(a,b)=>{ while(b){ [a,b]=[b,a%b]; } return a; };
+
+/* ===== 条件つきの並べ方（場合の数・場合分け） ===== */
+const LETS='ABCDEFG';
+const CS={
+  adj:(x,y)=>({t:`${x}と${y}がとなり合う`,f:p=>Math.abs(p.indexOf(x)-p.indexOf(y))===1}),
+  notadj:(x,y)=>({t:`${x}と${y}がとなり合わない`,f:p=>Math.abs(p.indexOf(x)-p.indexOf(y))!==1}),
+  first:x=>({t:`${x}が左はしにくる`,f:p=>p[0]===x}),
+  last:x=>({t:`${x}が右はしにくる`,f:p=>p[p.length-1]===x}),
+  endAny:x=>({t:`${x}が左はしか右はしにくる`,f:p=>p[0]===x||p[p.length-1]===x}),
+  seq:(x,y)=>({t:`${x}が${y}のすぐ左にいる`,f:p=>p.indexOf(y)-p.indexOf(x)===1}),
+  ord3:(x,y,z)=>({t:`左から${x}・${y}・${z}の順になる（間に人が入ってもよい）`,f:p=>p.indexOf(x)<p.indexOf(y)&&p.indexOf(y)<p.indexOf(z)}),
+};
+// 条件の組ごとの「数え方」（式と説明）。n＝人数
+const CHAINS={
+  A:[ {c:[['adj','A','B']],f:n=>2*fact(n-1),how:n=>`AとBをひとまとまり（ブロック）と考える。ブロックの中の並び方 2通り × ブロックと残りの${n-2}人、合わせて${n-1}個の並び方 ${n-1}! = 2 × ${fact(n-1)}`},
+      {c:[['adj','A','B'],['endAny','C']],f:n=>4*fact(n-2),how:n=>`Cの場所（左はし・右はし）2通り。残りの${n-1}個の場所に、ブロック（中の並び方2通り）と残り${n-3}人の${n-2}個を並べる：2 × 2 × ${n-2}! = 4 × ${fact(n-2)}`},
+      {c:[['adj','A','B'],['first','C'],['last','D']],f:n=>2*fact(n-3),how:n=>`Cを左はし、Dを右はしに決める。まん中の${n-2}か所に、ブロック（中の並び方2通り）と残り${n-4}人の${n-3}個を並べる：2 × ${n-3}! = 2 × ${fact(n-3)}`}],
+  B:[ {c:[['seq','A','B']],f:n=>fact(n-1),how:n=>`「AがBのすぐ左」はブロックの中の並びが1通りに決まっている。ブロックと残り${n-2}人の${n-1}個を並べる：${n-1}! = ${fact(n-1)}`},
+      {c:[['seq','A','B'],['first','C']],f:n=>fact(n-2),how:n=>`Cを左はしに決める。残りの${n-1}か所に、ブロックと残り${n-3}人の${n-2}個を並べる：${n-2}! = ${fact(n-2)}`}],
+  C:[ {c:[['notadj','A','B']],f:n=>fact(n)-2*fact(n-1),how:n=>`「となり合わない」＝（全部の並び方）−（となり合う並び方）。${n}! − 2×${n-1}! = ${fact(n)} − ${2*fact(n-1)}`},
+      {c:[['notadj','A','B'],['first','C']],f:n=>fact(n-1)-2*fact(n-2),how:n=>`Cを左はしに決めると、残り${n-1}人の並び方は ${n-1}!。そのうちAとBがとなり合う並び方は 2×${n-2}!。引いて ${fact(n-1)} − ${2*fact(n-2)}`},
+      {c:[['notadj','A','B'],['first','C'],['last','D']],f:n=>fact(n-2)-2*fact(n-3),how:n=>`CとDも決めると、まん中の${n-2}人の並び方は ${n-2}!。そのうちAとBがとなり合う並び方は 2×${n-3}!。引いて ${fact(n-2)} − ${2*fact(n-3)}`}],
+  D:[ {c:[['ord3','C','A','B']],f:n=>fact(n)/6,how:n=>`C・A・Bの3人の並び方は 3! = 6 通りあって、どれも同じ数ずつ。その中で「C・A・Bの順」は1通りだけだから、全体の 1/6：${n}! ÷ 6 = ${fact(n)/6}`},
+      {c:[['ord3','C','A','B'],['first','D']],f:n=>fact(n-1)/6,how:n=>`Dを左はしに決める。残りの${n-1}人で、C・A・Bの順になる並び方は 1/6：${n-1}! ÷ 6 = ${fact(n-1)/6}`},
+      {c:[['ord3','C','A','B'],['first','D'],['last','E']],f:n=>fact(n-2)/6,how:n=>`D・Eも決める。残りの${n-2}人で、C・A・Bの順になる並び方は 1/6：${n-2}! ÷ 6 = ${fact(n-2)/6}`}],
+};
+def('narabi',{unit:'baai',name:'条件つきの並べ方（大問）',desc:'となり合う・はし・順番が重なる',minLv:3,tm:[0,0,300,480],
+  idea:'「となり合う」はブロックにする。「となり合わない」は（全体）−（となり合う）。「順番が決まっている」は、全体の何分の1かで考える。',
+  gen(r,lv){
+    const key=lv===3?r.pick(['A','B']):r.pick(['A','C','D']); const chain=CHAINS[key]; const n=lv===3?r.int(5,6):r.int(6,7);
+    const k=lv===3?Math.min(2,chain.length):chain.length;
+    const names=LETS.slice(0,n).split('').join('、');
+    const qs=[], parts=[], st=[], conds=[];
+    for(let i=0;i<k;i++){ const cs=chain[i].c.map(c=>CS[c[0]](...c.slice(1)));
+      qs.push(i===0?`${cs[0].t}並び方は何通りありますか。`:`（${i}）の条件にくわえて、${cs[cs.length-1].t}並び方は何通りありますか。`); const v=chain[i].f(n); parts.push([v,'通り']);
+      st.push(W(`(${i+1}) ${chain[i].how(n)} = <b>${v}</b>通り`,`${i===0?'':'前の小問の条件に、もう1つ条件がふえた。ふえた条件のぶん、場所が決まって数えやすくなる。'}場合の数は、「ものごとの決め方を順に数えてかけ算」する。`)); conds.push(chain[i].c); }
+    return finish({q:sq(`${names}の${n}人が、1列に並びます。`,qs.map((t,i)=>i===0?t:t)),hint:'ブロック・はしを先に決める・全体からひく',steps:st,p:{t:'line',n,key,k}},mkParts(parts));
+  },
+  solve(p){
+    const chain=CHAINS[p.key], arr=LETS.slice(0,p.n).split(''), all=perms(arr,p.n), out=[];
+    for(let i=0;i<p.k;i++){ const cs=chain[i].c.map(c=>CS[c[0]](...c.slice(1))); out.push(all.filter(x=>cs.every(c=>c.f(x))).length); }
+    return out;
+  }});
+
+/* ===== 道順（通れない所・必ず通る所） ===== */
+function pathCount(x1,y1,x2,y2,blocked){ // 右か上だけにすすむ道順（blocked＝通れない交差点の集合）
+  const key=(x,y)=>x+','+y; if(blocked.has(key(x1,y1))) return 0;
+  const dp={}; for(let x=x1;x<=x2;x++)for(let y=y1;y<=y2;y++){ if(blocked.has(key(x,y))){dp[key(x,y)]=0;continue;} dp[key(x,y)]=(x===x1&&y===y1)?1:((x>x1?dp[key(x-1,y)]:0)+(y>y1?dp[key(x,y-1)]:0)); }
+  return dp[key(x2,y2)];
+}
+def('michijun2',{unit:'baai',name:'道順の大問（通れない所・必ず通る所）',desc:'交差点に道順の数を書きこむ',minLv:3,tm:[0,0,300,480],
+  idea:'各交差点に「そこまでの道順の数」を書きこむ（左の数＋下の数）。通れない所は0。「必ず通る所」があるときは、そこまでとそこからをかけ算。',
+  gen(r,lv){
+    for(;;){ const a=r.int(5,6), b=r.int(4,5); const X=[r.int(1,a-1),r.int(1,b-1)], P=[r.int(1,a-1),r.int(1,b-1)]; if(X[0]===P[0]&&X[1]===P[1]) continue;
+      const blk=new Set([X.join(',')]), t=pathCount(0,0,a,b,new Set()), c2=pathCount(0,0,a,b,blk), c3=pathCount(0,0,P[0],P[1],blk)*pathCount(P[0],P[1],a,b,blk);
+      if(c3===0||c2===t||c3>=c2) continue;
+      const s=Math.min(190/a,105/b),x0=45,y0=135; let o='';
+      for(let i=0;i<=a;i++)o+=`<line x1="${x0+i*s}" y1="${y0}" x2="${x0+i*s}" y2="${y0-b*s}" class="sv"/>`; for(let j=0;j<=b;j++)o+=`<line x1="${x0}" y1="${y0-j*s}" x2="${x0+a*s}" y2="${y0-j*s}" class="sv"/>`;
+      for(let i=0;i<=a;i++)for(let j=0;j<=b;j++) o+=`<text x="${x0+i*s+3}" y="${y0-j*s-4}" class="sv-t" style="font-size:10px">${pathCount(0,0,i,j,blk)}</text>`;
+      o+=T(x0-14,y0+16,'A','sv-tb')+T(x0+a*s+14,y0-b*s-4,'B','sv-tb')+`<circle cx="${x0+P[0]*s}" cy="${y0-P[1]*s}" r="6" class="sv-b"/>`+T(x0+P[0]*s+12,y0-P[1]*s-8,'P','sv-tb')+T(x0+X[0]*s+12,y0-X[1]*s+16,'×X','sv-tb');
+      const fig=svg(300,155,o); const ap=pathCount(0,0,P[0],P[1],blk), pb=pathCount(P[0],P[1],a,b,blk);
+      const parts=mkParts([[t,'通り'],[c2,'通り'],[c3,'通り']]);
+      const st=[
+        W(`(1) 遠回りしない道順の数 ＝ 右に${a}回・上に${b}回の並べ方 ＝ ${a+b}か所のうち上に行く${b}回をえらぶ → <b>${t}</b>通り`,'交差点に「そこまでの道順の数」を、左下から順に書きこんでいく（左の数＋下の数）。Bの数が答え。または「右と上の並べ方」として数える。'),
+        W(`(2) Xは通れないので、Xの数を0にして書きなおす。Bの数は <b>${c2}</b>通り`,'図は、Xを通れないとして書きこんだ数。Xの先の交差点は、Xからの道順がなくなるので、数がへる。',fig),
+        W(`(3) AからPまで（Xを通らない）${ap}通り × PからBまで（Xを通らない）${pb}通り = <b>${c3}</b>通り`,'「Pを必ず通る」は、Pまでの道順とPからの道順を、それぞれ数えてかけ算。どちらの区間でもXを通らないように数える。')];
+      return finish({q:sq(`図のような、ごばんの目の道があります。AからBまで、遠回りしないで（右か上にだけ進んで）行きます。交差点Xは工事で通れません。`,[`Xが通れるとして、AからBまでの道順は何通りありますか。`,`Xを通らないとき、AからBまでの道順は何通りありますか。`,`Xを通らず、Pを必ず通るとき、道順は何通りありますか。`]),hint:'交差点に数を書きこむ。Xは0。必ず通るPで区切る',steps:st,fig,p:{t:'grid',a,b,X,P}},parts); }
+  },
+  solve(p){
+    let c1=0,c2=0,c3=0; const go=(x,y,hitX,hitP)=>{ if(x===p.a&&y===p.b){ c1++; if(!hitX){ c2++; if(hitP) c3++; } return; } const nx=(nx_,ny_)=>go(nx_,ny_,hitX||(nx_===p.X[0]&&ny_===p.X[1]),hitP||(nx_===p.P[0]&&ny_===p.P[1])); if(x<p.a) nx(x+1,y); if(y<p.b) nx(x,y+1); };
+    go(0,0,false,false); return [c1,c2,c3];
+  }});
+
+/* ===== 面積比・相似（図形×比） ===== */
+function triArea(a,b,c){ return b[0].sub(a[0]).mul(c[1].sub(a[1])).sub(c[0].sub(a[0]).mul(b[1].sub(a[1]))).mul(F('1/2')); }
+def('menseki2',{unit:'heimen',name:'面積比と相似（大問）',desc:'辺の比から面積を出す',minLv:3,tm:[0,0,300,480],
+  idea:'高さが同じ三角形の面積比は、底辺の比。相似な図形では、長さの比がa:bなら、面積の比は a²:b²。',
+  gen(r,lv){
+    if(r()<0.6){ // 三角形と2本の線
+      for(;;){
+        const m1=r.int(1,4),n1=r.int(1,4),m2=r.int(1,4),n2=r.int(1,4); if(gcd(m1,n1)!==1||gcd(m2,n2)!==1) continue;   // 比は、かんたんな形（約分した形）で出す
+        const u=new Frac(m1,m1+n1), v=new Frac(m2,m2+n2);
+        const x=n1*n2, y=m1*n2, z=m2*n1, Tt=x+y+z;                    // 三角形 PBC : PCA : PAB
+        const rPBC=new Frac(x,Tt), rPCA=new Frac(y,Tt), rPAB=new Frac(z,Tt);
+        const rADE=u.mul(v), rQuad=rPAB.mul(u).add(rPCA.mul(v));      // ADPE ＝ PAD ＋ PAE
+        const need=[rADE,rPBC,rQuad,rPAB,rPCA,rPAB.mul(u),rPCA.mul(v)];
+        const S=need.reduce((a,f)=>lcm(a,f.d),1)*r.int(1,3); if(S>2400) continue;
+        const A=[130,14],B=[28,150],C=[262,150], D=[A[0]+(B[0]-A[0])*u.val(),A[1]+(B[1]-A[1])*u.val()], E=[A[0]+(C[0]-A[0])*v.val(),A[1]+(C[1]-A[1])*v.val()];
+        const px=(()=>{const x1=B[0],y1=B[1],x2=E[0],y2=E[1],x3=C[0],y3=C[1],x4=D[0],y4=D[1];const d=(x1-x2)*(y3-y4)-(y1-y2)*(x3-x4);const t=((x1-x3)*(y3-y4)-(y1-y3)*(x3-x4))/d;return [x1+t*(x2-x1),y1+t*(y2-y1)];})();
+        const fig=svg(300,175,`<polygon points="${A} ${B} ${C}" class="sv-a"/><line x1="${B[0]}" y1="${B[1]}" x2="${E[0].toFixed(1)}" y2="${E[1].toFixed(1)}" class="sv"/><line x1="${C[0]}" y1="${C[1]}" x2="${D[0].toFixed(1)}" y2="${D[1].toFixed(1)}" class="sv"/>${T(A[0],A[1]-2,'A')}${T(B[0]-8,B[1]+14,'B')}${T(C[0]+8,C[1]+14,'C')}${T(D[0]-10,D[1],'D')}${T(E[0]+10,E[1],'E')}<circle cx="${px[0].toFixed(1)}" cy="${px[1].toFixed(1)}" r="3.5" class="sv-b"/>${T(px[0]+12,px[1]+4,'P','sv-tb')}`);
+        const aADE=rADE.mul(S), aPBC=rPBC.mul(S), aPCA=rPCA.mul(S), aPAB=rPAB.mul(S), aQ=rQuad.mul(S);
+        const parts=lv===3?[[aADE,'cm²'],[aPBC,'cm²']]:[[aADE,'cm²'],[aPBC,'cm²'],[aQ,'cm²']];
+        const st=[
+          W(`(1) 三角形ADE：頂点Aをはさむ2辺の長さが、ABの ${exprHTML(`${m1}/${m1+n1}`)}、ACの ${exprHTML(`${m2}/${m2+n2}`)} → 面積は ${S} × ${exprHTML(`${m1}/${m1+n1}`)} × ${exprHTML(`${m2}/${m2+n2}`)} = <b>${decStr(aADE)}</b>cm²`,'頂点を共有する2つの三角形では、その頂点をはさむ2辺の長さの比をかけたものが、面積の比になる（高さの比×底辺の比）。'),
+          W(`(2) 点Pと頂点A・B・Cを結ぶと、三角形が3つできる。CD上の点Pで、三角形CADとCDBは高さが同じなので、面積比は AD:DB = ${m1}:${n1}。三角形PADとPDBも同じ比。どちらも引くと、三角形PCA：PCB = <b>${m1}:${n1}</b>`,`P は CD の上にあるので、三角形CAD ＝ 三角形PAD ＋ 三角形PCA、三角形CDB ＝ 三角形PDB ＋ 三角形PCB。2つの比が同じ（${m1}:${n1}）なので、それぞれから同じ比の部分（PADとPDB）を引いても、のこり（PCAとPCB）の比は ${m1}:${n1} のまま。`,fig),
+          W(`BE上の点Pでも同じように、三角形PAB：PBC = ${m2}:${n2}。だから PBC：PCA：PAB ＝ ${n1}×${n2} : ${m1}×${n2} : ${m2}×${n1} = ${x} : ${y} : ${z}（合計 ${Tt}）。三角形PBC ＝ ${S} × ${exprHTML(`${x}/${Tt}`)} = <b>${decStr(aPBC)}</b>cm²`,`PBCを基準に、PCA は PBC の ${m1}/${n1} 倍、PAB は PBC の ${m2}/${n2} 倍。PBC を ${n1}×${n2} とおくと、PCA は ${m1}×${n2}、PAB は ${m2}×${n1}。3つの合計が全体の三角形ABCの面積になる。`)];
+        if(lv===4) st.push(W(`(3) 四角形ADPE ＝ 三角形PAD ＋ 三角形PAE。PAD は PAB（${decStr(aPAB)}cm²）の ${exprHTML(`${m1}/${m1+n1}`)}、PAE は PCA（${decStr(aPCA)}cm²）の ${exprHTML(`${m2}/${m2+n2}`)} → ${decStr(aPAB.mul(u))} + ${decStr(aPCA.mul(v))} = <b>${decStr(aQ)}</b>cm²`,'四角形は、対角線APで2つの三角形に分ける。PABをADとDBで分けたものがPAD、PCAをAEとECで分けたものがPAE。'));
+        return finish({q:sq(`三角形ABCの面積は${S}cm²です。辺AB上に点D、辺AC上に点E があり、AD:DB = ${m1}:${n1}、AE:EC = ${m2}:${n2} です。BEとCDが交わる点をPとします。`,lv===3?['三角形ADEの面積は何cm²ですか。','三角形PBCの面積は何cm²ですか。']:['三角形ADEの面積は何cm²ですか。','三角形PBCの面積は何cm²ですか。','四角形ADPEの面積は何cm²ですか。']),hint:'面積比＝底辺の比（高さが同じ）。点PとA・B・Cを結んで3つの三角形に分ける',steps:st,fig,p:{t:'cev',m1,n1,m2,n2,S,k:parts.length}},mkParts(parts));
+      }
+    }
+    // 台形の対角線
+    const pr=r.pick([[3,6],[2,6],[4,12],[6,12],[5,20],[6,30],[10,15],[15,30]]), a=pr[0], b=pr[1], kk=r.int(1,4), s=a*a*kk;
+    const EF=2*a*b/(a+b), hasEF=lv===4&&Number.isInteger(EF);
+    const parts=lv===3?[[a*b*kk,'cm²'],[b*b*kk,'cm²']]:[[a*b*kk,'cm²'],[b*b*kk,'cm²'],[kk*(a+b)**2,'cm²']];
+    if(hasEF) parts.push([EF,'cm']);
+    const fig=svg(300,150,`<polygon points="70,25 170,25 250,125 20,125" class="sv-a"/><line x1="70" y1="25" x2="250" y2="125" class="sv"/><line x1="170" y1="25" x2="20" y2="125" class="sv"/>${T(70,18,'A')}${T(170,18,'D')}${T(14,140,'B')}${T(256,140,'C')}${T(120,86,'P','sv-tb')}${T(120,12,'AD='+a+'cm','sv-t')}${T(135,142,'BC='+b+'cm','sv-t')}`);
+    const st=[W(`(1) AD∥BC なので、三角形PADと三角形PCBは相似で、相似比は AD:CB = ${a}:${b}。よって DP:PB = ${a}:${b}。三角形PADとPABは、底辺がDPとPBで、高さが同じ → 面積比も ${a}:${b}。三角形PAB ＝ ${s} × ${b}/${a} = <b>${decStr(F(a*b*kk))}</b>cm²`,'平行な辺をもつ図形では、2つの三角形が「相似」になる。相似比がa:bなら、辺の比も a:b、面積の比は a²:b²。'),
+      W(`(2) 三角形PBCは三角形PADと相似で、相似比 ${b}/${a}。面積は相似比の2乗倍：${s} × (${b}/${a})² = <b>${decStr(F(b*b*kk))}</b>cm²`,`面積比は相似比の2乗。${a}:${b} なら ${a*a}:${b*b}。三角形PAD（${s}）が ${a*a} にあたるので、1にあたる量は ${kk}。PBC は ${b*b} にあたる。`)];
+    if(lv===4){ st.push(W(`(3) 台形全体 ＝ PAD + PAB + PCD + PBC。三角形PABとPCDの面積は等しい。${s} + ${a*b*kk} + ${a*b*kk} + ${b*b*kk} = <b>${kk*(a+b)**2}</b>cm²`,'三角形ABDと三角形ACDは、底辺ADが共通で高さも同じ（AD∥BC）ので、面積が等しい。そこから共通部分PADをのぞくと、PABとPCDの面積が等しいとわかる。'));
+      if(hasEF) st.push(W(`(4) Pを通ってBCに平行な直線がAB・DCと交わる点をE・Fとすると、三角形AEP∽三角形ABC。AP:AC = ${a}:${a+b} なので EP = BC × ${a}/${a+b} = ${exprHTML(`${a*b}/${a+b}`)}cm。PFも同じ長さなので EF = <b>${EF}</b>cm`,'Pを通る平行線は、頂点Aをもとにした相似な三角形（AEP と ABC）を作る。APとACの比が a:(a+b) なので、EP は BC の a/(a+b)。')); }
+    return finish({q:sq(`図のような台形ABCDで、AD∥BC です。対角線ACとBDが交わる点をPとします。三角形PADの面積は${s}cm²です。`,(lv===3?['三角形PABの面積は何cm²ですか。','三角形PBCの面積は何cm²ですか。']:['三角形PABの面積は何cm²ですか。','三角形PBCの面積は何cm²ですか。','台形ABCD全体の面積は何cm²ですか。']).concat(hasEF?['Pを通ってBCに平行な直線が、辺AB・辺DCと交わる点をE・Fとします。EFの長さは何cmですか。']:[])),hint:'平行な辺のある台形は、対角線でできる三角形が相似。面積比＝相似比の2乗',steps:st,fig,p:{t:'trap',a,b,s,n:parts.length,ef:hasEF}},mkParts(parts));
+  },
+  solve(p){
+    const abs=f=>f.n<0?F(0).sub(f):f;
+    const inter=(P1,P2,P3,P4)=>{ const x1=P1[0],y1=P1[1],x2=P2[0],y2=P2[1],x3=P3[0],y3=P3[1],x4=P4[0],y4=P4[1]; const den=x1.sub(x2).mul(y3.sub(y4)).sub(y1.sub(y2).mul(x3.sub(x4))); const tt=x1.sub(x3).mul(y3.sub(y4)).sub(y1.sub(y3).mul(x3.sub(x4))).div(den); return [x1.add(tt.mul(x2.sub(x1))),y1.add(tt.mul(y2.sub(y1)))]; };
+    if(p.t==='cev'){ const u=new Frac(p.m1,p.m1+p.n1), v=new Frac(p.m2,p.m2+p.n2); const A=[F(0),F(0)],B=[F(1),F(0)],C=[F(0),F(1)], D=[u,F(0)], E=[F(0),v];
+      const P=inter(B,E,C,D), sc=F(p.S).div(abs(triArea(A,B,C)));
+      const poly=(...pts)=>{ let s=F(0); for(let i=0;i<pts.length;i++){ const a=pts[i],b=pts[(i+1)%pts.length]; s=s.add(a[0].mul(b[1]).sub(b[0].mul(a[1]))); } return abs(s.mul(F('1/2'))).mul(sc); };
+      const out=[abs(triArea(A,D,E)).mul(sc),abs(triArea(P,B,C)).mul(sc)]; if(p.k===3) out.push(poly(A,D,P,E)); return out; }
+    const h=6, A=[F(1),F(h)], Dp=[F(1+p.a),F(h)], B=[F(0),F(0)], C=[F(p.b),F(0)];
+    const P=inter(A,C,Dp,B), sc=F(p.s).div(abs(triArea(A,Dp,P)));
+    const out=[abs(triArea(A,B,P)).mul(sc),abs(triArea(P,B,C)).mul(sc)];
+    if(p.n>=3){ out.push(abs(triArea(A,B,C)).mul(sc).add(abs(triArea(A,C,Dp)).mul(sc)));
+      if(p.ef){ const yP=P[1]; const xAB=B[0].add(A[0].sub(B[0]).mul(yP.div(F(h)))), xDC=C[0].add(Dp[0].sub(C[0]).mul(yP.div(F(h)))); out.push(xDC.sub(xAB)); } }
+    return out;
+  }});
+
+/* ===== 立体の切断・回転体（図形×体積） ===== */
+function cubeFig(L,p,q,r_){ const s=118/(L+L*0.5), ox=30, oy=140; const pt=(x,y,z)=>[ox+s*(x+0.5*y), oy-s*(z+0.4*y)]; const E=[[0,0,0],[L,0,0],[L,L,0],[0,L,0],[0,0,L],[L,0,L],[L,L,L],[0,L,L]]; const pj=E.map(e=>pt(...e)); let o='';
+  [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]].forEach(([i,j])=>{ o+=`<line x1="${pj[i][0].toFixed(1)}" y1="${pj[i][1].toFixed(1)}" x2="${pj[j][0].toFixed(1)}" y2="${pj[j][1].toFixed(1)}" class="${(i===3||j===3)?'sv-d':'sv'}"/>`; });
+  const P=pt(p,0,0),Q=pt(0,q,0),R=pt(0,0,r_); o+=`<polygon points="${P} ${Q} ${R}" class="sv-b" opacity=".85"/>`+T(pj[0][0]-8,pj[0][1]+14,'A')+T(P[0]+2,P[1]+14,'P','sv-tb')+T(Q[0]+10,Q[1]+4,'Q','sv-tb')+T(R[0]-10,R[1],'R','sv-tb');
+  return svg(240,160,o); }
+def('kiri',{unit:'rittai',name:'立体の切断・回転体（大問）',desc:'三角すいの体積・回転させた立体',minLv:3,tm:[0,0,300,480],
+  idea:'すい体の体積は「底面積×高さ÷3」。回転体は、円柱・円すい・円すい台に分けて、体積をたす（ひく）。',
+  gen(r,lv){
+    if(r()<0.5){ // 立方体の角を切る
+      for(;;){ const L=r.pick([6,8,10,12]), p=r.int(2,L/2),q=r.int(2,L/2),rr=r.int(2,L/2); if((p*q*rr)%6) continue; const p2=r.int(2,L/2),q2=r.int(2,L/2),r2=r.int(2,L/2); if((p2*q2*r2)%6) continue;
+        const V1=p*q*rr/6, V2=p2*q2*r2/6; const parts=lv===3?[[V1,'cm³'],[L**3-V1,'cm³']]:[[V1,'cm³'],[L**3-V1,'cm³'],[L**3-V1-V2,'cm³']];
+        const fig=cubeFig(L,p,q,rr);
+        const st=[W(`(1) 切り取られる三角すいは、底面が直角三角形APQ（直角の辺 ${p}cm・${q}cm）で、高さがAR = ${rr}cm。底面積 ${p}×${q}÷2 = ${p*q/2}cm²、体積 ${p*q/2} × ${rr} ÷ 3 = <b>${V1}</b>cm³`,'角を切り取る平面が、頂点Aから出る3本の辺と交わる点をP・Q・Rとすると、切り取られる立体は三角すい（頂点R、底面APQ）。すい体の体積は「底面積×高さ÷3」。',fig),
+          W(`(2) 立方体 ${L}×${L}×${L} = ${L**3}cm³ から ${V1}cm³ を引いて <b>${L**3-V1}</b>cm³`,'残りの立体の体積＝もとの立体の体積−切り取った立体の体積。')];
+        if(lv===4) st.push(W(`(3) 頂点Aの反対側のすみ（頂点G）も、GからそれぞれのGに向かう3辺上に ${p2}cm・${q2}cm・${r2}cm の点をとって切る。${p2}×${q2}×${r2}÷6 = ${V2}cm³。2つの三角すいは、どれも辺の半分以下で、おたがいに重ならない → ${L**3} − ${V1} − ${V2} = <b>${L**3-V1-V2}</b>cm³`,'2つの切り取る部分が重ならないことを確かめる（どちらも立方体の半分より内側のすみにおさまる）。重ならなければ、引き算を2回すればよい。三角すいの体積は、直角をはさむ3つの辺の積÷6 でも出せる。'));
+        return finish({q:sq(`1辺が${L}cmの立方体があります。頂点Aから出る3本の辺の上に、Aからそれぞれ${p}cm、${q}cm、${rr}cmはなれた点P・Q・Rをとり、3点を通る平面で、Aをふくむ角を切り取ります。`+(lv===4?`さらに、Aと向かい合う頂点Gについても、Gから出る3本の辺の上に、Gからそれぞれ${p2}cm、${q2}cm、${r2}cmはなれた点をとり、3点を通る平面で角を切り取ります。`:''),lv===3?['切り取った三角すいの体積は何cm³ですか。','残った立体の体積は何cm³ですか。']:['Aの角を切り取った三角すいの体積は何cm³ですか。','Aの角だけを切り取ったあとの立体の体積は何cm³ですか。','A・Gの2つの角を切り取ったあとの立体の体積は何cm³ですか。']),hint:'すい体＝底面積×高さ÷3。2つが重ならないか確かめる',steps:st,fig,p:{t:'cut',L,p,q,r:rr,p2:lv===4?p2:0,q2:lv===4?q2:0,r2:lv===4?r2:0}},mkParts(parts)); }
+    }
+    // 回転体
+    const r0=r.int(2,6), h1=r.int(2,6), h2=3*r.int(1,2), r1=lv===3?0:r.int(1,r0-1), h3=lv===3?0:3*r.int(1,2);
+    const PI=F('3.14');
+    const cyl=PI.mul(r0*r0*h1), cone2=lv===3?PI.mul(r0*r0).mul(h2).div(3):PI.mul(h2).mul(r0*r0+r0*r1+r1*r1).div(3), cone3=lv===3?F(0):PI.mul(r1*r1).mul(h3).div(3);
+    const tot=cyl.add(cone2).add(cone3);
+    const parts=lv===3?[[cyl,'cm³','dec'],[tot,'cm³','dec']]:[[cyl,'cm³','dec'],[cone2,'cm³','dec'],[tot,'cm³','dec']];
+    const sc=Math.min(16,110/(h1+h2+h3)), W_=r0*sc, y0=145; const sx=Math.min(26,95/Math.max(r0,1)), Y=y=>y0-y*sc, X=x=>130+x*sx;   // 横は半径が見えるように大きめに
+    const prof=lv===3?[[0,0],[r0,0],[r0,h1],[0,h1+h2]]:[[0,0],[r0,0],[r0,h1],[r1,h1+h2],[0,h1+h2+h3]];
+    const rightEdge=lv===3?`<line x1="${(130+r0*sc).toFixed(1)}" y1="${(y0-h1*sc).toFixed(1)}" x2="130" y2="${(y0-(h1+h2)*sc).toFixed(1)}" class="sv"/>`:'';
+    const fig=svg(260,170,`<line x1="130" y1="10" x2="130" y2="160" class="sv-d"/><polygon points="${prof.map(q=>X(q[0]).toFixed(1)+','+Y(q[1]).toFixed(1)).join(' ')}" class="sv-a"/>${T(X(r0/2),y0+21,'半径'+r0+'cm','sv-t')}${T(X(r0)+6,Y(h1/2)+4,h1+'cm','sv-tb','start')}${T(X(r0)+6,Y(h1+h2/2)+4,h2+'cm','sv-tb','start')}${lv===4?T(X(r1)+6,Y(h1+h2+h3/2)+4,h3+'cm','sv-tb','start'):''}${lv===4?T(124,Y(h1+h2)+4,'半径'+r1+'cm','sv-t','end'):''}<text x="134" y="12" class="sv-t" style="font-size:12px">ℓ</text>`);
+    const st=[W(`(1) 円柱の部分：${r0} × ${r0} × 3.14 × ${h1} = <b>${decStr(cyl)}</b>cm³`,'図形を、まん中の線（軸）のまわりに1回転させる。長方形の部分は、円柱（底面の円の半径＝軸からのはば）になる。'),
+      lv===3?W(`(2) 全体 ＝ 円柱 + 円すい。円すい：${r0}×${r0}×3.14×${h2}÷3 = ${decStr(cone2)}cm³ → ${decStr(cyl)} + ${decStr(cone2)} = <b>${decStr(tot)}</b>cm³`,'三角形の部分は円すいになる。円すいの体積は「底面積×高さ÷3」。全体はたし算。'):
+      W(`(2) 円すい台の部分：（大きい円すい）−（小さい円すい）、または 高さ×(R²+R×r+r²)×3.14÷3 で ${h2}×(${r0*r0}+${r0*r1}+${r1*r1})×3.14÷3 = <b>${decStr(cone2)}</b>cm³`,'台形の部分を回転させると「円すい台」。上にとびだした部分（小さい円すい）をつけたして大きな円すいを作り、そこから小さい円すいをひいてもよい。公式：高さ×（R×R＋R×r＋r×r）×3.14÷3。'),
+      ...(lv===4?[W(`(3) 上の円すい：${r1}×${r1}×3.14×${h3}÷3 = ${decStr(cone3)}cm³ → ${decStr(cyl)} + ${decStr(cone2)} + ${decStr(cone3)} = <b>${decStr(tot)}</b>cm³`,'全体は、円柱＋円すい台＋円すい の体積の和。')]:[])];
+    return finish({q:sq(`図のような図形を、直線ℓ（図の点線）のまわりに1回転させてできる立体について答えましょう。円周率は3.14とします。`,lv===3?['円柱の部分の体積は何cm³ですか。','立体全体の体積は何cm³ですか。']:['円柱の部分の体積は何cm³ですか。','円すい台の部分の体積は何cm³ですか。','立体全体の体積は何cm³ですか。']),hint:'軸のまわりに回して、円柱・円すい・円すい台に分けてたす',steps:st,fig,p:{t:'rot',r0,h1,h2,r1,h3,lv}},mkParts(parts));
+  },
+  solve(p){
+    if(p.t==='cut'){ // 切り口の面積をかさねる（シンプソン）。三角すい：z での切り口は直角三角形
+      const vol=(pp,qq,rr)=>{ const n=60,h=rr/n; let s=0; for(let i=0;i<=n;i++){ const z=i*h, a=pp*(1-z/rr)*qq*(1-z/rr)/2, w=i===0||i===n?1:(i%2?4:2); s+=w*a; } return s*h/3; };
+      const v1=vol(p.p,p.q,p.r), out=[v1,p.L**3-v1]; if(p.p2) out.push(p.L**3-v1-vol(p.p2,p.q2,p.r2)); return out; }
+    // 回転体：半径をyの関数にして、うすい円ばんを重ねる（シンプソン・各区間ごと）
+    const seg=(ra,rb,h)=>{ const n=40,hh=h/n; let s=0; for(let i=0;i<=n;i++){ const rr=ra+(rb-ra)*i/n, w=i===0||i===n?1:(i%2?4:2); s+=w*rr*rr; } return 3.14*s*hh/3; };
+    const cyl=seg(p.r0,p.r0,p.h1); let mid=0, top=0; if(p.lv===3){ mid=seg(p.r0,0,p.h2); return [cyl,cyl+mid]; }
+    mid=seg(p.r0,p.r1,p.h2); top=seg(p.r1,0,p.h3); return [cyl,mid,cyl+mid+top];
+  }});
+
+/* ===== 速さ：途中で速さがかわる旅人算（図・グラフの考え方） ===== */
+def('tabi3',{unit:'hayasa',name:'速さの変化・おくれて出発（大問）',desc:'時間をいくつかに区切って考える',minLv:3,tm:[0,0,300,480],
+  idea:'速さがかわる所・出発の時刻で、時間を「区間」に区切る。区間ごとに「2人の道のりの和」を調べる。',
+  gen(r,lv){
+    for(;;){
+      const a1=r.step(40,100,10), a2=a1+r.pick([-20,-10,10,20,30]), b1=r.step(40,90,10), b2=b1+r.pick([-10,10,20]);
+      if(a2<=0||b2<=0) continue;
+      const t1=r.int(5,15), s=lv===3?0:r.int(2,8), u=lv===3?0:r.int(5,12), T=Math.max(t1,s+u)+r.int(3,12);
+      const posA=t=>a1*Math.min(t,t1)+a2*Math.max(0,t-t1), posB=t=>{ const tt=Math.max(0,t-s); return lv===3?b1*t:b1*Math.min(tt,u)+b2*Math.max(0,tt-u); };
+      const D=posA(T)+posB(T); if(D>9000) continue;
+      const parts=lv===3?[[a1*t1,'m'],[T,'分後'],[posA(T),'m']]:[[posA(s),'m'],[T,'分後'],[posA(T),'m']];
+      // 区間の表
+      const bps=[...new Set([0,t1,s,s+u,T])].filter(x=>x<=T).sort((x,y)=>x-y); const rows=[]; let gone=0;
+      for(let i=0;i<bps.length-1;i++){ const m=(bps[i]+bps[i+1])/2, va=m<t1?a1:a2, vb=lv===3?b1:(m<s?0:(m<s+u?b1:b2)), len=bps[i+1]-bps[i]; gone+=(va+vb)*len; rows.push(`${bps[i]}〜${bps[i+1]}分：Aは分速${va}m、Bは分速${vb}m → 2人の進む道のりの和 ${(va+vb)*len}m（ここまでの合計 ${gone}m）`); }
+      const st=[ W(lv===3?`(1) Aは最初の${t1}分は分速${a1}m → ${a1} × ${t1} = <b>${a1*t1}</b>m`:`(1) Bが出発する${s}分後までは、Aだけが進む。${s<=t1?`Aは分速${a1}mで${s}分 → ${a1} × ${s}`:`${t1}分までは分速${a1}m、そのあとは分速${a2}m`} = <b>${posA(s)}</b>m`,'速さがかわるときは、「分速○mで□分」のように、区間ごとに道のり＝速さ×時間を出してたす。'),
+        W(`(2) 出会うまでに、2人の道のりの和が ${D}m になる。区間ごとに調べる：<br>${rows.join('<br>')}<br>→ <b>${T}</b>分後`,'2人が向かい合って進むとき、出会うのは「2人の進んだ道のりの和」が、はじめのきょりになったとき。速さがかわるたびに、区間を区切る。'),
+        W(`(3) Aが${T}分で進んだ道のり：${t1<=T?`${a1}×${t1} + ${a2}×${T-t1}`:''} = <b>${posA(T)}</b>m（Pから）`,'出会った地点は、Aが出発してからの道のりそのもの。') ];
+      return finish({q:sq(`P地点とQ地点は${D}mはなれています。Aさんは、P地点から Q地点に向かって、はじめの${t1}分間は分速${a1}m、そのあとは分速${a2}mで進みます。`+(lv===3?`Bさんは、Aさんと同時にQ地点から P地点に向かって、分速${b1}mで進みます。`:`Bさんは、Aさんが出発した${s}分後に、Q地点から P地点に向かって出発し、はじめの${u}分間は分速${b1}m、そのあとは分速${b2}mで進みます。`),lv===3?[`Aさんが最初の${t1}分間に進む道のりは何mですか。`,`2人が出会うのは、Aさんが出発してから何分後ですか。`,`2人が出会うのは、P地点から何mの地点ですか。`]:[`Bさんが出発するとき、AさんはP地点から何mの地点にいますか。`,`2人が出会うのは、Aさんが出発してから何分後ですか。`,`2人が出会うのは、P地点から何mの地点ですか。`]),hint:'時間を区間に区切って、区間ごとに2人の道のりの和を足していく',steps:st,p:{t:lv===3?'v3':'v4',a1,a2,b1,b2,t1,s,u,D,T}},mkParts(parts));
+    }
+  },
+  solve(p){
+    const posA=t=>p.a1*Math.min(t,p.t1)+p.a2*Math.max(0,t-p.t1), posB=t=>{ const tt=Math.max(0,t-p.s); return p.t==='v3'?p.b1*t:p.b1*Math.min(tt,p.u)+p.b2*Math.max(0,tt-p.u); };
+    for(let t=1;t<=500;t++){ const g=posA(t)+posB(t); if(g>=p.D){ if(g!==p.D) return null; return [p.t==='v3'?p.a1*p.t1:posA(p.s), t, posA(t)]; } }
+    return null;
+  }});
+G.tabi3.alg=(p,P)=>{ // 出会うまでの時間 T を x として方程式（Tが区間のあとにあるとき）
+  const ts=p.t==='v3'?0:p.s, uu=p.t==='v3'?0:p.u; if(p.T<=Math.max(p.t1,ts+uu)) return null;
+  if(p.t==='v3'){ const raw=`${p.a1}×${p.t1} + ${p.a2}×(x − ${p.t1}) + ${p.b1}×x = ${p.D}`; return [alg1(P,{set:'2人が出会うまでの時間を x 分とする',raw,eqWhy:'Aの道のり＋Bの道のり＝PQ間のきょり。Aは最初の'+p.t1+'分と、それ以後に分けて表す。',a:p.a2+p.b1,c:p.a1*p.t1-p.a2*p.t1,b:0,d:p.D,out:[p.a2,p.a1*p.t1-p.a2*p.t1],outTxt:'Pからの道のり'})]; }
+  const raw=`${p.a1}×${p.t1} + ${p.a2}×(x − ${p.t1}) + ${p.b1}×${p.u} + ${p.b2}×(x − ${p.s} − ${p.u}) = ${p.D}`;
+  return [alg1(P,{set:'2人が出会うまでの時間（Aが出発してから）を x 分とする',raw,eqWhy:'Aが出発してから x 分後。Bは x − '+p.s+' 分だけ進んでいる。それぞれ、速さがかわる前後に分けて表す。',a:p.a2+p.b2,c:p.a1*p.t1-p.a2*p.t1+p.b1*p.u-p.b2*(p.s+p.u),b:0,d:p.D,out:[p.a2,p.a1*p.t1-p.a2*p.t1],outTxt:'Pからの道のり'})];
+};
+
+/* ===== ニュートン算（行列・牧草） ===== */
+def('newton',{unit:'tokushu',name:'ニュートン算（行列・牧場）',desc:'ふえる量と、へらす量をくらべる',minLv:3,tm:[0,0,300,480],
+  idea:'もとからある量（はじめ）と、毎分ふえる量を分けて考える。「へらす量 − ふえる量」が、1分あたりの正味のへり方。',
+  gen(r,lv){
+    for(;;){
+      const c=r.int(2,6), y=r.int(2,Math.max(3,c*2)), k1=r.int(2,4), k2=k1+r.int(1,3); if(c*k1<=y) continue;
+      const q1=c*k1-y, q2=c*k2-y, m=r.int(1,3), t1=q2*m, t2=q1*m, N0=q1*q2*m; if(t1>90||t2>90) continue;
+      const k3=k2+r.int(1,3), q3=c*k3-y; if(N0%q3) continue; const t3=N0/q3, T0=r.int(5,15), kmin=Math.ceil((N0+y*T0)/(c*T0));
+      const story=r()<0.5?'queue':'ranch';
+      const stem=story==='queue'?`チケット売り場に行列ができています。開場のとき、すでに何人か並んでいて、そのあとも毎分${y}人ずつ新しく人が並びます。窓口は1つあたり、1分間に${c}人をさばきます。窓口を${k1}つあけると${t1}分で行列がなくなり、窓口を${k2}つあけると${t2}分で行列がなくなります。`
+        :`ある牧場に、草がはえています。草は毎日${y}ずつ生えます。牛1頭は1日に草を${c}食べます。牛を${k1}頭放すと${t1}日で草がなくなり、牛を${k2}頭放すと${t2}日で草がなくなります。`;
+      const w=story==='queue'?'窓口':'牛', un=story==='queue'?'分':'日', hu=story==='queue'?'つ':'頭', pn=story==='queue'?'人':'';
+      const qs=[ `はじめにあった${story==='queue'?'行列の人数':'草の量'}は何${story==='queue'?'人':''}ですか。`, `${w}を${k3}${hu}にすると、何${un}でなくなりますか。` ];
+      if(lv===4) qs.push(`${T0}${un}以内になくするには、${w}を最低でも何${hu}にすればよいですか。`);
+      const parts=lv===3?[[N0,pn],[t3,un]]:[[N0,pn],[t3,un],[kmin,hu]];
+      const st=[ W(`(1) ${k1}${hu}で${t1}${un}：へらす量 ${c}×${k1}×${t1} = ${c*k1*t1}、ふえる量 ${y}×${t1} = ${y*t1}。はじめの量 ＝ へらした量 − ふえた量 = ${c*k1*t1} − ${y*t1} = <b>${N0}</b>`,`「はじめの量 ＋ ふえた量 ＝ へらした量」。${k1}${hu}・${t1}${un}で、へらした量は 1つ${c}×${k1}${hu}×${t1}${un}、ふえた量は ${y}×${t1}${un}。`),
+        W(`（たしかめ）${k2}${hu}・${t2}${un}：${c*k2*t2} − ${y*t2} = ${N0}。同じになる`,'2通りの条件が同じ「はじめの量」になることで、答えが正しいかたしかめられる。（はじめの量は、1つの方で出せる）'),
+        W(`(2) ${k3}${hu}のとき、1${un}あたりの正味のへり：${c}×${k3} − ${y} = ${q3}。${N0} ÷ ${q3} = <b>${t3}</b>${un}`,'1つの時間（1分・1日）に、へらす量とふえる量のさ（正味）が、はじめの量をけずっていく。はじめの量÷正味のへり ＝ かかる時間。')];
+      if(lv===4) st.push(W(`(3) ${T0}${un}でなくなるには、はじめの量${N0} ＋ ふえる量 ${y}×${T0} = ${N0+y*T0} を、${T0}${un}でへらしきる。1${w}が${T0}${un}でへらす量は ${c*T0}。${N0+y*T0} ÷ ${c*T0} = ${((N0+y*T0)/(c*T0)).toFixed(2)} → 切り上げて <b>${kmin}</b>${hu}`,'「ちょうど」ではなく「以内」なので、計算の結果が小数になったら、切り上げる（足りないと間に合わない）。'));
+      return finish({q:sq(`${stem}`,qs),hint:'はじめの量＋ふえた量＝へらした量。1つの時間のへりを比べる',steps:st,p:{t:story,c,y,k1,t1,k2,t2,k3,T0,lv}},mkParts(parts));
+    }
+  },
+  solve(p){
+    let N0=null; for(let n=1;n<=9000;n++){ if(n+p.y*p.t1===p.c*p.k1*p.t1&&n+p.y*p.t2===p.c*p.k2*p.t2){ if(N0!==null) return null; N0=n; } }
+    if(N0===null) return null; let t3=null; for(let t=1;t<=1000;t++) if(N0+p.y*t<=p.c*p.k3*t){ t3=t; break; }
+    const out=[N0,t3]; if(p.lv===4){ let k=1; while(N0+p.y*p.T0>p.c*k*p.T0) k++; out.push(k); } return out;
+  }});
+
+/* ===== 規則性（図形・数表）の大問 ===== */
+def('kisoku2',{unit:'seishitsu',name:'規則性の大問（中空方陣・数表）',desc:'図や表のきまりを式にする',minLv:3,tm:[0,0,300,480],
+  idea:'図や表を、何個ずつのかたまりに分けて数える。かたまりの数は等差数列になることが多い。「n番目」を式にして、逆算もできるようにする。',
+  gen(r,lv){
+    if(r()<0.5){ // 中空方陣
+      const k=r.int(2,4), m=r.int(2*k+1,2*k+6); const ring=i=>4*(m-2*i-1); const total=sumArr(Array.from({length:k},(_,i)=>ring(i)));
+      const k2=k+1, m2=r.int(2*k2+1,2*k2+7), total2=sumArr(Array.from({length:k2},(_,i)=>4*(m2-2*i-1)));
+      const parts=lv===3?[[4*(m-1),'個'],[total,'個']]:[[4*(m-1),'個'],[total,'個'],[m2,'個']];
+      const rings=Array.from({length:k},(_,i)=>ring(i));
+      const st=[W(`(1) 1辺${m}個の正方形のまわりに並べた個数：4つのかどをふくめて、1辺に${m}個。4辺の合計から、かどを2回数えた分（4個）をひく：${m}×4 − 4 = <b>${4*(m-1)}</b>個`,'まわりの碁石の数＝（1辺の個数−1）×4。（かどの石を2回数えないように。1辺ずつ「かどを1つ入れない」ように数えてもよい）'),
+        W(`(2) 外がわから ${k}重。内側にいくほど、1辺が2個ずつへる：${rings.join(' + ')} = <b>${total}</b>個`,`${k}重の方陣は、1辺が ${m}, ${m-2}, ${m-4}, … 個の中空方陣（1重）を、1つずつ内側へ重ねたもの。各層は（1辺−1）×4 で、層ごとに 8 ずつ少なくなる（等差数列）。`)];
+      if(lv===4) st.push(W(`(3) ${k2}重の合計の式：4 × { ${k2}×(1辺−1) − ${k2*(k2-1)} } = ${total2}。${total2} ÷ 4 = ${total2/4}、${total2/4} + ${k2*(k2-1)} = ${total2/4+k2*(k2-1)}、${total2/4+k2*(k2-1)} ÷ ${k2} = ${m2-1}（＝1辺−1）→ 1辺は <b>${m2}</b>個`,`${k2}重の個数は、各層の「（1辺−1）×4」をたしたもの。層ごとに、1辺−1 が 2 ずつ少なくなる（${m2-1}, ${m2-3}, …）。たし算を式にまとめると 4×{ ${k2}×(1辺−1) − 2×(0+1+…+${k2-1}) } になる。この式をさかさまにたどると、1辺が求まる。`));
+      return finish({q:sq(`碁石を、正方形のふちにそって、すきまなく並べていきます。1辺に${m}個の碁石が並ぶ中空方陣（中がからっぽの正方形）を、外から${k}重に重ねます。`,lv===3?[`いちばん外がわ（1重めだけ）に並ぶ碁石は何個ですか。`,`${k}重の方陣に使う碁石は、全部で何個ですか。`]:[`いちばん外がわ（1重めだけ）に並ぶ碁石は何個ですか。`,`${k}重の方陣に使う碁石は、全部で何個ですか。`,`つぎに、同じように${k2}重の方陣を作ったところ、碁石が全部で${total2}個になりました。この方陣の、いちばん外がわの1辺には何個の碁石が並んでいますか。`]),hint:'1重分は（1辺−1）×4。内側ほど1辺が2ずつ少ない',steps:st,p:{t:'hollow',m,k,k2,total2,lv}},mkParts(parts));
+    }
+    // 斜めに番号をつけた表
+    const rr=r.int(3,9), cc=r.int(3,9), d=rr+cc-1, val=d*(d-1)/2+cc; const N=r.int(60,250);
+    let dd=1; while(dd*(dd+1)/2<N) dd++; const cN=N-dd*(dd-1)/2, rN=dd+1-cN, Dd=r.int(5,10);
+    const dsum=Dd*(Dd*(Dd-1)/2)+Dd*(Dd+1)/2;
+    const parts=lv===3?[[val,''],[rN,'行目']]:[[val,''],[rN,'行目'],[dsum,'']];
+    const st=[W(`(1) 第${rr}行・第${cc}列は、${rr+cc-1}番目の斜めの列の ${cc}番目。その前の斜めの列に全部で 1+2+…+${d-1} = ${d*(d-1)/2}個 の数があるので ${d*(d-1)/2} + ${cc} = <b>${val}</b>`,'斜めの列を1本目・2本目・…と数える。n本目の斜めの列には、n個の数が並ぶ。前の列まで全部の個数は 1+2+…+(n−1)。'),
+      W(`(2) ${N}は、斜めの列の ${dd}本目（1+2+…+${dd-1} = ${dd*(dd-1)/2} 個までで ${dd*(dd-1)/2}、${dd}本目までで ${dd*(dd+1)/2}）。${dd}本目の中で ${N} − ${dd*(dd-1)/2} = ${cN}番目。${cN}列目のとき、行は ${dd} + 1 − ${cN} = <b>${rN}</b>行目`,`数が ${N}（${dd*(dd-1)/2}より大きく${dd*(dd+1)/2}以下）だから、${dd}本目の斜めの列にある。その列は、左下から右上に向かって数が大きくなる。行と列の和は、列の本目＋1（ここでは ${dd+1}）。`)];
+    if(lv===4) st.push(W(`(3) ${Dd}本目の斜めの列の数は、${Dd*(Dd-1)/2+1}から${Dd*(Dd+1)/2}までの${Dd}個。その合計 ＝ (最初＋最後) × 個数 ÷ 2 = (${Dd*(Dd-1)/2+1} + ${Dd*(Dd+1)/2}) × ${Dd} ÷ 2 = <b>${dsum}</b>`,'連続した整数の和は、（はじめ＋おわり）×個数÷2。'));
+    return finish({q:sq(`1行目・1列目から数えて、次のように1, 2, 3, … と、斜めに順に数を入れた表があります。（第1行・第1列は1、その右の斜めの列は左下から右上へ 2→3、その次の列は 4→5→6、…）`,lv===3?[`第${rr}行・第${cc}列には、どんな数が入りますか。`,`${N}は、第何行にありますか。`]:[`第${rr}行・第${cc}列には、どんな数が入りますか。`,`${N}は、第何行にありますか。`,`斜めの列の ${Dd}本目に並ぶ数を、すべてたすといくつですか。`]),hint:'斜めの列の何本目の何番目かで考える',steps:st,fig:svg(260,125,`<g class="sv-t">${[['1',40,20],['3',100,20],['6',160,20],['10',220,20],['2',40,50],['5',100,50],['9',160,50],['4',40,80],['8',100,80],['7',40,110]].map(a=>`<text x="${a[1]}" y="${a[2]}" text-anchor="middle" style="font-size:16px">${a[0]}</text>`).join('')}</g>`+T(190,100,'（左上の一部）','sv-t')),p:{t:'table',rr,cc,N,Dd,lv}},mkParts(parts));
+  },
+  solve(p){
+    if(p.t==='hollow'){       const one=(m)=>{ let c=0; for(let x=0;x<m;x++)for(let y=0;y<m;y++) if(Math.min(x,y,m-1-x,m-1-y)===0) c++; return c; };
+      let tot=0; for(let i=0;i<p.k;i++){ const mm=p.m-2*i; let c=0; for(let x=0;x<mm;x++)for(let y=0;y<mm;y++) if(Math.min(x,y,mm-1-x,mm-1-y)===0) c++; tot+=c; }
+      const out=[one(p.m),tot]; if(p.lv===4){ let found=null; for(let m=2*p.k2;m<=100;m++){ let t=0; for(let i=0;i<p.k2;i++){ const mm=m-2*i; let c=0; for(let x=0;x<mm;x++)for(let y=0;y<mm;y++) if(Math.min(x,y,mm-1-x,mm-1-y)===0) c++; t+=c; } if(t===p.total2){ found=m; break; } } out.push(found); } return out; }
+    // 表：斜めに数を入れていく
+    const tab={}; let n=1, diag=1; const last={}; while(n<=700){ for(let c=1;c<=diag;c++){ const r_=diag+1-c; tab[r_+','+c]=n; if(!(('n'+n) in last)) last['n'+n]=[r_,c]; n++; } diag++; }
+    const out=[tab[p.rr+','+p.cc], last['n'+p.N][0]]; if(p.lv===4){ let s=0; for(let c=1;c<=p.Dd;c++){ const r_=p.Dd+1-c; s+=tab[r_+','+c]; } out.push(s); } return out;
+  }});
+
+/* =========================================================
+   🔥 難関・最難関 用の型 その2（のこりの型の「大問」版）
+   つるかめ・和差・過不足・年れい・割合（食塩水）・比・流水・植木・仕事（水そう）・計算
+   ========================================================= */
+
+/* ===== つるかめ算の大問：3種類を「組」にして、2種類のつるかめ算にする ===== */
+def('tsuru2',{unit:'tokushu',name:'つるかめ算の大問（3種類・組にする）',desc:'組にして、2種類のつるかめ算に直す',minLv:3,tm:[0,0,300,480],
+  idea:'3種類あるときは、枚数の関係が決まっている2つを「1組」にして、組と残りの2種類のつるかめ算にする。',
+  gen(r,lv){
+    const m=lv===3?1:2;
+    for(;;){
+      const a=r.step(30,90,10), b=r.step(40,120,10), c=r.step(50,150,10), pair=m*b+c, diff=pair-(m+1)*a; if(diff<=0||new Set([a,b,c]).size<3) continue;
+      const x=r.int(2,12), y=r.int(2,10), N=x+(m+1)*y, Tt=a*x+pair*y; if(Tt>5000) continue;
+      const cond=m===1?`${b}円の切手と${c}円の切手は、同じ枚数あります。`:`${b}円の切手は、${c}円の切手の2倍の枚数あります。`;
+      const grp=m===1?`${b}円の切手1枚と${c}円の切手1枚`:`${b}円の切手2枚と${c}円の切手1枚`;
+      const parts=[[pair,'円'],[y,'組'],[x,'枚']]; if(lv===4) parts.push([m*y,'枚']);
+      const qs=[`${grp}を1組にします。1組の代金は何円ですか。`,`組は全部で何組できますか。`,`${a}円の切手は何枚ありますか。`]; if(lv===4) qs.push(`${b}円の切手は何枚ありますか。`);
+      const st=[
+        W(`(1) ${m===1?`${b} + ${c}`:`${b}×2 + ${c}`} = <b>${pair}</b>円（1組は ${m+1}枚）`,`枚数の関係が決まっている切手を「1組」にする。1組の中の枚数と代金をまとめて考えると、3種類が「${a}円の切手」と「組」の2種類になる。`),
+        W(`(2) 全部が${a}円の切手だったとすると ${a}×${N} = ${a*N}円。実際は ${Tt}円で ${Tt-a*N}円 高い。1組を（${a}円の切手${m+1}枚）にかえると、${pair} − ${a}×${m+1} = ${diff}円 変わる。${Tt-a*N} ÷ ${diff} = <b>${y}</b>組`,'つるかめ算の考え方：「全部が一方だったら」と仮定して、実際との差を、1つ入れかえたときの差でわる。ここでは「組」を1つふやすと、枚数が'+(m+1)+'枚ぶん入れかわるので、'+(m+1)+'枚分の差で考える。')];
+      st.push(W(`(3) 組の切手は ${(m+1)}×${y} = ${(m+1)*y}枚。${a}円の切手は ${N} − ${(m+1)*y} = <b>${x}</b>枚`,'全部の枚数から、組にふくまれる枚数をひく。'));
+      if(lv===4) st.push(W(`(4) ${b}円の切手は、1組に2枚ずつ → ${2}×${y} = <b>${m*y}</b>枚`,'1組の中に、' + b + '円の切手は' + m + '枚入っている。'));
+      return finish({q:sq(`${a}円、${b}円、${c}円の3種類の切手が、合わせて${N}枚あり、代金の合計は${Tt}円です。${cond}`,qs),hint:'枚数の関係が決まっている切手を、1組にする',steps:st,p:{t:'t3',a,b,c,m,N,T:Tt}},mkParts(parts));
+    }
+  },
+  solve(p){ const pair=p.m*p.b+p.c; const out=[]; for(let x=0;x<=p.N;x++)for(let y=0;y<=p.N;y++){ if(x+(p.m+1)*y===p.N&&p.a*x+pair*y===p.T) out.push([x,y]); }
+    if(out.length!==1) return null; const [x,y]=out[0]; const res=[pair,y,x]; if(p.m===2) res.push(p.m*y); return res; }});
+
+/* ===== 和差算の大問：倍の関係もまじる ===== */
+def('wasa2',{unit:'tokushu',name:'和差算の大問（倍と差がまじる）',desc:'どれかを①にそろえて、合計を①の何個分かで表す',minLv:3,tm:[0,0,300,480],
+  idea:'いちばん基準になる数を①とおき、他の数を「①の何倍・何大きい（小さい）」で表す。合計を、①の個数＋数字の部分に分ける。',
+  gen(r,lv){
+    for(;;){
+      const B=r.int(8,50), d1=r.int(3,20), d2=r.int(2,15), A=B+d1, C=2*B-d2; if(C<=0) continue;
+      let S=A+B+C, k=4, extra='', d3=0, D=0; if(lv===4){ d3=r.int(2,12); D=3*B+d3; S+=D; k=7; extra=`、Dは、Bの3倍より${d3}大きい数`; }
+      const vals=[A,B,C].concat(lv===4?[D]:[]); const parts=lv===3?[[k*B,''],[B,''],[C,'']]:[[k*B,''],[B,''],[Math.max(...vals),''],[Math.max(...vals)-Math.min(...vals),'']];
+      const names=lv===3?'A、B、C 3つの数':'A、B、C、D 4つの数';
+      const stk=lv===3?`(A+B+C) = (B+${d1}) + B + (B×2−${d2}) = B×4 + ${d1-d2}`:`(A+B+C+D) = (B+${d1}) + B + (B×2−${d2}) + (B×3+${d3}) = B×7 + ${d1-d2+d3}`;
+      const st=[
+        W(`(1) Bを①とすると、A = ①+${d1}、C = ①×2−${d2}${lv===4?`、D = ①×3+${d3}`:''}。合計 ${stk}。だから ①の${k}個分 ＝ ${S} − (${d1-d2+(lv===4?d3:0)}) = <b>${k*B}</b>`,'基準になる数を①とおく。他の数は「①の何倍」と「ふえた・へった数」に分けられる。合計も同じように分けると、①の個数が決まる。'),
+        W(`(2) ①＝ ${k*B} ÷ ${k} = <b>${B}</b>`,'①の個数分の合計を、個数でわる。'),
+        W(lv===3?`(3) C = ${B}×2 − ${d2} = <b>${C}</b>`:`(3) A=${A}、B=${B}、C=${C}、D=${D}。いちばん大きい数は <b>${Math.max(...vals)}</b>`,'①がわかったので、もとの関係にもどして、それぞれの数を出す。')];
+      if(lv===4) st.push(W(`(4) 最大の数 ${Math.max(...vals)} − 最小の数 ${Math.min(...vals)} = <b>${Math.max(...vals)-Math.min(...vals)}</b>`,'最大・最小は、4つの数を比べて決める。'));
+      return finish({q:sq(`${names}があります。AはBより${d1}大きく、CはBの2倍より${d2}小さい数${extra}で、合計は${S}です。`,lv===3?['Bを①とすると、3つの数の合計から数字の部分をのぞいた「①の4個分」の大きさはいくつですか。','Bはいくつですか。','Cはいくつですか。']:['Bを①とすると、4つの数の合計から数字の部分をのぞいた「①の7個分」の大きさはいくつですか。','Bはいくつですか。','4つの数のうち、いちばん大きい数はいくつですか。','いちばん大きい数と、いちばん小さい数の差はいくつですか。']),hint:'Bを①として、他の数を①と数字で表す',steps:st,p:{t:lv===3?'w3':'w4',S,d1,d2,d3}},mkParts(parts));
+    }
+  },
+  solve(p){ const out=[]; for(let B=1;B<=p.S;B++){ const A=B+p.d1, C=2*B-p.d2; if(C<=0) continue; const four=p.t==='w4'; const D=3*B+p.d3; const tot=A+B+C+(four?D:0); if(tot===p.S) out.push(four?[7*B,B,Math.max(A,B,C,D),Math.max(A,B,C,D)-Math.min(A,B,C,D)]:[4*B,B,C]); }
+    return out.length===1?out[0]:null; }});
+
+/* ===== 過不足算の大問 ===== */
+def('kabu2',{unit:'tokushu',name:'過不足算の大問（人数がふえたら）',desc:'配り方と人数の変化',minLv:3,tm:[0,0,300,480],
+  idea:'1人あたりの数をふやすと、全体で「1人あたりの差×人数」だけ多く必要になる。あまりとたりない数の合計がそれにあたる。',
+  gen(r,lv){
+    for(;;){
+      const n=r.int(8,40), a=r.int(3,9), b=a+r.int(1,4), r1=r.int(1,15), s2=b*n-(a*n+r1); if(s2<=0||s2>=n*b) continue;
+      const M=a*n+r1, e=r.int(2,8), cc=r.int(2,6), shortage=a*(n+e)-M; if(shortage<=0) continue;
+      const exact=(cc-(M%cc))%cc;
+      const parts=lv===3?[[n,'人'],[M,'個'],[shortage,'個']]:[[n,'人'],[M,'個'],[shortage,'個'],[exact,'個']];
+      const qs=['子どもは何人いますか。','配るものは、全部で何個ありますか。',`子どもが${e}人ふえた（${a}個ずつ配る）とき、何個たりなくなりますか。`]; if(lv===4) qs.push(`配るものを何個か追加して、全部をちょうど${cc}個ずつ配れるようにします。追加する個数は、いちばん少なくて何個ですか。（追加しなくてよいときは0）`);
+      const st=[ W(`(1) ${b}個ずつ配るのに必要な数と、${a}個ずつ配るときの数の差は 1人あたり ${b-a}個 ふえるので、全体で ${r1} + ${s2} = ${r1+s2}個 ちがう。${r1+s2} ÷ ${b-a} = <b>${n}</b>人`,`${a}個ずつだと${r1}個あまり、${b}個ずつだと${s2}個たりない。同じ数のものを配るので、必要な数のちがいは あまりとたりない数の和。`,segFig([{name:a+'個ずつ',segs:[{len:a*n,label:'配った'},{len:r1,label:'あまり'+r1,cls:'sv-b'}]},{name:b+'個ずつ',segs:[{len:b*n-s2,label:'ある分'},{len:s2,label:'たりない'+s2,dash:true}]}])),
+        W(`(2) ${a} × ${n} + ${r1} = <b>${M}</b>個（たしかめ：${b}×${n} − ${s2} = ${M}）`,'あまりがあるほうの式で、全部の数を出す。もう一方でたしかめる。'),
+        W(`(3) ${n+e}人に${a}個ずつだと ${a}×${n+e} = ${a*(n+e)}個 必要。${a*(n+e)} − ${M} = <b>${shortage}</b>個たりない`,'人数がふえたので、必要な数をあらためて出して、あるものの数とくらべる。')];
+      if(lv===4) st.push(W(`(4) ${M} ÷ ${cc} = ${Math.floor(M/cc)}あまり${M%cc}。あと ${cc} − ${M%cc} = ${exact}個 ふやすと${cc}で割り切れる → <b>${exact}</b>個${M%cc===0?'（すでに割り切れる）':''}`,'「ちょうど配れる」＝ ○で割り切れる数。いまの数をわって、あまりを出し、足りない分を足す。あまりが0ならそのまま。'));
+      return finish({q:sq(`子どもたちに、同じ数のものを配ります。1人に${a}個ずつ配ると${r1}個あまり、1人に${b}個ずつ配ると${s2}個たりません。`,qs),hint:'あまりとたりない数を合わせて、1人あたりの差でわる',steps:st,p:{t:'k',a,b,r1,s2,e,cc,lv}},mkParts(parts));
+    }
+  },
+  solve(p){ const res=[]; for(let n=1;n<=300;n++){ const M1=p.a*n+p.r1, M2=p.b*n-p.s2; if(M1===M2&&M1>0) res.push([n,M1]); } if(res.length!==1) return null; const [n,M]=res[0]; const out=[n,M,p.a*(n+p.e)-M];
+    if(p.lv===4){ let add=0; while((M+add)%p.cc) add++; out.push(add); } return out; }});
+
+/* ===== 年れい算の大問 ===== */
+def('nenrei2',{unit:'tokushu',name:'年れい算の大問（倍の関係がかわる）',desc:'年れいの差はかわらない',minLv:3,tm:[0,0,300,480],
+  idea:'何年たっても、2人の年れいの差はかわらない。「差は子の何倍か」を、いまと、n年後で2通りに表すと、子の年れいが決まる。',
+  gen(r,lv){
+    for(;;){
+      const m=r.int(3,6), k=r.int(2,m-1), n=r.int(2,8); if((k-1)*n%(m-k)) continue; const C=(k-1)*n/(m-k); if(C<3||C>25) continue; if(lv===4&&k===2) continue;
+      const M=m*C, t=(m-2)*C; if(M>70) continue;
+      const parts=[[m-1,'倍'],[C,'才'],[M,'才']]; if(lv===4) parts.push([t,'年後']);
+      const qs=['いまの母と子どもの年れいの差は、いまの子どもの年れいの何倍ですか。','いまの子どもは何才ですか。','いまの母は何才ですか。']; if(lv===4) qs.push('母の年れいが、子どもの年れいのちょうど2倍になるのは、いまから何年後ですか。');
+      const st=[ W(`(1) 母は子の ${m}倍 なので、差は ${m} − 1 = <b>${m-1}</b>倍`,'母＝子の○倍 のとき、母と子の差は「子の（○−1）倍」。'),
+        W(`(2) ${n}年後は母が子の${k}倍なので、そのときの差は、${n}年後の子の(${k}−1) = ${k-1}倍。年れいの差はかわらないので、いまの子の${m-1}倍 ＝ ${n}年後の子の${k-1}倍。${n}年後の子は「いまの子 + ${n}」なので、(${m-1}) × ① = (${k-1}) × (① + ${n})。これをとくと ① = ${(k-1)*n} ÷ (${m-1} − ${k-1}) = <b>${C}</b>才`,`線分図をかくとわかりやすい。差が同じ長さなので、「いまの子の${m-1}倍」と「${n}年後の子の${k-1}倍」が等しい。右の式は ${k-1}×① + ${(k-1)*n}。両方から ${k-1}×① をひくと、${m-k}×① ＝ ${(k-1)*n}。`,segFig([{name:'いま',segs:Array.from({length:m},(_,i)=>({len:1,label:i===0?'子':'',cls:i===0?'sv-a':'sv-b'}))},{name:n+'年後',segs:Array.from({length:k},(_,i)=>({len:1,label:i===0?'子':'',cls:i===0?'sv-a':'sv-b'}))}])),
+        W(`(3) 母は ${C} × ${m} = <b>${M}</b>才`,'いまの母＝いまの子の年れい × '+m+'。')];
+      if(lv===4) st.push(W(`(4) 母が子の2倍になるときの差は子の ${2-1}倍。差は ${M-C} なので、そのとき子は ${M-C}才、母は ${2*(M-C)}才。子は いまの ${C}才 から ${M-C-C}年後、母は ${M}才から ${2*(M-C)-M}年後 → <b>${t}</b>年後`,'差はかわらないので、「2倍になる」ときは、母と子の差 ＝ そのときの子の年れい。いまの差から、そのときの子の年れいがわかる。'));
+      return finish({q:sq(`いま、母の年れいは、子どもの年れいの${m}倍です。${n}年後には、母の年れいは、子どもの年れいの${k}倍になります。`,qs),hint:'年れいの差はかわらない。差を2通りの倍で表す',steps:st,p:{t:'n',m,k,n,lv}},mkParts(parts));
+    }
+  },
+  solve(p){ const res=[]; for(let C=1;C<=200;C++){ const M=p.m*C; if(M+p.n===p.k*(C+p.n)) res.push(C); } if(res.length!==1) return null; const C=res[0], M=p.m*C; const out=[p.m-1,C,M];
+    if(p.lv===4){ let t=null; for(let x=1;x<=300;x++) if(M+x===2*(C+x)){ t=x; break; } out.push(t); } return out; }});
+
+/* ===== 割合の大問：食塩水（混ぜる→水を加える→食塩を加える） ===== */
+def('salt2',{unit:'wariai',name:'食塩水の大問（混ぜる・水・食塩）',desc:'状況がかわるたびに、かわらないものに注目',minLv:3,tm:[0,0,300,480],
+  idea:'水を加えても食塩の重さはかわらない。食塩を加えても水の重さはかわらない。「かわらないもの」を軸に考える。',
+  gen(r,lv){
+    for(let tries=0;tries<6000;tries++){
+      const a=r.step(100,500,100), b=r.step(100,500,100), x=r.int(2,12), y=r.int(x+3,25); const S=(a*x+b*y)/100, M=a+b; if((100*S)%M) continue;
+      const c1=100*S/M; if(c1<=x||c1>=y) continue; const c2=r.int(2,c1-1); if((100*S)%c2) continue; const M2=100*S/c2, w=M2-M; if(w<=0||w>3000) continue;
+      let c3=0,t=0; if(lv===4){ c3=r.int(c1+1,40); const num=c3*M2-100*S, den=100-c3; if(num<=0||num%den) continue; t=num/den; }
+      const parts=lv===3?[[c1,'%'],[w,'g']]:[[c1,'%'],[w,'g'],[t,'g']];
+      const qs=['できた食塩水の濃さは何%ですか。',`この食塩水に水を加えて${c2}%の食塩水にします。水を何g加えますか。`]; if(lv===4) qs.push(`水を加えてできた${c2}%の食塩水に、さらに食塩を加えて、${c3}%の食塩水にします。食塩を何g加えますか。`);
+      const st=[ W(`(1) 食塩は ${a}×${x/100} + ${b}×${y/100} = ${a*x/100} + ${b*y/100} = ${S}g。食塩水は ${a}+${b} = ${M}g。${S} ÷ ${M} × 100 = <b>${c1}</b>%`,'混ぜても、食塩の重さと食塩水の重さは、それぞれたし算できる。（濃さをたし算してはいけない）。てんびん図でもできる。',tenbinFig(x,y,c1,a+'g',b+'g')),
+        W(`(2) 水を加えても、食塩は ${S}g のまま。${c2}%の食塩水で食塩が${S}gのとき、食塩水全体は ${S} ÷ ${c2/100} = ${M2}g。いまは ${M}g なので、加える水は ${M2} − ${M} = <b>${w}</b>g`,'「かわらないもの」は食塩の重さ。濃さ(%)から、全体の重さがもとまる。')];
+      if(lv===4) st.push(W(`(3) 食塩を加えても、水の重さはかわらない。${c2}%の食塩水（${M2}g）の水の重さは ${M2} − ${S} = ${M2-S}g。これが、${c3}%の食塩水では全体の ${100-c3}% にあたるので、全体は ${M2-S} ÷ ${(100-c3)/100} = ${(M2-S)*100/(100-c3)}g。ふえた分 ${(M2-S)*100/(100-c3)} − ${M2} = <b>${t}</b>g`,'食塩を加えるときは、水の重さがかわらないことを使う。濃さがc%なら、水は全体の(100−c)%。'));
+      return finish({q:sq(`${x}%の食塩水${a}gと、${y}%の食塩水${b}gを混ぜます。`,qs),hint:'混ぜる：食塩の合計。水を加える：食塩はそのまま。食塩を加える：水はそのまま',steps:st,p:{t:'s',a,b,x,y,c2,c3,lv}},mkParts(parts));
+    }
+  },
+  solve(p){ const S=F(p.a*p.x+p.b*p.y).div(100), M=p.a+p.b; const c1=S.div(M).mul(100); let w=null; for(let g=1;g<=5000;g++) if(S.mul(100).eq(F(p.c2).mul(M+g))){ w=g; break; } if(w===null) return null; const out=[c1,w];
+    if(p.lv===4){ const M2=M+w; let t=null; for(let g=1;g<=5000;g++) if(S.add(g).mul(100).eq(F(p.c3).mul(M2+g))){ t=g; break; } if(t===null) return null; out.push(t); } return out; }});
+
+/* ===== 比の大問：連比・3人の所持金・やりとり ===== */
+def('hi2',{unit:'wariai',name:'比の大問（連比とやりとり）',desc:'2つの比をつないで、合計・やりとりを考える',minLv:3,tm:[0,0,300,480],
+  idea:'共通の人（B）の比の数をそろえて連比にする。合計は比の和にあたるので、1つ分がわかる。やりとりでは、2人の合計がかわらないことを使う。',
+  gen(r,lv){
+    for(let tries=0;tries<4000;tries++){
+      const al=r.int(1,9), be=r.int(1,9), ga=r.int(1,9); if(gcd(gcd(al,be),ga)!==1||al===be||be===ga) continue;
+      const g1=gcd(al,be), g2=gcd(be,ga), p=al/g1, q=be/g1, rr=be/g2, ss=ga/g2; if(q===rr) continue; // B の数が同じなら連比が自明
+      const u=r.int(2,15)*10, S=(al+be+ga)*u, k=r.int(1,Math.max(1,Math.floor(al*u/3))); if(al*u-k<=0) continue;
+      const diff=Math.abs((al*u-k)-(be*u+k)); if(diff===0) continue;
+      const parts=[[al+be+ga,''],[ga*u,'円'],[diff,'円']];
+      const st=[
+        W(`(1) B をそろえる：${q} と ${rr} の最小公倍数 ${lcm(q,rr)} に。A:B = ${p*lcm(q,rr)/q}:${lcm(q,rr)}、B:C = ${lcm(q,rr)}:${ss*lcm(q,rr)/rr}。A:B:C = ${al}:${be}:${ga}（これ以上かんたんにできない）。3つの数の和 ${al} + ${be} + ${ga} = <b>${al+be+ga}</b>`,'共通の人Bの比の数を、2つの比で同じ数にそろえる。そろえたら、A:B:C のように1つの比（連比）で表せる。'),
+        W(`(2) 比の和 ${al+be+ga} が ${S}円 → 1つ分 ${S} ÷ ${al+be+ga} = ${u}円。Cは ${ga} × ${u} = <b>${ga*u}</b>円`,'合計は、比の和にあたる。合計÷比の和＝1つ分。'),
+        W(`(3) Aは ${al}×${u} = ${al*u}円、Bは ${be}×${u} = ${be*u}円。AがBに${k}円あげると、Aは ${al*u-k}円、Bは ${be*u+k}円。差は <b>${diff}</b>円`,'やりとりのあとも、2人の合計はかわらない。それぞれの金額を出して、差を求める。')];
+      return finish({q:sq(`A、B、Cの3人が、お金を持っています。AとBの金額の比は ${p}:${q}、BとCの金額の比は ${rr}:${ss} で、3人の金額の合計は ${S}円です。`,['A:B:C を、いちばんかんたんな整数の比で表したとき、3つの数の和はいくつですか。','Cは何円持っていますか。',`AがBに${k}円あげると、AとBの金額の差は何円になりますか。`]),hint:'Bの数をそろえて連比にする',steps:st,p:{t:'h',p,q,rr,ss,S,k}},mkParts(parts));
+    }
+  },
+  solve(p){ const res=[]; for(let a=1;a<=p.S;a++){ if((a*p.q)%p.p) continue; const b=a*p.q/p.p; if((b*p.ss)%p.rr) continue; const c=b*p.ss/p.rr; if(a+b+c===p.S) res.push([a,b,c]); }
+    if(res.length!==1) return null; const [a,b,c]=res[0]; let g=gcd(gcd(a,b),c); return [(a+b+c)/g,c,Math.abs((a-p.k)-(b+p.k))]; }});
+
+/* ===== 流水算の大問：2せきの船が出会う ===== */
+def('ryusui2',{unit:'hayasa',name:'流水算の大問（2せきの船）',desc:'流れは出会いの時間に関係しない',minLv:3,tm:[0,0,300,480],
+  idea:'下りの速さ＝静水＋流れ、上りの速さ＝静水−流れ。向かい合って出会うとき、2せきの速さの和では、流れが打ち消し合う。',
+  gen(r,lv){
+    for(let tries=0;tries<5000;tries++){
+      const c=r.step(10,40,10), sa=r.step(60,200,10), sb=r.step(60,200,10)+c; if(sb-c<=0) continue;
+      const va=sa+c, vb=sb-c, L=lcm(lcm(sa+sb,va),vb), mult=r.int(1,3), D=L*mult; if(D>40000) continue;
+      const t1=D/(sa+sb), tA=D/va, tB=D/vb; if(t1>90||tA>150||tB>150) continue; const pos=va*t1;
+      const parts=[[t1,'分後'],[tA,'分後'],[tB,'分後']]; if(lv===4) parts.push([pos,'m']);
+      const qs=['2せきの船が出会うのは、出発してから何分後ですか。','船Aが下流のQ港に着くのは、出発してから何分後ですか。','船Bが上流のP港に着くのは、出発してから何分後ですか。']; if(lv===4) qs.push('2せきの船が出会う地点は、P港から何mはなれていますか。');
+      const st=[ W(`(1) Aの下りの速さは ${sa}+${c} = ${va}、Bの上りの速さは ${sb}−${c} = ${vb}。向かい合うので、1分で ${va}+${vb} = ${va+vb}m ちぢまる（＝静水の速さの和 ${sa}+${sb} と同じ）。${D} ÷ ${va+vb} = <b>${t1}</b>分後`,'流れの分は、Aには＋、Bには−になって打ち消し合う。だから、出会うまでの時間は、静水での速さの和だけで決まる。'),
+        W(`(2) ${D} ÷ ${va} = <b>${tA}</b>分後`,'下りの速さで、全体のきょりを進む時間。'),
+        W(`(3) ${D} ÷ ${vb} = <b>${tB}</b>分後`,'上りの速さ（静水−流れ）で、全体のきょりを進む時間。')];
+      if(lv===4) st.push(W(`(4) Aは ${t1}分で ${va} × ${t1} = <b>${pos}</b>m 進んでいる（Pから）`,'出会った地点は、Aが出会うまでに進んだ道のりそのもの。（Bの進んだ道のり ' + vb*t1 + 'm を足すと ' + D + 'm）'));
+      return finish({q:sq(`川の上流にP港、下流にQ港があり、2つの港の間は${D}mです。船AはP港からQ港へ、船BはQ港からP港へ、同時に出発します。静水での船の速さは、Aが分速${sa}m、Bが分速${sb}mで、川の流れの速さは分速${c}mです。`,qs),hint:'下り・上りの速さを出す。出会うときは、速さの和',steps:st,p:{t:'r',D,sa,sb,c,lv}},mkParts(parts));
+    }
+  },
+  solve(p){ const va=p.sa+p.c, vb=p.sb-p.c; let tm=null,tA=null,tB=null; for(let t=1;t<=1000;t++){ const a=Math.min(p.D,va*t), b=Math.min(p.D,vb*t); if(tm===null&&a+b>=p.D) tm=(a+b===p.D)?t:-1; if(tA===null&&a>=p.D) tA=(a===p.D)?t:-1; if(tB===null&&b>=p.D) tB=(b===p.D)?t:-1; if(tm!==null&&tA!==null&&tB!==null) break; }
+    if(tm<=0||tA<=0||tB<=0) return null; const out=[tm,tA,tB]; if(p.lv===4) out.push(va*tm); return out; }});
+
+/* ===== 植木算の大問：木と電柱 ===== */
+def('ueki2',{unit:'tokushu',name:'植木算の大問（木と電柱・重なる場所）',desc:'2つのおきかたが重なる所',minLv:3,tm:[0,0,300,480],
+  idea:'植木算：両はしに植えるなら「間の数＋1」、まわり（輪）なら「間の数」。2つが重なる場所は、最小公倍数ごとにくる。',
+  gen(r,lv){
+    const nums=[2,3,4,5,6,8,10,12,15];
+    for(;;){
+      const a=r.pick(nums), b=r.pick(nums); if(a===b||a%b===0||b%a===0) continue; const l=lcm(a,b), L=l*r.int(2,5); if(L>400) continue;
+      const circle=lv===4;
+      const nA=circle?L/a:L/a+1, nB=circle?L/b:L/b+1, ov=circle?L/l:L/l+1;
+      const parts=[[ov,'か所'],[nA-ov,'本'],[nA-ov+nB,'本']]; if(lv===4) parts.push([nB-ov,'本']);
+      const place=circle?`まわりの長さが${L}mの池のまわり`:`長さが${L}mのまっすぐな道の片側（両はしにも立てる）`;
+      const qs=['木と電柱が同じ場所になるのは、何か所ですか。','実際に立てる木は、何本ですか。','木と電柱は、あわせて何本立てますか。']; if(lv===4) qs[2]='木と電柱は、あわせて何本立てますか。'; if(lv===4) qs.push('電柱は、何本立てますか。');
+      const st=[ W(`(1) ${a}と${b}の最小公倍数は ${l}。${l}mごとに重なる。${circle?`${L} ÷ ${l} = <b>${ov}</b>か所（輪なので、はじまりの場所は1回だけ数える）`:`${L} ÷ ${l} = ${L/l}、両はしにも立てるので +1 = <b>${ov}</b>か所`}`,'重なる場所は、2つのおきかたの最小公倍数ごとにくる。植木算の「間の数」と「木の数」のちがいに注意。'),
+        W(`(2) ${a}mおきの木は ${circle?`${L} ÷ ${a} = ${nA}`:`${L} ÷ ${a} + 1 = ${nA}`}本。そのうち ${ov}本は電柱と同じ場所なので、電柱を立てる。木は ${nA} − ${ov} = <b>${nA-ov}</b>本`,'同じ場所になったときは、電柱だけを立てるので、木はその分へる。'),
+        W(`(3) 電柱は ${circle?`${L} ÷ ${b} = ${nB}`:`${L} ÷ ${b} + 1 = ${nB}`}本。木 ${nA-ov}本 ＋ 電柱 ${nB}本 = <b>${nA-ov+nB}</b>本`,'木（重なりをのぞく）と電柱をたす。')];
+      if(lv===4) st.push(W(`(4) 電柱は <b>${nB}</b>本`,'電柱は、重なる場所にも立てるので、全部の場所に立てる。ここでは (3) の途中で出した数。'));
+      // (4) の答えは電柱の全本数 nB（重なりも電柱）なので、parts を直す
+      if(lv===4) parts[3]=[nB,'本'];
+      return finish({q:sq(`${place}に、${a}mおきに木を、${b}mおきに電柱を立てます。木と電柱が同じ場所になるときは、電柱だけを立てます。${circle?'（はじまりの場所にも立てます）':''}`,qs),hint:'重なる場所は最小公倍数ごと。輪か直線かに注意',steps:st,p:{t:circle?'c':'l',a,b,L}},mkParts(parts));
+    }
+  },
+  solve(p){ const A=new Set(), B=new Set(); const circle=p.t==='c'; for(let x=0;x<=p.L;x+=p.a){ if(circle&&x===p.L) continue; A.add(x); } for(let x=0;x<=p.L;x+=p.b){ if(circle&&x===p.L) continue; B.add(x); }
+    let ov=0; for(const x of A) if(B.has(x)) ov++; const out=[ov,A.size-ov,A.size-ov+B.size]; if(circle) out.push(B.size); return out; }});
+
+/* ===== 仕事算（水そう）の大問：途中で水の出入りがかわる ===== */
+def('shigoto2',{unit:'tokushu',name:'水そうの大問（給水と排水）',desc:'途中で水の出入りがかわる',minLv:3,tm:[0,0,300,480],
+  idea:'「満水までの量」を決めて、時間ごとに「ふえる量」を足していく。途中で水の出入りがかわるときは、時間を区切って考える。',
+  gen(r,lv){
+    for(let tries=0;tries<8000;tries++){
+      const a=r.int(8,30), b=r.int(2,a-3), t1=r.int(3,10), t2=r.int(4,15), t3=lv===4?r.int(2,8):0; const V=a*t1+(a-b)*t2+a*t3;
+      if(V%a||V%(a-b)||V>1500) continue; const tot=t1+t2+t3; if(V/a===tot||V/(a-b)===tot) continue;
+      const parts=[[V/a,'分'],[V/(a-b),'分'],[tot,'分']];
+      const story=lv===3?`はじめの${t1}分間は給水管だけを開き、そのあと排水管も開きます。`:`はじめの${t1}分間は給水管だけを開き、つぎの${t2}分間は排水管も開き、その後は排水管を閉じて給水管だけにします。`;
+      const st=[ W(`(1) ${V} ÷ ${a} = <b>${V/a}</b>分`,'給水管だけのとき、1分間にふえる水の量は '+a+'L。満水の量 ÷ 1分のふえる量。'),
+        W(`(2) 給水と排水の両方を開くと、1分にふえるのは ${a} − ${b} = ${a-b}L。${V} ÷ ${a-b} = <b>${V/(a-b)}</b>分`,'同時に開くと、「ふえる量−へる量」が1分間の正味のふえ方。'),
+        W(lv===3?`(3) はじめの${t1}分で ${a*t1}L。のこり ${V} − ${a*t1} = ${V-a*t1}L を、1分に ${a-b}L ずつ → ${(V-a*t1)/(a-b)}分。全部で ${t1} + ${t2} = <b>${tot}</b>分`:`(3) はじめの${t1}分で ${a*t1}L、つぎの${t2}分で ${(a-b)*t2}L、あわせて ${a*t1+(a-b)*t2}L。のこり ${V-a*t1-(a-b)*t2}L を1分に${a}Lずつ → ${t3}分。全部で ${t1} + ${t2} + ${t3} = <b>${tot}</b>分`,'時間を区切って、区間ごとに水の量を出し、満水になるまでたしていく。')];
+      return finish({q:sq(`満水になると${V}Lの水が入る水そうがあります。給水管は1分間に${a}Lの水を入れ、排水管は1分間に${b}Lの水を出します。はじめ水そうは空です。`,['給水管だけを開いておくと、満水まで何分かかりますか。','給水管と排水管を両方開いておくと、満水まで何分かかりますか。',`${story}満水になるのは、水を入れ始めてから何分後ですか。`]),hint:'時間を区切って、1分にふえる量を足していく',steps:st,p:{t:'sh',V,a,b,t1,t2,t3,lv}},mkParts(parts));
+    }
+  },
+  solve(p){ let lv1=null,lv2=null,tot=null; for(let t=1;t<=1000&&(lv1===null||lv2===null);t++){ if(lv1===null&&p.a*t>=p.V) lv1=(p.a*t===p.V)?t:-1; if(lv2===null&&(p.a-p.b)*t>=p.V) lv2=((p.a-p.b)*t===p.V)?t:-1; }
+    let water=0; for(let t=1;t<=1000;t++){ const rate=t<=p.t1?p.a:(t<=p.t1+p.t2?p.a-p.b:p.a); water+=rate; if(water>=p.V){ tot=(water===p.V)?t:-1; break; } }
+    if(lv1<=0||lv2<=0||tot<=0) return null; return [lv1,lv2,tot]; }});
+
+/* ===== 計算の大問：分数のくふう（となりどうしの積・奇数の積） ===== */
+def('keisan2',{unit:'keisan',name:'計算の大問（分数の和のくふう）',desc:'分けて、まん中を消す',minLv:3,tm:[0,0,300,480],
+  idea:'分母が「となりどうしの数のかけ算」のとき、1つの分数を2つの分数のひき算に分けると、まん中が消えて、はしだけがのこる。',
+  gen(r,lv){
+    const n=r.int(4,9);
+    const sumAll=f=>{ let s=F(0); for(let k=1;k<=n;k++) s=s.add(f(k)); return s; };
+    const ex=(f,list)=>list.map(k=>exprHTML(`1/${f(k)}`)).join(' + ');
+    const lst=n>4?[1,2,3,'…',n]:[1,2,3,n];
+    const exs=f=>lst.map(k=>k==='…'?'…':exprHTML(`1/${f(k)}`)).join(' + ');
+    if(lv===3){
+      const f1=k=>k*(k+1), f2=k=>(2*k-1)*(2*k+1);
+      const v1=new Frac(n,n+1), v2=new Frac(n,2*n+1), v3=v1.sub(v2);
+      const parts=[[v1,'','frac'],[v2,'','frac'],[v3,'','frac']];
+      const st=[ W(`(1) ${exprHTML('1/2')} = ${exprHTML('1/1')} − ${exprHTML('1/2')}、${exprHTML('1/6')} = ${exprHTML('1/2')} − ${exprHTML('1/3')}、… と分けると、まん中が消えて ${exprHTML('1/1')} − ${exprHTML(`1/${n+1}`)} = <b>${H(v1)}</b>`,'分母が「となりどうしの数のかけ算」（1×2、2×3、…）のとき、1/(a×(a+1)) ＝ 1/a − 1/(a+1) と分けられる。たしていくと、まん中が全部消える。'),
+        W(`(2) ${exprHTML('1/3')} = ${exprHTML('1/2')}×(${exprHTML('1/1')} − ${exprHTML('1/3')})、${exprHTML('1/15')} = ${exprHTML('1/2')}×(${exprHTML('1/3')} − ${exprHTML('1/5')})、… と分けると、${exprHTML('1/2')} × (${exprHTML('1/1')} − ${exprHTML(`1/${2*n+1}`)}) = <b>${H(v2)}</b>`,'分母が、2つはなれた数のかけ算（1×3、3×5、…）のときは、差が2なので、1/(a×(a+2)) ＝ 1/2 × (1/a − 1/(a+2))。'),
+        W(`(3) ${H(v1)} − ${H(v2)} = <b>${H(v3)}</b>`,'通分して、引き算。')];
+      return finish({q:sq('次の計算をしましょう。',[`${exs(f1)}`,`${exs(f2)}`,`(1) の答え − (2) の答え`]),hint:'分数を2つの分数のひき算に分けて、まん中を消す',steps:st,p:{t:'k3',n}},mkParts(parts));
+    }
+    const g1=k=>k*(k+2), g2=k=>k*(k+1)*(k+2);
+    const v1=F('1/2').mul(F(1).add(F('1/2')).sub(new Frac(1,n+1)).sub(new Frac(1,n+2)));
+    const v2=F('1/4').sub(F('1/2').div((n+1)*(n+2)));
+    const v3=v1.sub(v2.mul(2));
+    const parts=[[v1,'','frac'],[v2,'','frac'],[v3,'','frac']];
+    const st=[ W(`(1) 1/(k×(k+2)) = 1/2 × (1/k − 1/(k+2))。たすと、まん中が2つずつ消えて、のこるのは はしの ${exprHTML('1/1')}、${exprHTML('1/2')} と おわりの ${exprHTML(`1/${n+1}`)}、${exprHTML(`1/${n+2}`)} → ${exprHTML('1/2')} × (${exprHTML('1/1')} + ${exprHTML('1/2')} − ${exprHTML(`1/${n+1}`)} − ${exprHTML(`1/${n+2}`)}) = <b>${H(v1)}</b>`,'差が2の分数は、1つ飛ばしで消える。だから、のこるのは、はじめの2つ（1/1 と 1/2）と、おわりの2つ。'),
+      W(`(2) 1/(k×(k+1)×(k+2)) = 1/2 × { 1/(k×(k+1)) − 1/((k+1)×(k+2)) }。たすと、まん中が消えて ${exprHTML('1/2')} × (${exprHTML('1/2')} − ${exprHTML(`1/${(n+1)*(n+2)}`)}) = <b>${H(v2)}</b>`,'3つの数のかけ算の分母は、「1/(となり2つの積)」の差に分けられる。それをたすと、まん中が消える。'),
+      W(`(3) (1) − (2)×2 = ${H(v1)} − ${H(v2.mul(2))} = <b>${H(v3)}</b>`,'(2)の答えを2倍して、(1)からひく。')];
+    return finish({q:sq('次の計算をしましょう。',[`${exs(g1)}`,`${exs(g2)}`,`(1) の答え − (2) の答え × 2`]),hint:'分数を、ひき算に分けて、まん中を消す',steps:st,p:{t:'k4',n}},mkParts(parts));
+  },
+  solve(p){ const S=f=>{ let s=F(0); for(let k=1;k<=p.n;k++) s=s.add(F(1).div(f(k))); return s; };
+    if(p.t==='k3'){ const a=S(k=>k*(k+1)), b=S(k=>(2*k-1)*(2*k+1)); return [a,b,a.sub(b)]; }
+    const a=S(k=>k*(k+2)), b=S(k=>k*(k+1)*(k+2)); return [a,b,a.sub(b.mul(2))]; }});
+
+
+/* ----- 📐 中学の解き方（新しい大問のうち、方程式で楽になるもの：最後の小問の答えを出す）----- */
+G.tsuru2.alg=(p,P)=>{ const pair=p.m*p.b+p.c; return [alg2(P,{set:`${p.a}円の切手の枚数を x、組の数を y とする（1組は${p.m+1}枚）`,eq1:[1,p.m+1,p.N,`x + ${p.m+1}y = ${p.N}（枚数の合計）`],eq2:[p.a,pair,p.T,`${p.a}x + ${pair}y = ${p.T}（代金の合計）`],out:p.m===1?[1,0,0]:[0,p.m,0],outTxt:p.m===1?'答え':`${p.b}円の切手の枚数 = ${p.m}y`})]; };
+G.wasa2.alg=(p,P)=>{ if(p.t!=='w3') return null; return [alg1(P,{set:'Bの数を x とする（Aは x + '+p.d1+'、Cは 2x − '+p.d2+'）',raw:`(x + ${p.d1}) + x + (2x − ${p.d2}) = ${p.S}`,eqWhy:'3つの数の合計が '+p.S+'。',a:4,c:p.d1-p.d2,b:0,d:p.S,out:[2,-p.d2],outTxt:'C'})]; };
+G.nenrei2.alg=(p,P)=>[alg1(P,{set:'いまの子どもの年れいを x 才とする（母は '+p.m+'x 才）',raw:`${p.m}x + ${p.n} = ${p.k}×(x + ${p.n})`,eqWhy:`${p.n}年後の母の年れい（${p.m}x+${p.n}）が、子どもの年れい（x+${p.n}）の${p.k}倍。`,a:p.m,c:p.n,b:p.k,d:p.k*p.n,out:p.lv===4?[p.m-2,0]:[p.m,0],outTxt:p.lv===4?'母が子の2倍になるのは(m−2)x年後':'母の年れい'})];
+G.salt2.alg=(p,P)=>{ const S=(p.a*p.x+p.b*p.y)/100, M=p.a+p.b, M2=100*S/p.c2;
+  if(p.lv===3) return [alg1(P,{set:'加える水の重さを x g とする',raw:`${S} = (${M} + x) × ${p.c2}/100`,eqWhy:'食塩は '+S+'g のまま。「食塩 ＝ 食塩水全体 × 濃さ」。',a:F(p.c2).div(100),c:F(p.c2*M).div(100),b:0,d:S})];
+  return [alg1(P,{set:'加える食塩の重さを x g とする',raw:`(${S} + x) = (${M2} + x) × ${p.c3}/100`,eqWhy:'食塩を加えたあとの食塩の重さ ＝ 食塩水全体の重さ × '+p.c3+'%。',a:100,c:100*S,b:p.c3,d:p.c3*M2})]; };
+G.shigoto2.alg=(p,P)=>{ if(p.lv===3) return [alg1(P,{set:'満水になるまでの全部の時間を x 分とする',raw:`${p.a}×${p.t1} + (${p.a} − ${p.b})×(x − ${p.t1}) = ${p.V}`,eqWhy:`はじめの${p.t1}分は給水だけ（1分に${p.a}L）、そのあとは1分に${p.a-p.b}Lずつ。`,a:p.a-p.b,c:p.b*p.t1,b:0,d:p.V})];
+  return [alg1(P,{set:'満水になるまでの全部の時間を x 分とする',raw:`${p.a}x − ${p.b}×${p.t2} = ${p.V}`,eqWhy:`ずっと給水管が入れるので ${p.a}×x。そのうち排水管を開いていた${p.t2}分間だけ、${p.b}L×${p.t2}分 が出ていく。`,a:p.a,c:-p.b*p.t2,b:0,d:p.V})]; };
+
+/* =========================================================
    自動チェック（たくさん問題を作って、答えをくらべる）
    ========================================================= */
-function makeProblem(gid,lv,seed){ const P=G[gid].gen(mkRng(seed),lv); P.g=gid; P.lv=lv; P.seed=seed;
+// 難関・最難関では、いまの型をもっと難しい大問（小問つき・条件が重なる・単元をまたぐ）にさしかえることがある
+const HARDER={yakusu:['amari2','nshin'],kisoku:['kisoku2','nshin'],baai:['narabi','michijun2'],menseki:['menseki2'],kakudo:['menseki2'],taiseki:['kiri'],tabibito:['tabi3'],hayasa:['tabi3'],shigoto:['newton','shigoto2'],tsurukame:['tsuru2'],wasa:['wasa2'],kabusoku:['kabu2'],nenrei:['nenrei2'],wariai:['salt2'],hi:['hi2'],ryusui:['ryusui2'],ueki:['ueki2'],kufu:['keisan2'],bunsu:['keisan2'],kumi:['keisan2'],gyakusan:['keisan2']};
+function makeProblem(gid,lv,seed){
+  lv=Math.max(lv,G[gid].minLv||1);
+  if(lv>=3&&HARDER[gid]){ const rr=mkRng((seed^0x9e3779b9)>>>0); if(rr()<(lv>=4?0.8:0.6)) gid=rr.pick(HARDER[gid]); }
+  const P=G[gid].gen(mkRng(seed),lv); P.g=gid; P.lv=lv; P.seed=seed;
   P.steps=(P.steps||[]).map(x=>typeof x==='string'?W(x,''):x); P.tm=G[gid].tm[lv-1]; attachAlg(P); return P; }
 function checkInput(str,P){ // 入力をしらべる → {ok, msg}
   let f; try{ f=parseNum(str); }catch(e){ return {ok:false,bad:true,msg:'数の書き方をたしかめてね'}; }
@@ -1587,10 +2185,18 @@ function checkInput(str,P){ // 入力をしらべる → {ok, msg}
   const m=/(\d+)\/(\d+)$/.exec(str); if(m&&gcd(+m[1],+m[2])!==1) return {ok:false,retry:true,msg:'約分できるよ！ 約分して答えよう'};
   return {ok:true};
 }
+// 問題文の不自然な数字（約分できる比・0や1がからむ言い方）があれば、そのしるしを返す
+function oddText(q){
+  const t=String(q).replace(/<[^>]+>/g,' ').replace(/\s+/g,' ');
+  for(const m of t.matchAll(/(\d+(?::\d+)+)/g)){ const nums=m[1].split(':').map(Number); if(nums.some(x=>x>200)) continue; if(nums.reduce(gcd)>1) return '約分できる比 '+m[1]; }
+  if(/(^|[^0-9.])0(個|人|円|cm|m|分|秒|本|枚|%|倍|割|日|頭|才|g|L)/.test(t)) return '0がからむ言い方';
+  if(/[^0-9.]1倍|[^0-9.]0倍|[^0-9.]0\.0/.test(t)) return '1倍・0倍など';
+  return null;
+}
 function selfTest(N=300,only){
   const report=[]; let total=0,bad=0,algN=0;
   for(const g of GL){ if(only&&g.id!==only) continue;
-    for(let lv=1;lv<=4;lv++){ let ok=0; const errs=[];
+    for(let lv=Math.max(1,g.minLv||1);lv<=4;lv++){ let ok=0; const errs=[];
       for(let i=0;i<N;i++){ total++; const seed=(i*7919+lv*104729+g.id.length*31)>>>0; let P;
         try{
           P=makeProblem(g.id,lv,seed);
@@ -1603,13 +2209,22 @@ function selfTest(N=300,only){
           const all=P.q+P.steps.map(x=>x.t+(x.why||'')+(x.fig||'')).join('')+(P.hint||'')+(P.fig||'')+(G[P.g].idea||'');
           if(/NaN|undefined|Infinity|null|\[object/.test(all)) throw Error('文におかしな文字');
           const s=ansStr(P.ans,P.fmt); if(!checkInput(s,P).ok) throw Error('答えを入力できない: '+s);
-          const sv=g.solve(P.p);
+          const sv=G[P.g].solve(P.p);
           if(sv===null||sv===undefined) throw Error('solve が答えを出せない（答えが1つでない？）');
-          const same= sv instanceof Frac? sv.eq(P.ans) : Math.abs(sv-P.ans.val())<1e-9*Math.max(1,Math.abs(sv));
-          if(!same) throw Error(`答えがちがう gen=${fracStr(P.ans)} solve=${sv instanceof Frac?fracStr(sv):sv}`);
+          const eqv=(v,a)=> v instanceof Frac? v.eq(a) : Math.abs(v-a.val())<1e-9*Math.max(1,Math.abs(v));
+          if(P.parts){
+            if(!Array.isArray(sv)||sv.length!==P.parts.length) throw Error('小問の数がちがう');
+            P.parts.forEach((x,i)=>{ if(sv[i]===null||sv[i]===undefined) throw Error('小問'+(i+1)+'を解けない'); if(!eqv(sv[i],x.a)) throw Error(`小問${i+1}の答えがちがう gen=${fracStr(x.a)} solve=${sv[i] instanceof Frac?fracStr(sv[i]):sv[i]}`); if(x.f==='int'&&x.a.d!==1) throw Error('小問が整数でない'); });
+            if(!P.ans.eq(P.parts[P.parts.length-1].a)) throw Error('最後の小問と答えがちがう');
+            if(P.steps.length<P.parts.length) throw Error('解き方が小問より少ない');
+          } else {
+            if(Array.isArray(sv)) throw Error('小問がないのに配列');
+            if(!eqv(sv,P.ans)) throw Error(`答えがちがう gen=${fracStr(P.ans)} solve=${sv instanceof Frac?fracStr(sv):sv}`);
+          }
           if(!P.steps.some(x=>x.t.includes('<b>'))) throw Error('解き方に答えがない');
           if(!(P.tm>=20&&P.tm<=600)) throw Error('目安時間がおかしい');
           if(P.steps.length<1||P.steps.some(x=>!x.t)) throw Error('解き方の行が空');
+          { const od=oddText(P.q); if(od) throw Error('不自然な数字：'+od); }
           if(P.alg){ for(const B of P.alg){ const v=algSolve(B); if(v===null||v===undefined) throw Error('方程式が解けない'); if(!v.eq(P.ans)) throw Error('方程式の答えがちがう: '+fracStr(v)+' ≠ '+fracStr(P.ans)); if(/NaN|undefined|Infinity|null/.test(B.steps.map(x=>x.t+x.why).join(''))) throw Error('方程式の説明におかしな文字'); } algN++; }
           ok++;
         }catch(e){ bad++; if(errs.length<3) errs.push(`seed${seed}: ${e.message}`+(P?` ｜ ${String(P.q).replace(/<[^>]+>/g,'').slice(0,80)}`:'')); }
@@ -1685,7 +2300,7 @@ function adviceOf(an,nameOf){
   return L;
 }
 // 似た系統の型（苦手のときに出す）
-const REL={tsurukame:['kabusoku','wasa'],kabusoku:['tsurukame','wasa'],wasa:['tsurukame','kabusoku','nenrei'],nenrei:['wasa','hi','shigoto'],shigoto:['hi','wariai'],hi:['wariai','nenrei'],wariai:['hi','hayasa'],hayasa:['tabibito','tsuuka','diagram'],tabibito:['hayasa','diagram','tsuuka'],tsuuka:['tabibito','hayasa'],ryusui:['tabibito','hayasa'],diagram:['tabibito','hayasa'],ueki:['kisoku','kabusoku'],kisoku:['ueki','yakusu'],yakusu:['kisoku','baai'],baai:['yakusu','kisoku'],kumi:['bunsu','kufu','gyakusan'],bunsu:['kumi','gyakusan','kufu'],gyakusan:['kumi','bunsu'],kufu:['kumi','bunsu'],kakudo:['menseki','idou'],menseki:['kakudo','taiseki','idou'],idou:['menseki','tabibito'],taiseki:['menseki','kakudo']};
+const REL={tsurukame:['kabusoku','wasa'],kabusoku:['tsurukame','wasa'],wasa:['tsurukame','kabusoku','nenrei'],nenrei:['wasa','hi','shigoto'],shigoto:['hi','wariai'],hi:['wariai','nenrei'],wariai:['hi','hayasa'],hayasa:['tabibito','tsuuka','diagram'],tabibito:['hayasa','diagram','tsuuka'],tsuuka:['tabibito','hayasa'],ryusui:['tabibito','hayasa'],diagram:['tabibito','hayasa'],ueki:['kisoku','kabusoku'],kisoku:['ueki','yakusu'],yakusu:['kisoku','baai'],baai:['yakusu','kisoku'],kumi:['bunsu','kufu','gyakusan'],bunsu:['kumi','gyakusan','kufu'],gyakusan:['kumi','bunsu'],kufu:['kumi','bunsu'],kakudo:['menseki','idou'],menseki:['kakudo','taiseki','idou'],idou:['menseki','tabibito'],taiseki:['menseki','kakudo'],nshin:['amari2','kisoku2'],amari2:['nshin','yakusu'],narabi:['michijun2','baai'],michijun2:['narabi','baai'],menseki2:['menseki','kakudo'],kiri:['taiseki','menseki2'],tabi3:['tabibito','hayasa'],newton:['shigoto','tsurukame'],kisoku2:['kisoku','nshin'],tsuru2:['tsurukame','kabu2'],wasa2:['wasa','tsuru2'],kabu2:['kabusoku','tsuru2'],nenrei2:['nenrei','wasa2'],salt2:['wariai','hi2'],hi2:['hi','salt2'],ryusui2:['ryusui','tabi3'],ueki2:['ueki','kisoku2'],shigoto2:['shigoto','newton'],keisan2:['kumi','bunsu']};
 const subOf=P=>(P.p&&(P.p.t||P.p.typ||P.p.v))||'';
 // 同じ型（g・レベル・小さい型 sub）で、数字だけちがう問題のたねをさがす
 function findSeed(g,lv,sub,rnd,not){
@@ -1917,7 +2532,7 @@ function render(){
 
 function home(){
   const L=lvOf(S.xp), nx=xpAt(L+1), cur=xpAt(L), d=S.days[today()]||{n:0};
-  const units=UNITS.map(u=>{ const gs=GL.filter(g=>g.unit===u.id); const stars=gs.reduce((s,g)=>s+[1,2,3,4].filter(l=>S.prog[g.id+'_'+l]?.star).length,0), max=gs.length*4;
+  const units=UNITS.map(u=>{ const gs=GL.filter(g=>g.unit===u.id); const stars=gs.reduce((s,g)=>s+[1,2,3,4].filter(l=>S.prog[g.id+'_'+l]?.star).length,0), max=gs.reduce((a,g)=>a+5-(g.minLv||1),0);
     return `<button class="unit" data-unit="${u.id}"><div class="emo">${u.emo}</div><div class="nm">${u.name}</div><div class="pr">⭐ ${stars} / ${max}</div><div class="bar"><i style="width:${stars/max*100}%"></i></div></button>`; }).join('');
   return `<div class="logo">算数</div><div class="subt">中学受験の算数を、毎日すこしずつ</div>
   <div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline"><b>Lv.${L}</b><small class="sub">${S.xp-cur} / ${nx-cur} XP</small></div>
@@ -1940,7 +2555,7 @@ function home(){
 
 function unitView(){
   const u=UNITS.find(x=>x.id===arg);
-  const rows=GL.filter(g=>g.unit===u.id).map(g=>`<div class="topic"><div class="tn"><b>${g.name}</b><small>${g.desc}</small></div><div class="lvs">${[1,2,3,4].map(l=>{const pr=S.prog[g.id+'_'+l];return `<button class="lv l${l}" data-start="${g.id}" data-lv="${l}">${l>FREE_MAX_LV&&!isPremium()?'🔒':''}${LVN[l]}<span class="st">${pr?.star?'⭐':pr?Math.round(pr.ok/pr.n*100)+'%':'　'}</span></button>`;}).join('')}</div></div>`).join('');
+  const rows=GL.filter(g=>g.unit===u.id).map(g=>`<div class="topic"><div class="tn"><b>${g.name}</b><small>${g.desc}</small></div><div class="lvs">${[1,2,3,4].filter(l=>l>=(g.minLv||1)).map(l=>{const pr=S.prog[g.id+'_'+l];return `<button class="lv l${l}" data-start="${g.id}" data-lv="${l}">${l>FREE_MAX_LV&&!isPremium()?'🔒':''}${LVN[l]}<span class="st">${pr?.star?'⭐':pr?Math.round(pr.ok/pr.n*100)+'%':'　'}</span></button>`;}).join('')}</div></div>`).join('');
   return topbar(`${u.emo} ${u.name}`)+`<div class="card">${rows}</div><p class="note-s">1セット5問。4問以上正解で⭐</p><div class="card sub">${LVDESC.slice(1).join('<br>')}<br>※目安です。問題は全部このアプリが作ったオリジナルで、実際の入試問題ではありません。</div>`;
 }
 
@@ -1986,6 +2601,7 @@ function playView(){
     <div class="acts"><button class="btn" data-act="hint">💡 ヒント</button><button class="btn" data-act="giveup">わからない（答えを見る）</button></div>`;
   }else if(!sess.done){
     const val=sess.input?exprHTML(sess.input):'<span class="val ph">答えを入力</span>';
+    if(P.parts) body+=`<div class="sub center" style="margin-bottom:6px">いちばん最後の小問（${P.parts.length}）の答えを入力してね</div>`;
     body+=`<div class="ansbox" id="ab"><div class="val${sess.input?'':' ph'}">${sess.input?val:'答えを入力'}</div><div class="u">${P.unit}</div></div>
     <div class="pad">${['7','8','9','⌫','4','5','6','/','1','2','3','.','0','と','C'].map(k=>`<button class="key${'⌫/.とC'.includes(k)?' s':''}" data-key="${k}">${k}</button>`).join('')}<button class="key s" data-act="hint">💡</button></div>
     <div class="acts"><button class="btn" data-act="skip">わからない</button><button class="btn main" data-act="answer">こたえる</button></div>
@@ -1994,7 +2610,7 @@ function playView(){
   }else{
     const ok=sess.done.ok;
     body+=`<div class="judge ${ok?'ok':'ng'} pop">${ok?'⭕ 正解！':'❌ ざんねん'}</div>
-      ${ok?(sess.done.gain?`<div class="center sub">+${sess.done.gain} XP ${S.combo>=3?`・🔥${S.combo}連続`:''}</div>`:''):`<div class="correct">答え：${H(P.ans,P.fmt)} ${P.unit}</div>${sess.done.your?`<div class="center sub">あなたの答え：${exprHTML(sess.done.your)}</div>`:''}`}
+      ${ok?(sess.done.gain?`<div class="center sub">+${sess.done.gain} XP ${S.combo>=3?`・🔥${S.combo}連続`:''}</div>`:''):`<div class="correct">答え：${ansLine(P)}</div>${sess.done.your?`<div class="center sub">あなたの答え：${exprHTML(sess.done.your)}</div>`:''}`}
       ${explHTML(P,ok)}${algView(P)}
       <button class="btn main wide" data-act="next">${sess.i+1<n?'つぎの問題へ ▶':'結果を見る ▶'}</button>`;
   }
@@ -2005,7 +2621,7 @@ function playView(){
 function explHTML(P,ok){ return `<div class="card expl" style="margin-top:10px"><b>📝 解き方</b><div class="sub">わからない式は、タップするとくわしい説明が出るよ</div><div class="idea">📖 考え方：${G[P.g].idea||''}</div><ol>${P.steps.map((x,i)=>`<li class="stp" data-st="${i}"><div>${x.t}</div>${(x.why||x.fig)?(sess.open&&sess.open[i]?`<div class="why">${x.why||''}${x.fig||''}</div><span class="tp">▲ とじる</span>`:`<span class="tp">▼ くわしく</span>`):''}</li>`).join('')}</ol>${!ok?'<div class="sub">この問題は「まちがいノート」に入れたよ。</div>':''}</div>`; }
 // 紙（ノート）で解く形：答えを入力せず、「解き終わった」を押す → 答えと解き方 → 自分で採点
 function paperDone(P,n){
-  const d=sess.done, ans=`<div class="correct">答え：${H(P.ans,P.fmt)} ${P.unit}</div>`;
+  const d=sess.done, ans=`<div class="correct" style="${P.parts?'font-size:16px;line-height:1.9':''}">答え：${ansLine(P)}</div>`;
   const nxt=`<button class="btn main wide" data-act="next">${sess.i+1<n?'つぎの問題へ ▶':'結果を見る ▶'}</button>`;
   if(d.phase==='grade') return `<div class="judge" style="font-size:26px">答え合わせ</div>${ans}${explHTML(P,true)}${algView(P)}
     <div class="card center"><b>自分で採点しよう</b><div class="sub">紙に書いた答えと見くらべてね</div><div class="row" style="justify-content:center;margin-top:10px"><button class="btn main" data-act="selfok">⭕ 合っていた</button><button class="btn orange" data-act="selfng">❌ ちがった</button></div></div>`;
@@ -2017,6 +2633,7 @@ function paperDone(P,n){
   else top=`<div class="judge ng pop">❌ ちがった</div><div class="idea">👇 下の解き方の式をタップして、どこで答えがずれたか確かめよう。</div>`;
   return top+ans+explHTML(P,d.ok&&!d.timeout&&!d.giveUp)+algView(P)+extra+nxt;
 }
+const ansLine=P=>P.parts?P.parts.map((x,i)=>`(${i+1}) ${H(x.a,x.f)}${x.u?' '+x.u:''}`).join('　'):`${H(P.ans,P.fmt)} ${P.unit}`;
 const clampSec=x=>Math.max(1,Math.min(900,Math.round(x)));
 function algView(P){
   if(!P.alg) return '';
@@ -2587,6 +3204,8 @@ const KJ={
  '撮':'扌（てへん）|サツ|と-る','捕':'扌（てへん）|ホ|と-らえる・つか-まえる','採':'扌（てへん）|サイ|と-る','開':'門（もんがまえ）|カイ|ひら-く・あ-ける',
  '放':'攵（ぼくにょう）|ホウ|はな-す','解':'角（つの）|カイ・ゲ|と-く','方':'方（ほう）|ホウ|かた','追':'辶（しんにょう）|ツイ|お-う',
  '究':'穴（あなかんむり）|キュウ|きわ-める','求':'|キュウ|もと-める','及':'又（また）|キュウ|およ-ぶ',
+ // ---- 難関・最難関の追加分 ----
+ '白':'白（しろ）|ハク・ビャク|しろ・しろ-い','雰':'雨（あめかんむり）|フン|','囲':'囗（くにがまえ）|イ|かこ-む・かこ-う','気':'气（きがまえ）|キ・ケ|','真':'目（め）|シン|ま・まこと','摯':'手（て）|シ|','捗':'扌（てへん）|チョク|はかど-る','携':'扌（てへん）|ケイ|たずさ-える・たずさ-わる','陥':'阝（こざとへん）|カン|おちい-る・おとしい-れる','滞':'氵（さんずい）|タイ|とどこお-る','促':'亻（にんべん）|ソク|うなが-す','戒':'戈（ほこがまえ）|カイ|いまし-める','妨':'女（おんなへん）|ボウ|さまた-げる','建':'廴（えんにょう）|ケン・コン|た-てる・た-つ','立':'立（たつ）|リツ・リュウ|た-つ・た-てる','忌':'心（こころ）|キ|い-む・い-まわしい','憚':'忄（りっしんべん）|タン|はばか-る','汁':'氵（さんずい）|ジュウ|しる','雪':'雨（あめかんむり）|セツ|ゆき','崩':'山（やま）|ホウ|くず-れる・くず-す','凡':'几（つくえ）|ボン・ハン|','例':'亻（にんべん）|レイ|たと-える','綻':'糸（いとへん）|タン|ほころ-びる','暫':'日（ひ）|ザン|しばら-く','懸':'心（こころ）|ケン・ケ|か-ける・か-かる','念':'心（こころ）|ネン|','稀':'禾（のぎへん）|キ・ケ|まれ','漸':'氵（さんずい）|ゼン|ようや-く','次':'欠（あくび）|ジ・シ|つ-ぐ・つぎ','払':'扌（てへん）|フツ|はら-う','拭':'扌（てへん）|ショク|ふ-く・ぬぐ-う','賄':'貝（かいへん）|ワイ|まかな-う','過':'辶（しんにょう）|カ|す-ぎる・す-ごす・あやま-ち','報':'土（つち）|ホウ|むく-いる','酬':'酉（とりへん）|シュウ|むく-いる','融':'虫（むし）|ユウ|と-ける','通':'辶（しんにょう）|ツウ・ツ|とお-る・かよ-う','繁':'糸（いと）|ハン|しげ-る','栄':'木（き）|エイ|さか-える・は-え','緒':'糸（いとへん）|ショ・チョ|お','継':'糸（いとへん）|ケイ|つ-ぐ','続':'糸（いとへん）|ゾク|つづ-く・つづ-ける','妥':'女（おんな）|ダ|','協':'十（じゅう）|キョウ|','検':'木（きへん）|ケン|','憎':'忄（りっしんべん）|ゾウ|にく-む・にく-い','悪':'心（こころ）|アク・オ|わる-い','転':'車（くるまへん）|テン|ころ-がる・ころ-ぶ','嫁':'女（おんなへん）|カ|よめ・とつ-ぐ','癒':'疒（やまいだれ）|ユ|い-える・い-やす','阻':'阝（こざとへん）|ソ|はば-む','繊':'糸（いとへん）|セン|','細':'糸（いとへん）|サイ|ほそ-い・こま-か','憂':'|ユウ|うれ-える・うれ-い','慮':'心（こころ）|リョ|おもんぱか-る','擁':'扌（てへん）|ヨウ|','護':'言（ごんべん）|ゴ|','壊':'土（つちへん）|カイ|こわ-す・こわ-れる','俊':'亻（にんべん）|シュン|','敏':'攵（ぼくにょう）|ビン|','義':'羊（ひつじ）|ギ|','志':'心（こころ）|シ|こころざ-す・こころざし','思':'心（こころ）|シ|おも-う','公':'八（はち）|コウ|おおやけ','正':'止（とめる）|セイ・ショウ|ただ-しい・まさ','校':'木（きへん）|コウ|','更':'曰（ひらび）|コウ|さら・ふ-ける・ふ-かす','構':'木（きへん）|コウ|かま-える・かま-う','守':'宀（うかんむり）|シュ・ス|まも-る・もり','鑑':'金（かねへん）|カン|かんが-みる','賞':'貝（かい）|ショウ|','観':'見（みる）|カン|','態':'心（こころ）|タイ|','制':'刂（りっとう）|セイ|','傷':'亻（にんべん）|ショウ|きず・いた-む','害':'宀（うかんむり）|ガイ|','障':'阝（こざとへん）|ショウ|さわ-る','涯':'氵（さんずい）|ガイ|','命':'口（くち）|メイ・ミョウ|いのち','賢':'貝（かい）|ケン|かしこ-い','明':'日（ひへん）|メイ・ミョウ|あか-るい・あき-らか','講':'言（ごんべん）|コウ|','演':'氵（さんずい）|エン|','後':'彳（ぎょうにんべん）|ゴ・コウ|のち・うし-ろ・あと','援':'扌（てへん）|エン|','不':'一（いち）|フ・ブ|','振':'扌（てへん）|シン|ふ-る・ふ-るう','審':'宀（うかんむり）|シン|','信':'亻（にんべん）|シン|','要':'西（にし）|ヨウ|かなめ・い-る','請':'言（ごんべん）|セイ・シン|こ-う・う-ける',
 };
 
 // ---------- 問題データ ----------
@@ -2636,6 +3255,30 @@ const YOMI=[
  ['毎日練習に【精進】する。','しょうじん','せいしん','せいじん','しょうしん','一つのことに打ちこみ、努力すること。',4],
  ['古い切手を集める【好事家】。','こうずか','こうじか','すきごとか','こうずけ','変わった物事を好む人・物好き。「事」を「ズ」と読む。',4],
  ['茶道の美しい【所作】。','しょさ','しょさく','ところさ','しょうさ','ふるまい・身のこなし。',4],
+ // ---- 難関・最難関（追加）：中学で習う漢字・読みまちがえやすい熟語 ----
+ ['身の【潔白】を証明する。','けっぱく','けつはく','けっびゃく','けいはく','心やおこないが正しく、うしろめたいところがないこと。',3],
+ ['その場の【雰囲気】を読む。','ふんいき','ふいんき','ふんいんき','ふんいぎ','「ふいんき」と言いまちがえやすい。正しくは「ふんいき」。',3],
+ ['会計の【出納】を記録する。','すいとう','しゅつのう','しゅつおさめ','でのう','お金や物を出し入れすること。「出」を「スイ」、「納」を「トウ」と読む特別な読み方。',3],
+ ['つねに【真摯】な態度で取り組む。','しんし','しんせい','しんてい','まじし','まじめでひたむきな様子。',3],
+ ['作業の【進捗】を報告する。','しんちょく','しんしょう','しんほ','しんぽ','物事がはかどること。「捗」は「チョク」と読む。',3],
+ ['手みやげを【携えて】訪ねる。','たずさえて','ささえて','けいえて','ひっさげて','手に持つ、身につけて持つこと。',3],
+ ['危機に【陥る】。','おちいる','かんる','しずる','おとしいる','悪い状態になること。「陥」の音読みは「カン」（陥没）。',3],
+ ['仕事が【滞る】。','とどこおる','たいる','とどまる','しぶる','物事がすらすら進まないこと。「滞」の音読みは「タイ」（停滞）。',3],
+ ['注意を【促す】。','うながす','そくす','ものす','せかす','そうするようにすすめること。「促」の音読みは「ソク」（促進）。',3],
+ ['自分を【戒める】。','いましめる','かいめる','いさめる','こらしめる','まちがいをしないように、気をつけること。「戒」の音読みは「カイ」（警戒）。「諫める（いさめる）」とまちがえやすい。',3],
+ ['成長を【妨げる】。','さまたげる','ぼうげる','はばげる','ふせげる','じゃまをすること。「妨」の音読みは「ボウ」（妨害）。',3],
+ ['寺を【建立】する。','こんりゅう','けんりつ','けんりゅう','こんりつ','寺や塔などを建てること。「建」を「コン」と読む。',4],
+ ['【忌憚】のない意見を聞かせてください。','きたん','いたん','きしん','きだん','遠慮すること。「忌憚のない」で「遠慮のない」。',4],
+ ['昆布で【出汁】をとる。','だし','でじる','しゅつしる','でしる','熟字訓（熟語全体で特別な読み方をする言葉）。',4],
+ ['山で【雪崩】が起きる。','なだれ','ゆきくずれ','せつほう','ゆきなだれ','熟字訓（熟語全体で特別な読み方をする言葉）。',4],
+ ['地図の【凡例】を確かめる。','はんれい','ぼんれい','ほんれい','はんじ','記号などの意味をまとめて書いたもの。「凡」の音読みは「ハン」「ボン」。',4],
+ ['計画が【破綻】する。','はたん','はじょう','はてい','はちょう','物事がうまくいかなくなること。「綻」の音読みは「タン」。',4],
+ ['【暫定】の結論を出す。','ざんてい','ぜんてい','しんてい','ざんじょう','とりあえず仮に決めること。「暫」の音読みは「ザン」。',4],
+ ['将来を【懸念】する。','けねん','けんねん','かいねん','けいねん','心配すること。「懸」を「ケ」と読む。',4],
+ ['【稀有】な才能の持ち主。','けう','きゆう','まれあり','きあり','めったにないこと。「稀」を「ケ」と読む特別な読み方。',4],
+ ['喜びで【相好】をくずす。','そうごう','あいこう','そうこう','あいごう','顔つき・表情。「相好をくずす」で「にこにこする」。',4],
+ ['【漸次】改善していく。','ぜんじ','ざんじ','ぜんし','じゅんじ','だんだんと。「漸」の音読みは「ゼン」。',4],
+ ['不安を【払拭】する。','ふっしょく','はらしき','ふつしき','ほっしょく','すっかりぬぐいさること。「拭」の音読みは「ショク」。',4],
 ];
 // 漢字の書き：[文（【】がカタカナの問題）, 答えの漢字, ひとこと（意味・まちがえやすい字）, レベル]
 const KAKI=[
@@ -2679,6 +3322,27 @@ const KAKI=[
  ['作品の【コウセツ】は問わない。','巧拙','上手と下手。「拙」は「つたない」。',4],
  ['負けをばねに【フンキ】する。','奮起','気力をふるい起こすこと。',4],
  ['【ソッセン】して手伝う。','率先','人より先に進んで行うこと。',4],
+ // ---- 難関・最難関（追加）：送りがなや、まぎらわしい字まで正確に ----
+ ['費用を【マカナう】。','賄う','「賄」は貝へん。やりくりして用意すること。送りがなは「う」。',3],
+ ['この事態は【カンカ】できない。','看過','見のがすこと。「看」は「手」の下に「目」。',3],
+ ['働きに見合った【ホウシュウ】を得る。','報酬','働きに対するお礼のお金。「酬」は「酉」に「州」。',3],
+ ['【ユウズウ】がきかない人。','融通','その場に合わせて、うまく取りはからうこと。「融」の右がわは「虫」。',3],
+ ['港町が【ハンエイ】する。','繁栄','栄えること。「反映」は光や影響がほかに現れること。',3],
+ ['製品の【ケッカン】を見つける。','欠陥','足りない所・悪い所。「陥」はこざとへん。',3],
+ ['【ジョウチョ】あふれる町並み。','情緒','しみじみとした味わい。「緒」は糸へん。',3],
+ ['事業を【ケイゾク】する。','継続','つづけること。「継」は糸へん。',3],
+ ['おたがいに【ダキョウ】する。','妥協','ゆずり合って、話をまとめること。「妥」は「爪」の下に「女」。',3],
+ ['事実を【ケンショウ】する。','検証','調べて、たしかめること。「験証」とは書かない。',3],
+ ['人を【ゾウオ】する心。','憎悪','ひどくにくむこと。「憎」はりっしんべん。',4],
+ ['責任を人に【テンカ】する。','転嫁','自分の責任を人におしつけること。「嫁」は女へんに家。',4],
+ ['傷口が【イえる】。','癒える','病気やけがが治ること。「癒」はやまいだれ。送りがなは「える」。',4],
+ ['行く手を【ハバむ】。','阻む','じゃまをして、先に進ませないこと。「阻」はこざとへん。送りがなは「む」。',4],
+ ['【センサイ】な感性。','繊細','こまやかで、感じやすいこと。「繊」は糸へん。',4],
+ ['将来を【ユウリョ】する。','憂慮','心配すること。「憂」は「うれえる」とも読む。',4],
+ ['人権を【ヨウゴ】する。','擁護','かばって守ること。「擁」はてへん。',4],
+ ['建物が【ホウカイ】する。','崩壊','くずれること。「崩」は山かんむり。',4],
+ ['【シュンビン】な動き。','俊敏','頭の働きや動きが、すばやいこと。「俊」はにんべん。',4],
+ ['意見を政策に【ハンエイ】させる。','反映','光や影響が、ほかに現れること。「繁栄」は栄えること。',4],
 ];
 // 同音異義語・同訓異字：[文, 答え, [まちがい…], 解説]（全レベル共通）
 const DOUON=[
@@ -2716,6 +3380,37 @@ const DOUON=[
  ['真理を【ツイキュウ】する。','追究',['追求','追及','追給'],'追究＝深く調べて明らかにする。追求＝追い求める（利益など）。追及＝責任などを問いつめる。'],
  ['利益を【ツイキュウ】する。','追求',['追究','追及','追給'],'追求＝どこまでも追い求める。'],
  ['責任を【ツイキュウ】する。','追及',['追究','追求','追給'],'追及＝責任や悪いところを、どこまでも問いつめる。'],
+ // ---- 難関・最難関（追加）：大人でもまちがえやすい使い分け ----
+ ['その決定に【イギ】を唱える。','異議',['意義','異義','威儀'],'異議＝ほかとちがう意見。意義＝物事の価値・意味。異義＝ちがう意味。',3],
+ ['この経験は【イギ】深いものだった。','意義',['異議','異義','威儀'],'意義＝物事の価値・意味。異議＝ほかとちがう意見。異義＝ちがう意味。',3],
+ ['最後までやりぬく強い【イシ】を持つ。','意志',['意思','遺志','医師'],'意志＝何かをやりとげようとする強い心。意思＝考え・思い。遺志＝亡くなった人がのこした願い。',3],
+ ['亡き父の【イシ】をつぐ。','遺志',['意志','意思','医師'],'遺志＝亡くなった人がのこした願い。意志＝やりとげようとする強い心。意思＝考え・思い。',3],
+ ['本人の【イシ】を確かめる。','意思',['意志','遺志','医師'],'意思＝考え・思い（「意思表示」など）。意志＝やりとげようとする強い心。遺志＝亡くなった人の願い。',3],
+ ['【コウセイ】な判断をくだす。','公正',['構成','校正','更生'],'公正＝かたよらず、正しいこと。構成＝組み立て。校正＝文字のまちがいを直すこと。更生＝立ち直ること。',3],
+ ['原稿を【コウセイ】する。','校正',['公正','構成','更生'],'校正＝文字や文章のまちがいを直すこと。公正＝かたよらないこと。構成＝組み立て。更生＝立ち直ること。',3],
+ ['悪の道から【コウセイ】する。','更生',['公正','構成','校正'],'更生＝悪い状態から立ち直ること。公正＝かたよらないこと。構成＝組み立て。校正＝まちがいを直すこと。',3],
+ ['物語の【コウセイ】を考える。','構成',['公正','校正','更生'],'構成＝全体の組み立て。公正＝かたよらないこと。校正＝まちがいを直すこと。更生＝立ち直ること。',3],
+ ['道路の【ホシュ】工事をする。','補修',['保守','補習','捕手'],'補修＝こわれた所を直すこと。保守＝よい状態を保つこと。補習＝授業をおぎなうこと。',3],
+ ['機械の【ホシュ】点検をおこなう。','保守',['補修','補習','捕手'],'保守＝よい状態を保つこと（保守点検）。補修＝こわれた所を直すこと。補習＝授業をおぎなうこと。',3],
+ ['美術館で名画を【カンショウ】する。','鑑賞',['観賞','感傷','干渉'],'鑑賞＝芸術作品などを味わうこと。観賞＝見て楽しむこと（花・魚など）。感傷＝ものがなしい気持ち。干渉＝口出しすること。',3],
+ ['庭の花を【カンショウ】する。','観賞',['鑑賞','感傷','干渉'],'観賞＝見て楽しむこと（花・魚など）。鑑賞＝芸術作品などを味わうこと。感傷＝ものがなしい気持ち。',3],
+ ['万全の【タイセイ】で本番にのぞむ。','態勢',['体制','大勢','耐性'],'態勢＝ある物事に対する身がまえ・用意。体制＝組織やしくみ。大勢＝全体のなりゆき。耐性＝たえる性質。',3],
+ ['古い【タイセイ】を改める。','体制',['態勢','大勢','耐性'],'体制＝組織やしくみ。態勢＝身がまえ・用意。大勢＝全体のなりゆき。耐性＝たえる性質。',3],
+ ['けんかで相手にけがをさせ、【ショウガイ】の罪にとわれる。','傷害',['障害','生涯','渉外'],'傷害＝人にけがをさせること。障害＝さまたげになるもの。生涯＝生きている間。',4],
+ ['計画を進めるうえで、大きな【ショウガイ】にぶつかった。','障害',['傷害','生涯','渉外'],'障害＝さまたげになるもの。傷害＝人にけがをさせること。生涯＝生きている間。',4],
+ ['【ショウガイ】学習をつづける。','生涯',['傷害','障害','渉外'],'生涯＝生きている間。障害＝さまたげになるもの。傷害＝人にけがをさせること。',4],
+ ['【ケンメイ】に努力をかさねる。','懸命',['賢明','件名','堅明'],'懸命＝力のかぎり、一生けんめいなこと。賢明＝かしこいこと。件名＝事がらの名前。',4],
+ ['【ケンメイ】な判断をくだした。','賢明',['懸命','件名','堅明'],'賢明＝かしこいこと。懸命＝力のかぎり、一生けんめいなこと。件名＝事がらの名前。',4],
+ ['憲法の【キテイ】にしたがう。','規定',['既定','規程','基底'],'規定＝ルールとして決めたこと（その条文）。既定＝すでに決まっていること。規程＝内部の決まり。',4],
+ ['【キテイ】の方針どおりに進める。','既定',['規定','規程','基底'],'既定＝すでに決まっていること。規定＝ルールとして決めたこと。規程＝内部の決まり。',4],
+ ['先生の【コウエン】会を聞く。','講演',['公演','後援','公園'],'講演＝大ぜいの前で、あるテーマについて話すこと。公演＝劇や音楽を人々に見せること。後援＝応援すること。',4],
+ ['劇団の【コウエン】を見に行く。','公演',['講演','後援','公園'],'公演＝劇や音楽を人々に見せること。講演＝あるテーマについて話すこと。後援＝応援すること。',4],
+ ['市が行事を【コウエン】する。','後援',['講演','公演','公園'],'後援＝うしろだてとして応援すること。講演＝あるテーマについて話すこと。公演＝劇や音楽を見せること。',4],
+ ['成績【フシン】におちいる。','不振',['不信','不審','不慎'],'不振＝勢いがふるわないこと。不信＝信用できないこと。不審＝あやしいこと。',4],
+ ['【フシン】な人物がうろついている。','不審',['不信','不振','不慎'],'不審＝あやしいこと。不信＝信用できないこと。不振＝勢いがふるわないこと。',4],
+ ['友人への【フシン】がつのる。','不信',['不審','不振','不慎'],'不信＝信用できないこと。不審＝あやしいこと。不振＝勢いがふるわないこと。',4],
+ ['政府に協力を【ヨウセイ】する。','要請',['養成','陽性','幼生'],'要請＝強くたのむこと。養成＝教えて、一人前に育てること。陽性＝検査で反応が出ること。',4],
+ ['技術者を【ヨウセイ】する。','養成',['要請','陽性','幼生'],'養成＝教えて、一人前に育てること。要請＝強くたのむこと。陽性＝検査で反応が出ること。',4],
 ];
 // 四字熟語：[熟語, 意味, □にする文字の位置(0〜3), まちがいの漢字3つ]
 const YOJI=[
@@ -2741,6 +3436,27 @@ const YOJI=[
  ['絶体絶命','どうにもならない、追いつめられた状態。',1,['対','帯','代']],
  ['危機一髪','かみの毛一本ほどの差で、危険がすぐそこにせまっていること。',3,['発','初','八']],
  ['五里霧中','様子がわからず、どうしたらよいか迷うこと。',2,['夢','無','務']],
+ // ---- 難関・最難関（追加）----
+ ['取捨選択','必要なものを取り、不要なものを捨てて選ぶこと。',3,['沢','釈','訳'],3],
+ ['意味深長','言葉の裏に、深い意味がふくまれていること。',3,['張','調','腸'],3],
+ ['本末転倒','大切なことと、そうでないことを取りちがえること。',2,['点','展','店'],3],
+ ['付和雷同','自分の考えを持たず、人の意見にすぐ同調すること。',0,['不','負','府'],3],
+ ['晴耕雨読','晴れた日は田畑を耕し、雨の日は読書をする、ゆうゆうとした暮らし。',1,['行','交','校'],3],
+ ['粉骨砕身','力のかぎり努力すること。',3,['心','信','神'],3],
+ ['縦横無尽','自由自在に物事を行うこと。',3,['陣','人','仁'],3],
+ ['明鏡止水','くもりのない鏡や静かな水のように、心が落ち着いて澄んでいること。',2,['視','士','氏'],3],
+ ['疑心暗鬼','疑う心があると、なんでもないことまでおそろしく思えること。',3,['気','器','機'],3],
+ ['傍若無人','人の目を気にせず、勝手にふるまうこと。',0,['棒','方','防'],3],
+ ['換骨奪胎','古い作品を参考にしながら、新しい作品として作り直すこと。',0,['喚','煥','歓'],4],
+ ['羊頭狗肉','見かけは立派だが、中身がともなわないこと。',2,['句','拘','駒'],4],
+ ['臥薪嘗胆','目的を果たすために、苦労をたえしのぶこと。',3,['担','旦','但'],4],
+ ['不倶戴天','ともに同じ天の下にはいられないほど、うらみが深いこと。',1,['具','惧','供'],4],
+ ['切磋琢磨','仲間と励まし合い、たがいに向上すること。',2,['啄','豚','逐'],4],
+ ['栄枯盛衰','栄えたり、おとろえたりすること。',3,['哀','裏','衷'],4],
+ ['博覧強記','広く書物を読み、よく覚えていること。',3,['紀','既','期'],4],
+ ['離合集散','集まったり、はなれたりすること。',3,['算','酸','参'],4],
+ ['呉越同舟','仲の悪い者どうしが、同じ場所にいること。',0,['誤','娯','悟'],4],
+ ['百家争鳴','多くの人が、自由に意見を出し合うこと。',3,['名','命','銘'],4],
 ];
 // ことわざ・慣用句：[言葉, 意味, 種類, ひっかけの意味(なければ''), □にする体の字, まちがいの字3つ]
 const KOTO=[
@@ -2767,6 +3483,32 @@ const KOTO=[
  ['気が置けない','遠慮や気づかいをしなくてよいこと。','慣用句','油断できず、気がゆるせないこと。'],
  ['うり二つ','顔や姿がとてもよく似ていること。','慣用句'],
  ['水に流す','過去のもめごとを、なかったことにすること。','慣用句'],
+ // ---- 難関・最難関（追加）：まちがえやすい意味・文の中での使い方 ----
+ ['役不足','与えられた役目が、その人の力に対して軽すぎること。','言葉','自分には力が足りず、役目が重すぎること。','',[],3],
+ ['姑息','一時のがれの、その場しのぎであること。','言葉','ずるくて、ひきょうなこと。','',[],3],
+ ['煮詰まる','議論が出つくして、結論が出る状態になること。','言葉','行きづまって、先に進めなくなること。','',[],3],
+ ['破天荒','今まで、だれもしなかったことをやりとげること。','言葉','乱暴で、むちゃなこと。','',[],3],
+ ['天地無用','荷物などを、ひっくり返してはいけないこと。','言葉','上下を気にしなくてよいこと。','',[],3],
+ ['敷居が高い','不義理などをして、その人の家に行きにくいこと。','慣用句','高級すぎて、入りにくいこと。','',[],3],
+ ['琴線に触れる','感動や共感をよびおこすこと。','慣用句','相手を怒らせること。','',[],3],
+ ['腑に落ちない','納得がいかないこと。','慣用句','体の具合がよくないこと。','',[],3],
+ ['水をさす','うまくいっているものごとを、じゃますること。','慣用句','足りないものをおぎなって助けること。','',[],3],
+ ['やぶさかでない','よろこんでする。努力をおしまない。','慣用句','したくない。気が進まない。','',[],3],
+ ['眉をひそめる','不快に思って、顔をしかめること。','慣用句','','眉',['目','口','鼻'],3],
+ ['二の足を踏む','思い切れず、ためらうこと。','慣用句','','足',['手','腰','首'],3],
+ ['膝を打つ','急に思い当たったり、感心したりして、思わず膝をたたくこと。','慣用句','','膝',['肘','肩','腰'],3],
+ ['流れに棹さす','傾向に乗って、物事を思いどおりに進めること。','慣用句','流れに逆らって、物事のじゃまをすること。','',[],4],
+ ['世間ずれ','世間の経験を積んで、ずるがしこくなっていること。','言葉','世間の常識から外れていること。','',[],4],
+ ['憮然','失望して、ぼんやりしている様子。','言葉','腹を立てて、むっとしている様子。','',[],4],
+ ['失笑','おかしくて、思わず笑ってしまうこと。','言葉','あきれて、笑いも出ないこと。','',[],4],
+ ['押しも押されもせぬ','実力があって、堂々としていること。','慣用句','たいした力がなく、目立たないこと。','',[],4],
+ ['二の舞を演じる','前の人と同じ失敗を、くり返すこと。','慣用句','前の人と同じ成功を、くり返すこと。','',[],4],
+ ['舌先三寸','口先だけで、人をうまくまるめこむこと。','慣用句','ていねいに、心をこめて話すこと。','',[],4],
+ ['白羽の矢が立つ','多くの中から、とくに選び出されること。','慣用句','失敗の責任をおわされること。','',[],4],
+ ['取りつく島もない','たよりにするところがなく、相手にしてもらえないこと。','慣用句','すっかり人にたよりきりになること。','',[],4],
+ ['木に竹を接ぐ','不自然で、つりあいがとれていないこと。','ことわざ','','',[],4],
+ ['虎の威を借る狐','強い者の力をたよりにして、いばること。','ことわざ','','',[],4],
+ ['漁夫の利','二人があらそっているうちに、第三者が利益を横取りすること。','ことわざ','','',[],4],
 ];
 // 対義語・類義語：[言葉A, 言葉B, '対'=反対の意味 / '類'=にた意味]
 const TAIGI=[
@@ -2776,6 +3518,11 @@ const TAIGI=[
  ['永遠','永久','類'],['方法','手段','類'],['準備','用意','類'],['欠点','短所','類'],['不在','留守','類'],
  ['進歩','向上','類'],['意外','案外','類'],['手本','模範','類'],['体験','経験','類'],['有名','著名','類'],
  ['役目','任務','類'],['価格','値段','類'],['天然','自然','類'],['将来','未来','類'],['関心','興味','類'],
+ // ---- 難関・最難関（追加）----
+ ['顕在','潜在','対',3],['必然','偶然','対',3],['普遍','特殊','対',3],['絶対','相対','対',3],['緊張','弛緩','対',3],['収縮','膨張','対',3],['自律','他律','対',3],
+ ['謙虚','謙遜','類',3],['辛抱','忍耐','類',3],['熟知','精通','類',3],['至急','火急','類',3],['丁寧','懇切','類',3],
+ ['演繹','帰納','対',4],['主体','客体','対',4],['保守','革新','対',4],['具象','抽象','対',4],['栄転','左遷','対',4],['華美','質素','対',4],['拡散','収束','対',4],
+ ['懸念','憂慮','類',4],['傑出','卓越','類',4],['精励','勤勉','類',4],['寡黙','無口','類',4],['脆弱','軟弱','類',4],
 ];
 
 /* ---------- 長文読解と詩（大問） ----------
@@ -2987,6 +3734,127 @@ const PASSAGES=[
   {t:'multi',n:2,q:'この詩の内容に合うものを次から<b>二つ</b>選び、記号で答えなさい。',c:['作者は、自然を自分を育てた父のように感じ、呼びかけている。','作者は、自分の力で人生を切り開いていこうと決意している。','作者は、だれにもたよらず、自然からもはなれて生きたいと願っている。','作者は、すでに歩いた道をふり返り、後悔している。','作者は、父の言いつけに従って、決められた道を歩こうとしている。'],e:'作者は一人で歩む決意をしながらも、「目を離さないで守る事をせよ」と<b>自然（父）に見守りを願って</b>います。「自然からもはなれて」は合いません。'},
   {t:'kiji',q:'「常に父の気魄を僕に充たせよ」とあるが、作者はなぜ「自然」にこのように願っているのか。<b>七十字以内</b>で説明しなさい。',limit:70,pts:['前に道のない、遠い道のり（人生）を、自分の力で切り開いていかなければならないこと','一人で進むには、強い気力が必要なこと','自分を一人立ちさせた自然（父）に、いつも力をあたえ見守ってほしいこと'],ex:'だれも道を用意してくれない遠い人生を自分の力で切り開くには強い気力が必要なので、自分を育てた自然に、いつも力をあたえ見守ってほしいから。',e:'一・二行目（道はない＝自分で切り開く）と、最後の二行（遠い道程のため）をつなげて理由を書きます。'},
  ]},
+ // ===== 難関（追加）：より長く・抽象的な文章、設問も本文全体をふまえるもの =====
+ {id:'n-setsu2',lv:3,kind:'説明文',title:'「ふつう」という物差し',min:16,paras:[
+  '①　「ふつう」という言葉ほど、便利で、しかも、危ういものはない。「ふつうはこうする」「そんなのはふつうじゃない」。そう言われたとき、わたしたちは、自分が何かの{1|物差し}にあてられ、長さをはかられたような気持ちになる。では、その物差しは、いったいだれが、いつ、どのようにして作ったのだろうか。',
+  '②　ふつうというものは、実は、一人の人間が決めたものではない。それは、おおぜいの人が同じようにふるまううちに、いつのまにか「それが当たり前だ」という空気ができあがったものである。たとえば、初めて会った人にはおじぎをする、順番を守って列に並ぶ、といったことは、だれかに命令されたのではなく、多くの人がくり返すうちに「ふつう」となった。この意味で、ふつうは、{2|社会が長い時間をかけて育ててきた、目に見えない約束ごと}だといえる。',
+  '③　このような約束ごとは、わたしたちの暮らしを、ずいぶん楽にしてくれる。道で人とすれちがうたびに、どちらによけるかを話し合う必要はないし、初対面の相手にどう接すればよいか、毎回ゼロから考えなくてもすむ。ふつうがあるおかげで、わたしたちは、いちいち考えなくても、安心して生活できるのである。（　Ａ　）、ふつうは、社会を円滑に動かすための、ありがたい知恵でもある。',
+  '④　ところが、ふつうには、もう一つの顔がある。ふつうが「当たり前」になればなるほど、わたしたちは、それを疑わなくなる。そして、ふつうからはずれたものを見たとき、「おかしい」「まちがっている」と感じてしまう。しかし、よく考えてみれば、ふつうは、あくまで「その時代、その場所で、多くの人がそうしている」というだけのことで、{3|正しさの証明にはならない}。昔は「ふつう」だったことが、今では許されなくなったという例は、いくらでもある。',
+  '⑤　では、ふつうなど、なくしてしまえばよいのだろうか。そうではない。ふつうがなければ、わたしたちは、毎日、あらゆる場面で迷い、ぶつかり合うことになるだろう。大切なのは、ふつうを{4|捨てること}ではなく、ふつうを「物差し」として持ちながらも、その物差しが、いつも正しく、すべてを測れるわけではないと知っておくことである。',
+  '⑥　ものの長さをはかる物差しが、重さをはかることには使えないように、ふつうという物差しにも、測れるものと測れないものがある。目の前にいる人が、自分の「ふつう」とちがっていたとき、すぐに「ちがう」と決めつけず、「この人は、どんな物差しで世界を見ているのだろう」と考えてみること。{5|そこから、ほんとうの理解は始まる}のではないだろうか。',
+ ],qs:[
+  {t:'choice',q:'空らん（　Ａ　）に入る言葉として、最も適切なものを次から選び、記号で答えなさい。',c:['つまり','しかし','ところで','たとえば'],e:'直前の「ふつうがあるおかげで…安心して生活できる」という内容を、<b>言いかえてまとめて</b>います（「ふつうは、社会を円滑に動かすための…知恵でもある」）。まとめ・言いかえの働きをする「つまり」が入ります。「しかし」（逆接）や「たとえば」（例示）では、つながりません。'},
+  {t:'choice',q:'傍線部①「物差し」は、ここでは何をたとえているか。最も適切なものを次から選び、記号で答えなさい。',c:['何かを「ふつうかどうか」で判断するときの、人々の基準。','学校や家庭で、長さをはかるために使う道具。','人によってちがう、物事を考える力の大きさ。','社会の決まりを細かく書いた、法律の条文。'],e:'「そう言われたとき、わたしたちは、自分が何かの物差しにあてられ、長さをはかられたような気持ちになる」とあるように、「物差し」は、人や物事を<b>「ふつうかどうか」ではかる基準</b>のことです。⑤⑥段落でも「ふつうを『物差し』として持ちながら」と、同じ意味で使われています。'},
+  {t:'choice',q:'傍線部②について、筆者が「ふつう」を「目に見えない約束ごと」だと考える理由として、最も適切なものを次から選び、記号で答えなさい。',c:['だれかが命令して決めたのではなく、おおぜいの人が同じようにふるまううちに、いつのまにかできあがったものだから。','法律や規則として、文字に書いて定められているものだから。','どの時代、どの場所でも変わらずに、同じ形で受けつがれているものだから。','社会の中で力をもつ人が、自分たちに都合のよいように決めたものだから。'],e:'②段落の前半に、ふつうは「一人の人間が決めたものではない」「おおぜいの人が同じようにふるまううちに、いつのまにか…空気ができあがったもの」とあります。<b>だれかの命令ではなく、くり返しの中で自然にできた</b>ので、「目に見えない」約束ごとと言えるのです。'},
+  {t:'multi',n:2,q:'③段落で、筆者が「ふつう」があることのよい点として述べているものを、次から<b>二つ</b>選び、記号で答えなさい。',c:['すれちがうたびに、どちらによけるかを話し合わなくてすむ。','初対面の相手にどう接するか、毎回ゼロから考えなくてすむ。','自分とちがう考え方の人の気持ちが、くわしくわかる。','昔からのやり方を、いつまでも正しいまま守れる。','時代がかわっても、まちがいをおかさなくなる。'],e:'③段落に、「どちらによけるかを話し合う必要はない」「初対面の相手にどう接すればよいか、毎回ゼロから考えなくてもすむ」と書かれています。ほかの選択肢は、本文に書かれていないか、④段落の内容（ふつうは正しさの証明にならない）と<b>合いません</b>。'},
+  {t:'choice',q:'傍線部③とあるが、なぜ「ふつう」は「正しさの証明にはならない」のか。最も適切なものを次から選び、記号で答えなさい。',c:['ふつうは、その時代、その場所で、多くの人がそうしているというだけのことで、時代や場所がかわれば、ふつうもかわるから。','ふつうは、おおぜいの人が決めたことなので、少数の意見をまったく取り入れていないから。','ふつうは、人によってまったくちがうので、全員が守ることはできないから。','ふつうは、法律で決められているわけではなく、守らなくてもよいものだから。'],e:'④段落に「ふつうは、あくまで『その時代、その場所で、多くの人がそうしている』というだけのこと」「昔は『ふつう』だったことが、今では許されなくなったという例は、いくらでもある」とあります。<b>時代や場所によってかわるもの</b>なので、正しさの証明にはならないのです。'},
+  {t:'nuki',q:'⑥段落で、筆者は、自分の「ふつう」とちがう人に出会ったとき、どう考えてみることをすすめているか。その内容にあたる部分を、「　」の中から<b>二十三字</b>でぬき出しなさい（句読点も一字に数えます）。',a:['この人は、どんな物差しで世界を見ているのだろう'],e:'⑥段落の「「この人は、どんな物差しで世界を見ているのだろう」と考えてみること。」の「　」の中が答えです。「、」も一字に数えて、二十三字になります。'},
+  {t:'kiji',q:'傍線部④とあるが、筆者は「ふつう」をどのようなものとして持っておくべきだと考えているか。「物差し」という言葉を使って、<b>八十字以内</b>で説明しなさい。',limit:80,must:'物差し',pts:['ふつうは、暮らしを楽にする、大切な基準（物差し）であること','その物差しは、いつも正しく、すべてを測れるわけではないこと','それを知ったうえで、ふつうを使うべきだということ'],ex:'ふつうは暮らしを支える大切な物差しだが、いつも正しく、すべてを測れるわけではないと知ったうえで、使いこなしていくべきものだと考えている。',e:'⑤段落の「ふつうを『物差し』として持ちながらも、その物差しが、いつも正しく、すべてを測れるわけではないと知っておくこと」が答えの中心です。③段落の「暮らしを楽にする」というよい点も、ふまえるとさらによい答えになります。'},
+  {t:'choice',q:'この文章の組み立てとして、最も適切なものを次から選び、記号で答えなさい。',c:['問いを立てたあと、ふつうの成り立ちと、よい点・問題点の両方を述べ、最後にふつうとのつきあい方を提案している。','ふつうの問題点だけを、いくつもの例をあげて述べ、最後にふつうをなくすべきだと主張している。','自分の体験を最初に述べたあと、ふつうの歴史を時代順に説明し、最後に結論を述べている。','ふつうに反対する意見と賛成する意見を対立させ、最後にどちらが正しいかを決めている。'],e:'①で問いを立て、②でふつうの成り立ち、③でよい点、④でもう一つの顔（問題点）、⑤⑥でつきあい方、という流れです。「<b>よい点と問題点の両方</b>」を述べ、「<b>つきあい方</b>」を提案している点に注目しましょう。'},
+  {t:'kiji',q:'傍線部⑤とあるが、「ほんとうの理解は始まる」とはどういうことか。「決めつけ」「物差し」の二つの言葉を使って、<b>百字以内</b>で説明しなさい。',limit:100,must:['決めつけ','物差し'],pts:['自分の「ふつう」とちがう相手に出会ったとき、すぐに「ちがう」と決めつけないこと','相手が、自分とはちがう物差しで世界を見ているのだと考えてみること','それが、相手を理解することの出発点になるということ'],ex:'自分のふつうとちがう相手に出会ったとき、すぐにちがうと決めつけず、相手が自分とは別の物差しで世界を見ているのだと考えてみることが、相手を理解する出発点になるということ。',e:'⑥段落の内容をまとめます。「決めつけず」「どんな物差しで世界を見ているのだろう」と考える姿勢が、「ほんとうの理解」の<b>始まり（出発点）</b>になる、と書きましょう。文末は「〜ということ。」。'},
+ ]},
+ {id:'n-mono2',lv:3,kind:'物語文',title:'最後の一杯',min:16,paras:[
+  'その日、喫茶「ひだまり」は、朝から、いつもより客が多かった。',
+  '閉店の貼り紙を見て、昔なじみがつぎつぎにやってくるのだ。理央は、母とならんでカウンターの中に立ち、せわしなくコップをならべていた。',
+  '「理央、お冷やは、お客さんが席についてから出すのよ」',
+  '母の声は小さかったが、きびしかった。理央は「はい」と答えながら、{1|口の中で小さく舌打ちをした}。今朝から、同じことを三度も注意されている。',
+  'カウンターのいちばん奥では、祖父が、いつものように、だまってコーヒー豆をひいていた。ごりごり、ごりごり。その音は、店のざわめきの中でも、ふしぎとはっきり聞こえた。祖父は理央のほうを一度も見ない。それなのに、理央がお盆を落としそうになったとき、その大きな手が、さっとのびて、お盆をおさえた。',
+  '「あ、ありがとう」',
+  '祖父は返事のかわりに、{2|ひとつ、ゆっくりうなずいただけだった}。',
+  '昼すぎ、客足がとだえた。理央は、窓ぎわの席にすわり、ぼんやりと外を見た。夏の光が、通りの向こうの桜の葉を、白くかがやかせている。',
+  '（おじいちゃんは、さびしくないのかな）',
+  'そう思ったとき、うしろから母の声がした。',
+  '「おじいちゃんね、五年前から、店をたたもうかって言ってたのよ。手がふるえるようになって、豆をひく音が変わったらいやだって」',
+  '理央は、おどろいてふり向いた。祖父の手は、たしかに、すこしだけふるえている。それなのに、豆をひく音は、少しも変わらずに聞こえた。',
+  '「でも、やめられなかったの。待ってくれているお客さんがいるからって。……でもね」',
+  '母は、いったん言葉を切って、{3|カウンターの祖父のほうを見た}。',
+  '「おじいちゃん、今朝、はじめて『やっと休める』って、笑ったの」',
+  '理央は、息をのんだ。「やっと」という言葉の、軽さと重さが、胸の中で、ゆっくりとまざり合った。',
+  '夕方、最後の客を見送ったあと、祖父は、とつぜん理央をよんだ。',
+  '「理央。いちばん最後の一杯は、おまえがいれなさい」',
+  '「えっ、でも、ぼく、まだ……」',
+  '「おれのひき方を、ずっと見ていただろう」',
+  '理央は、はっとした。見ていないふりをして、実は、豆をひく手の動きも、湯をそそぐときの細い糸のような流れも、ずっと目でおっていたのだ。',
+  '理央が、ふるえる手で、湯をそそぐ。祖父は、{4|腕を組んで、窓の外を向いたまま}、動かなかった。立ちのぼる湯気が、夕日にそまって、うす金色にゆれた。',
+  'できあがった一杯を、祖父は、ゆっくりと口にはこんだ。長い、長い間があった。',
+  '「……苦いな」',
+  '理央の肩が、ぴくりと動いた。けれど、祖父は、カップを置くと、はじめて、まっすぐに理央の目を見て、言った。',
+  '「うちの店の味だ」',
+  '{5|窓の外の桜の葉が、風にひるがえって、一枚だけ、ふわりと店の中に入ってきた。}',
+ ],qs:[
+  {t:'choice',q:'傍線部①から、理央のどのような気持ちが読み取れるか。最も適切なものを次から選び、記号で答えなさい。',c:['うまくできない自分へのいらだちと、同じことをくり返し注意されることへの不満が、入りまじった気持ち。','母の注意をきびしすぎると感じ、母に対して強い怒りをいだいている気持ち。','店の仕事がつまらなく、早く終わって家に帰りたいと思っている気持ち。','祖父が自分にだけ冷たいことに、ふてくされている気持ち。'],e:'「今朝から、同じことを三度も注意されている」とあります。母への強い怒りというより、<b>うまくできない自分へのいらだち</b>と、<b>くり返し注意される不満</b>が入りまじった、小さな舌打ちです。'},
+  {t:'choice',q:'傍線部②から読み取れる祖父の様子として、最も適切なものを次から選び、記号で答えなさい。',c:['言葉にはしないが、理央を気づかい、その気持ちをしずかに受け止めている様子。','理央の失敗にあきれ、それ以上は話したくないと思っている様子。','感謝されたことがてれくさく、わざと冷たくしている様子。','仕事に集中しているので、理央の言葉が耳に入っていない様子。'],e:'理央がお盆を落としそうになったとき、祖父は<b>だまって手をのばして</b>助けています。礼を言われても多くは語らず、うなずくだけ。<b>言葉にしない思いやり</b>と、理央の気持ちを受け止める静けさが読み取れます。'},
+  {t:'choice',q:'「豆をひく音は、少しも変わらずに聞こえた」とあるが、この表現から読み取れる祖父の姿として、最も適切なものを次から選び、記号で答えなさい。',c:['手がふるえるようになっても、店と客のためにつとめ続けてきた、職人としての責任感と誇り。','手のふるえを人に気づかれないように、必死にかくそうとしてきた、強がりな性格。','年をとって、店をたたむ決心がつかないまま、ただ日々を過ごしてきた、優柔不断な様子。','客の注文を聞いても、豆をひくことしか考えていない、がんこな様子。'],e:'母の話では、祖父は五年前から手がふるえ、「豆をひく音が変わったらいや」と思いながらも、店をやめられませんでした。それでも<b>音が変わらない</b>のは、客のために腕を保ち続けてきたからで、<b>職人としての責任感と誇り</b>が表れています。'},
+  {t:'choice',q:'傍線部③のときの母の気持ちとして、最も適切なものを次から選び、記号で答えなさい。',c:['祖父の長い苦労とこれまでの思いを思いやり、それを理央に伝える言葉を、慎重に選んでいる気持ち。','祖父が理央の話を聞いていないか心配で、話をやめようかとためらっている気持ち。','店をたたむことに反対で、祖父をうらむ気持ちがわいてきている気持ち。','祖父に早く休んでほしいと思い、早く客を帰そうとあせっている気持ち。'],e:'母は「でも、やめられなかったの」と祖父の苦労を語ったあと、言葉を切り、祖父のほうを見て、「今朝、はじめて『やっと休める』って、笑ったの」と続けます。<b>祖父の思いを大切に思い、言葉を選んでいる</b>様子です。'},
+  {t:'nuki',q:'理央が「やっと休める」という祖父の言葉を、複雑な思いで受け止めたことがわかる一文を探し、その<b>初めの五字</b>をぬき出しなさい（かぎ括弧も一字に数えます）。',a:['「やっと」'],e:'「<b>「やっと」</b>という言葉の、軽さと重さが、胸の中で、ゆっくりとまざり合った。」の一文です。かぎ括弧「　」も一字に数えるので、「やっと」で五字になります。'},
+  {t:'choice',q:'傍線部④の祖父の様子から読み取れる気持ちとして、最も適切なものを次から選び、記号で答えなさい。',c:['理央の手元を見たら口を出したくなってしまうので、それをこらえて、理央にすべてをまかせようとする気持ち。','理央のいれ方に不満があり、見るのもいやだと思っている気持ち。','店を閉めることがさびしくて、理央のほうを見ることができない気持ち。','理央がしくじるのを予想して、あきれて待っている気持ち。'],e:'祖父は、「おれのひき方を、ずっと見ていただろう」と理央にいれさせました。<b>腕を組んで、見ないまま動かない</b>のは、手を出さずに、<b>理央を信じてまかせる</b>という祖父の覚悟の表れです。'},
+  {t:'choice',q:'「……苦いな」「うちの店の味だ」という祖父の言葉の意味として、最も適切なものを次から選び、記号で答えなさい。',c:['理央のいれた一杯が、まだ未熟ではあるが、店の味を受けついだものとして認められたということ。','理央のいれたコーヒーがひどい味で、店の味とはまったくちがうということ。','祖父がいれた味と、まったく同じできばえで、何も言うことがないということ。','苦い味が、店の味として客にきらわれていたということ。'],e:'「苦いな」は、まだ理央の未熟さをしめしています。でも、そのあとの「うちの店の味だ」は、<b>店の味をつぐ者として理央を認めた</b>言葉です。完全にほめるのではなく、短い言葉に、深い思いがこめられています。'},
+  {t:'choice',q:'傍線部⑤の描写の説明として、最も適切なものを次から選び、記号で答えなさい。',c:['店の終わりと、そこから始まる理央の新しい一歩を、静かに重ねて感じさせる効果がある。','店が閉まることで、これから先に不吉なことが起こる前ぶれを表している。','にぎやかだった一日の終わりに、急にさびしさが強まった様子を直接説明している。','祖父と理央の気持ちが、最後までずれたままであることを表している。'],e:'「桜の葉が、風にひるがえって、店の中に入ってきた」という<b>情景描写</b>は、人物の気持ちを直接書かずに、場面の余韻を伝えます。閉店という<b>終わり</b>と、理央がつぐという<b>始まり</b>の両方を、静かに感じさせます。'},
+  {t:'kiji',q:'祖父が理央に、「いちばん最後の一杯」をいれさせたのはなぜか。理央が「見ていた」ことにふれて、<b>百字以内</b>で説明しなさい。',limit:100,must:'見て',pts:['手がふるえて店を閉じる祖父が、これから先をだれかに託したいと思ったこと','理央が、祖父のひき方をずっと見ていたことに、祖父が気づいていたこと','店の味と思いを、理央に引きついでほしいと考えたこと'],ex:'手がふるえて店を閉じる祖父が、理央が自分のひき方をずっと見ていたことに気づき、店の味と思いを理央に託して、これからを任せたいと考えたから。',e:'「おれのひき方を、ずっと見ていただろう」という祖父の言葉が手がかりです。祖父は理央を<b>よく見ていて</b>、店が終わる日に、<b>店の味と思いを理央に託した</b>のです。理由を聞かれたので、文末は「〜から。」で終えます。'},
+ ]},
+ // ===== 最難関（追加）：さらに長く・抽象的な文章。記述は百二十字まで =====
+ {id:'s4-setsu2',lv:4,kind:'説明文',title:'記録と記憶のあいだ',min:20,paras:[
+  '①　旅先で美しい景色に出会うと、わたしたちはまず、カメラを取り出す。この光景を忘れないように、と。ところが、近年の心理学の研究は、{1|思いがけない事実}を示している。写真を撮った人は、撮らなかった人にくらべて、そのとき見たものの細部を、かえってよく覚えていないというのである。',
+  '②　なぜ、こんなことが起こるのだろうか。その理由は、わたしたちの記憶のしくみにあると考えられている。人間の脳は、目の前の出来事を、すべてそのまま保存しているわけではない。見たものに注意を向け、それを自分にとっての意味と結びつけたときに、はじめて、記憶として定着しやすくなる。ところが、写真を撮るという行為は、{2|「覚えておく」という仕事を、カメラに引き受けさせてしまう}。いつでも見返せるという安心感が、目の前の光景に向ける注意を、ゆるめてしまうのである。',
+  '③　このことは、「記録」と「記憶」とが、別のものであることを教えてくれる。記録とは、出来事を、外側に、変わらない形で残しておくことだ。写真や日記や録音が、その代表である。それにたいして記憶とは、出来事を、自分の内側で、意味づけながら保つことである。記録は、何年たっても同じ姿を保つが、記憶は、思い出すたびに少しずつ形を変える。{3|正確さという点では、記憶は記録にかなわない}。',
+  '④　では、記憶には価値がないのだろうか。むしろ逆である。記録が「何が起こったか」を伝えるのにたいして、記憶は「それが自分にとって何であったか」を伝える。同じ夕焼けの写真を見ても、ある人は、亡き祖父と歩いた帰り道を思い出し、ある人は、何も思い出さない。写真という記録は同じでも、そこにつながる記憶は、一人一人ちがう。記憶とは、出来事そのものではなく、出来事と自分とをつなぐ{4|糸}なのである。',
+  '⑤　もちろん、記録をとること自体が悪いと言いたいのではない。記録は、記憶があいまいになったとき、それを確かめるための、たいせつな足場になる。（　Ａ　）、記録をとることにとらわれすぎると、わたしたちは、肝心の「経験する」ことを、{5|あとまわしにしてしまう}。写真に残すために景色を見るのではなく、景色を見るために写真を撮る。この順序をまちがえないことが、記録と上手につきあう秘訣だろう。',
+  '⑥　情報があふれ、何でも手軽に記録できる現代は、「忘れる」ことへの不安が強い時代でもある。しかし、忘れることは、必ずしも、失うことではない。細かな事実が消えても、その経験が自分に残した感じ方や考え方は、{6|形をかえて、心の中に生き続ける}。わたしたちは、記録することと、記憶することの、ちょうどよい距離を、見つけなければならない。',
+ ],qs:[
+  {t:'choice',q:'空らん（　Ａ　）に入る言葉として、最も適切なものを次から選び、記号で答えなさい。',c:['だが','だから','たとえば','なぜなら'],e:'前の文は「記録は…たいせつな足場になる」という<b>よい点</b>、後ろは「記録にとらわれすぎると…あとまわしにしてしまう」という<b>よくない点</b>。前後が反対の内容なので、逆接の「だが」が入ります。'},
+  {t:'choice',q:'傍線部①「思いがけない事実」の内容として、最も適切なものを次から選び、記号で答えなさい。',c:['写真を撮ると、見たものの細部を、かえってよく覚えていない人が多いということ。','写真を撮った人は、そのときの感動を、いつまでも忘れないということ。','写真を撮らなかった人は、見たものをほとんど覚えていないということ。','写真の枚数が多いほど、細部がよく記憶に残るということ。'],e:'直後に「写真を撮った人は、撮らなかった人にくらべて、…細部を、かえってよく覚えていない」とあります。「忘れないために撮る」という<b>ふつうの考えとは反対</b>なので、「思いがけない」のです。'},
+  {t:'choice',q:'傍線部②とあるが、なぜ写真を撮ると、見たものを覚えにくくなるのか。最も適切なものを次から選び、記号で答えなさい。',c:['いつでも見返せるという安心感から、目の前の光景に向ける注意がゆるんで、意味と結びつけて覚えようとしなくなるから。','カメラを操作することに気をとられ、景色を見る時間が短くなってしまうから。','写真に写った光景のほうが、実際の景色より印象が強くなってしまうから。','撮った写真の数が多すぎて、どれが大切か選べなくなってしまうから。'],e:'②段落の最後に「いつでも見返せるという安心感が、目の前の光景に向ける注意を、ゆるめてしまう」とあります。記憶は、<b>注意を向け、自分にとっての意味と結びつけたとき</b>に定着しやすい、という前の説明とつなげて考えます。'},
+  {t:'choice',q:'傍線部③の意味として、最も適切なものを次から選び、記号で答えなさい。',c:['記憶は、思い出すたびに形がかわるので、出来事をそのまま変わらずに残すことはできないということ。','記憶は、時間がたつと必ず消えてしまうので、役に立たないということ。','記録は、人の思いこみが入るので、記憶よりまちがいが多いということ。','記憶は、感情にかたよるので、すべてまちがっているということ。'],e:'③段落に「記録は、何年たっても同じ姿を保つが、記憶は、思い出すたびに少しずつ形を変える」とあります。出来事をそのまま<b>変わらずに残す正確さ</b>では、記録のほうがすぐれているということです。「役に立たない」とまでは言っていません。'},
+  {t:'multi',n:2,q:'本文の内容に合うものを、次から<b>二つ</b>選び、記号で答えなさい。',c:['記憶は、出来事と自分とをつなぐもので、人によって思い出すことがちがう。','記録は、記憶があいまいになったときに、それを確かめる足場になる。','写真を撮れば、必ず、見たものの細部をよく覚えていられる。','忘れることは、その経験を完全に失うことである。','記録をとること自体が、人の記憶をそこなう悪いことだ。'],e:'④段落の「記憶とは…出来事と自分とをつなぐ糸」「ある人は…思い出し、ある人は、何も思い出さない」と、⑤段落の「記録は…たいせつな足場になる」が正解です。ほかは、本文と<b>反対のこと</b>（①②段落、⑥段落）か、<b>言いすぎ</b>（「悪いこと」）です。'},
+  {t:'nuki',q:'傍線部④「糸」とあるが、何と何をつなぐ糸か。本文から<b>六字</b>でぬき出しなさい。',a:['出来事と自分'],e:'「記憶とは、出来事そのものではなく、<b>出来事と自分</b>とをつなぐ糸なのである」とあります。'},
+  {t:'choice',q:'傍線部⑤とあるが、筆者は、記録と上手につきあうために、どうすればよいと述べているか。最も適切なものを次から選び、記号で答えなさい。',c:['記録をとるために経験するのではなく、経験するために必要な記録をとるという順序を、まちがえないこと。','記録をとるのをやめて、すべてを記憶にたよること。','できるだけ多く記録して、あとから整理して選ぶこと。','記録は人に見せるためにだけとり、自分では見返さないこと。'],e:'⑤段落の最後に、「写真に残すために景色を見るのではなく、景色を見るために写真を撮る。この順序をまちがえないこと」とあります。<b>経験が先、記録があと</b>ということです。'},
+  {t:'choice',q:'この文章の組み立てとして、最も適切なものを次から選び、記号で答えなさい。',c:['はじめに身近な例をあげ、その理由を説明したあと、「記録」と「記憶」のちがいを整理し、最後に、記録とのつきあい方をまとめている。','はじめに筆者の主張を述べ、そのあと、反対の意見に反論する形で話を進めている。','はじめに「記録」と「記憶」の定義を述べ、そのあと、年代順に歴史を説明している。','はじめに結論を述べ、そのあとは、同じ内容を何度もくり返している。'],e:'①で身近な例（旅先の写真）、②でその理由、③で「記録」と「記憶」のちがい、④で記憶の価値、⑤⑥でつきあい方、という組み立てです。'},
+  {t:'kiji',q:'筆者は、「記録」と「記憶」をそれぞれどのようなものととらえ、両者とどのようにつきあうべきだと考えているか。「記録」「記憶」の二つの言葉を使って、<b>百二十字以内</b>で説明しなさい。',limit:120,must:['記録','記憶'],pts:['記録は、出来事を外側に、変わらない形で残すものであること','記憶は、出来事を自分の内側で意味づけて保つものであること','記録にとらわれず、経験することを先にしつつ、記録を記憶を確かめる足場として使うべきこと'],ex:'記録は出来事を外側に変わらず残すもの、記憶は出来事を自分の内側で意味づけて保つものととらえ、記録にとらわれず経験することを優先しながら、記録を記憶を確かめる足場として使うべきだと考えている。',e:'③段落（記録と記憶のちがい）と、⑤段落（つきあい方）をつなげます。「記録は〜、記憶は〜」と<b>二つを対比して</b>書き、そのあとに、筆者の考える<b>つきあい方</b>（経験が先・記録は足場）を加えます。'},
+  {t:'kiji',q:'傍線部⑥とあるが、「形をかえて、心の中に生き続ける」とはどういうことか。「感じ方」という言葉を使って、<b>八十字以内</b>で説明しなさい。',limit:80,must:'感じ方',pts:['細かな事実は忘れても、その経験から生まれた感じ方や考え方は、自分の中に残ること','それが、これから先も、自分のものの見方に影響をあたえ続けること'],ex:'細かな事実を忘れても、その経験によって生まれた感じ方や考え方は、自分の中に残り、これから先も自分を支え続けるということ。',e:'⑥段落の「細かな事実が消えても、その経験が自分に残した感じ方や考え方は」が手がかりです。事実（外側）は消えても、<b>感じ方・考え方（内側）は残る</b>、という対比で説明します。'},
+ ]},
+ {id:'s4-mono2',lv:4,kind:'物語文',title:'雪の朝の水筒',min:20,paras:[
+  '雪は、夜のうちに降りやんで、朝の町は、音を忘れたように静かだった。',
+  '俊は、玄関の前で、兄の蒼が靴のひもを結ぶのを、だまって見ていた。蒼は中学三年生で、今日が第一志望の入試の日だ。{1|ひもを結ぶ指が、いつもより時間をかけている}ように見えたのは、気のせいだろうか。',
+  '「見送りなんて、いらないって言っただろ」',
+  '蒼は顔を上げず、{2|ぶっきらぼうに}言った。',
+  '「駅まで、荷物を持ってあげるだけ。お母さんに頼まれたんだ」',
+  '{3|それは、半分は本当で、半分は嘘だった。}母に頼まれたのは本当だが、頼まれる前から、俊は、ついていくつもりだったのだ。',
+  '台所から出てきた母が、保温の水筒と、小さな包みを蒼にわたした。',
+  '「お弁当。休み時間に食べなさい」',
+  '「わかってる」',
+  '母は、それ以上、何も言わなかった。「がんばって」も「落ち着いて」も。ただ、蒼のマフラーの端を、すっと直しただけだった。その手が、一瞬、{4|蒼の肩の上で止まった}。',
+  '雪の道は、思ったより歩きにくかった。ふたりのくつが、ぎゅっ、ぎゅっと、同じ速さで雪をふむ。駅までの十分間、蒼は、一度も口をひらかなかった。俊も、何を言えばいいのか分からず、ただ、兄のうしろを、すこしだけ遅れて歩いた。',
+  '駅の改札の前で、蒼が、とつぜん立ち止まった。',
+  '「……電車、止まってるって」',
+  '掲示板には、「雪のため、運転見合わせ」の文字が赤く光っていた。蒼の顔から、さっと血の気が引くのが、俊にもわかった。',
+  '「どうしよう。間に合わないかもしれない」',
+  'その声は、ふだんの兄の声とは、まるでちがっていた。いつも強気で、俊をからかってばかりの兄が、こんなに小さく見えたのは、初めてだった。',
+  'そのとき、俊は、ポケットの中に、いつのまにか入っていた、紙のことを思い出した。出がけに、母が、俊の手に、そっとにぎらせたものだ。『もし蒼がこまったら、これを見せて』という、短い言葉をそえて。',
+  '俊は、折りたたまれた紙をひらいた。そこには、母の字で、バス停の名前と、時刻が、びっしり書かれていた。',
+  '「お兄ちゃん、バスなら動いてるかも。お母さん、ここまで調べてあったんだ」',
+  '蒼は、紙をのぞきこんだ。そして、しばらくのあいだ、その字をじっと見つめていた。',
+  '「……母さん、あんなに、何も言わなかったのに」',
+  'その声は、さっきとはちがう、すこしふるえた声だった。',
+  '「言わなかったんじゃないよ」俊は、{5|自分でも思いがけない言葉}を口にしていた。「言えなかったんだと思う。言ったら、お兄ちゃんが、もっと、こわくなるから」',
+  '蒼は、はっとして、俊の顔を見た。それから、ふいに、ふっと息をはいて、小さく笑った。',
+  '「おまえ、いつのまに、そんなこと言うようになったんだ」',
+  'バス停へ向かって、ふたりは走り出した。さっきまで重かった荷物が、{6|ふしぎなほど、軽く感じられた}。',
+  '走りながら、俊は、ふと思った。兄は、これから一人で、試験に立ち向かう。そこへは、だれもついていけない。けれど、母の字と、あの水筒のぬくもりは、きっと兄といっしょに、教室まで行くのだ、と。',
+  'バスの扉が閉まる直前、蒼は、ステップの上から、ふり返った。',
+  '「俊。ありがとな」',
+  'それだけ言うと、蒼は、まっすぐ前を向いた。雪の白さの中で、そのうしろすがたは、来たときよりも、すこしだけ、大きく見えた。',
+ ],qs:[
+  {t:'choice',q:'傍線部①から読み取れる蒼の様子として、最も適切なものを次から選び、記号で答えなさい。',c:['入試への緊張や不安のために、ふだんどおりの動きができなくなっている様子。','寒さで指がかじかみ、ひもがうまく結べない様子。','弟にじろじろ見られて、いらだっている様子。','入試当日なので、ていねいに準備しようと落ち着いている様子。'],e:'「ひもを結ぶ指が、いつもより時間をかけている」は、蒼の<b>緊張や不安</b>を、動作の細かい描写で表しています。このあとの「ぶっきらぼうに」や、駅での青ざめた顔ともつながります。物語では、人物の気持ちが<b>しぐさ</b>に表れることがよくあります。'},
+  {t:'choice',q:'傍線部②のように言った蒼の気持ちとして、最も適切なものを次から選び、記号で答えなさい。',c:['不安をさとられたくなくて、わざと強がり、そっけなくしている気持ち。','弟が自分のじゃまをしようとしているので、腹を立てている気持ち。','見送りに来られると、母の心配が強まるので、やめてほしいと思う気持ち。','入試のことより、早く弟と別れたいと思っている気持ち。'],e:'指のようすに表れた不安をかくすように、「ぶっきらぼうに」言っています。<b>強がり</b>です。「ぶっきらぼう」は、言葉や態度が、そっけなくあいそがないことです。'},
+  {t:'choice',q:'傍線部③とあるが、このときの俊の気持ちとして、最も適切なものを次から選び、記号で答えなさい。',c:['母に頼まれたからだけでなく、兄が心配で、自分から付き添いたいと思っているが、それを素直に言えない気持ち。','兄の入試には興味がないが、母の手前、しかたなくついていこうとする気持ち。','兄にきらわれているので、うそをついてまでついていこうとする気持ち。','母に頼まれたことが重荷で、うそをつきたくなる気持ち。'],e:'母に頼まれたのは本当ですが、「頼まれる前から、俊は、ついていくつもりだった」とあります。兄を心配する気持ちを、<b>素直に言えず</b>、母のせいにして話したのです。'},
+  {t:'choice',q:'傍線部④の母の様子から読み取れる気持ちとして、最も適切なものを次から選び、記号で答えなさい。',c:['送り出す不安や、はげましたい思いが胸にあふれ、言葉のかわりに、手をそえて気持ちを伝えようとしている。','蒼のマフラーがきちんと結べていなくて、いらだっている。','蒼がきちんと準備できているか、まだ疑っている。','蒼がいなくなることを、さびしく思っている。'],e:'「がんばって」も「落ち着いて」も言わず、ただマフラーを直す。その手が<b>肩の上で止まった</b>のは、言いたいことが胸にあふれながら、<b>言葉にすれば蒼の不安を強めてしまう</b>と思って、こらえたためでしょう。'},
+  {t:'choice',q:'傍線部⑤とあるが、俊の言葉は、どのようなことを表しているか。最も適切なものを次から選び、記号で答えなさい。',c:['母が何も言わなかった理由を、兄を思いやる母の気持ちとして、自分なりに受け止めて言葉にしたということ。','兄をなぐさめようと、とっさに口から出まかせを言ったということ。','母の本当の気持ちを知らないまま、思いつきで話したということ。','母を悪く言う兄に、腹を立てて言い返したということ。'],e:'俊は、母の字が書かれた紙を見て、母の沈黙の意味に気づきます。「言えなかったんだと思う。言ったら、お兄ちゃんが、もっと、こわくなるから」は、<b>母の心を深く受け止めたからこそ</b>出た、自分でも思いがけない言葉です。'},
+  {t:'choice',q:'傍線部⑥とあるが、荷物が「ふしぎなほど、軽く感じられた」のはなぜか。最も適切なものを次から選び、記号で答えなさい。',c:['母の思いや、兄との気持ちのつながりを感じ、俊の心が軽くなったことが、荷物の重さの感じ方にも表れているから。','走ったことで、荷物の中身が少しずつ減ったから。','兄が荷物を持ってくれたので、実際に軽くなったから。','入試がもうすぐ終わると思い、気持ちが明るくなったから。'],e:'荷物の重さは変わっていません。ここでは、<b>俊の心の変化</b>が、物の重さの感じ方に重ねて書かれています。母の思いを知り、兄と気持ちが通じたので、心が軽くなったのです。'},
+  {t:'nuki',q:'蒼の緊張がほぐれたことを表す動作を、本文から<b>十五字</b>でぬき出しなさい（句読点も一字に数えます）。',a:['ふっと息をはいて、小さく笑った'],e:'「蒼は、はっとして、俊の顔を見た。それから、ふいに、<b>ふっと息をはいて、小さく笑った</b>。」の部分です。「、」も一字に数えて十五字になります。'},
+  {t:'choice',q:'この物語の冒頭の「音を忘れたように静かだった」と、結びの「雪の白さの中で、そのうしろすがたは、来たときよりも、すこしだけ、大きく見えた」の関係として、最も適切なものを次から選び、記号で答えなさい。',c:['冒頭は、張りつめた緊張を思わせる静けさ、結びは、同じ雪景色の中に、蒼の成長と希望を感じさせるものになっている。','冒頭も結びも、雪の冷たさを強調し、暗い未来を暗示している。','冒頭は雪の美しさだけを、結びは雪のけわしさだけを描いている。','冒頭と結びの雪景色は、物語の内容とは関係がない。'],e:'物語では、<b>情景</b>が人物の心を映します。冒頭の静けさは、入試の朝の張りつめた気持ちと重なり、結びの「雪の白さの中」の「大きく見える」うしろすがたは、<b>気持ちが前向きにかわった</b>ことを感じさせます。'},
+  {t:'multi',n:2,q:'本文の内容に合うものを、次から<b>二つ</b>選び、記号で答えなさい。',c:['母は、言葉ではなく、水筒・紙・マフラーなどの行動で、蒼への思いを伝えようとしている。','俊は、母の思いを兄に伝えることで、兄の不安をやわらげる役割をはたしている。','蒼は、入試の朝、一度も弱い気持ちを見せなかった。','俊は、最初から、母の紙を蒼に見せるつもりでいた。','蒼は、最後まで、母の気持ちに気づかなかった。'],e:'母は「がんばって」とは言わず、水筒・紙・マフラーで思いを伝えました。俊は、母の思いを言葉にして、兄の不安をやわらげました。蒼は駅で不安を見せ、最後は母の字を見て気持ちが動いています。ほかの選択肢は、本文と<b>合いません</b>。'},
+  {t:'kiji',q:'最後の一文に「そのうしろすがたは、来たときよりも、すこしだけ、大きく見えた」とあるが、蒼のうしろすがたがそのように見えたのはなぜか。蒼の心の変化にふれて、「紙」という言葉を使って、<b>百字以内</b>で説明しなさい。',limit:100,must:'紙',pts:['入試への不安で、こわばっていたこと','母の紙や俊の言葉から、母の思いと弟の支えに気づいたこと','不安がやわらぎ、一人で試験に立ち向かう気持ちを取りもどしたこと'],ex:'入試前の不安でこわばっていた蒼が、母の紙と俊の言葉から、母の思いと弟の支えに気づき、一人で試験に立ち向かう勇気を取りもどしたから。',e:'「来たときよりも」という言葉から、蒼の<b>心の変化</b>を書きます。<b>前の気持ち</b>（不安）→<b>きっかけ</b>（母の紙・俊の言葉）→<b>後の気持ち</b>（立ち向かう勇気）の順にまとめましょう。理由を聞かれたので、文末は「〜から。」。'},
+ ]},
 ];
 
 // 設問の「着眼」（何を問う設問か）。分析と苦手モードで使う。問題の順番どおり
@@ -3003,6 +3871,10 @@ const TAGS={
  's4-setsu':['接続語','言いかえ','内容把握','理由','本文合致','理由'],
  's4-mono':['心情','内容把握','心情','内容把握','表現','心情'],
  's4-shi':['表現','言いかえ','内容把握','表現','本文合致','理由'],
+ 'n-setsu2':['接続語','言いかえ','理由','内容把握','理由','内容把握','要旨','構成','言いかえ'],
+ 'n-mono2':['心情','人物像','人物像','心情','心情','心情','言いかえ','表現','理由'],
+ 's4-setsu2':['接続語','言いかえ','理由','言いかえ','本文合致','内容把握','要旨','構成','要旨','言いかえ'],
+ 's4-mono2':['心情','心情','心情','心情','人物像','理由','内容把握','表現','本文合致','理由'],
 };
 function skillOf(pid,i){return (TAGS[pid]||[])[i]||'内容把握';}
 
@@ -3103,6 +3975,34 @@ const KO={
  nada:{kinds:['物語文','説明文','詩'],kanji:true,facts:[['日程','国語は2日間とも実施（2027年度入試）'],['2日目','物語文・随筆文・説明文から2題の長文と、自由詩の鑑賞問題が出る（2027年度入試の情報）'],['1日目','言語知識の問題が毎年出る。漢字を使ったパズルのような、変わった形式もある（2027年度入試の情報）']],src:['stc']},
 };
 
+// 語句の使い分け（文の中での使い方）：[文（【　　】に入る言葉）, 正解, [まぎらわしい誤り3つ], 解説, レベル]。難関・最難関のみ
+const TSUKAI=[
+ ['長年の努力が【　　】、ついに夢をかなえた。','実を結び',['板につき','水をさし','鼻につき'],'努力がよい結果になることを「実を結ぶ」という。「板につく」はなれて似合うこと、「鼻につく」はいやな感じがすること。',3],
+ ['彼は【　　】な発言をして、その場の空気を悪くした。','不用意',['不本意','不慮','不祥'],'「不用意」＝注意がたりないこと。「不本意」＝自分の望みと合わないこと。「不慮」＝思いがけないこと（不慮の事故）。「不祥」＝縁起の悪いこと（不祥事）。',3],
+ ['ひどい裏切りに、【　　】思いだった。','はらわたが煮えくり返る',['舌を巻く','目を細める','足が地につかない'],'「はらわたが煮えくり返る」＝はげしく腹を立てること。「舌を巻く」は感心すること、「目を細める」はうれしそうにすること。',3],
+ ['わが校の野球部は、【　　】の勢いで勝ち進んだ。','破竹',['一朝一夕','針小棒大','優柔不断'],'「破竹の勢い」＝止められないほどの勢い。',3],
+ ['社長の説明は【　　】としていて、結局、何もわからなかった。','曖昧模糊',['一目瞭然','理路整然','単刀直入'],'「曖昧模糊」＝はっきりしないこと。ほかは、わかりやすい様子を表す言葉。',3],
+ ['お祭りには【　　】がつめかけ、通りはにぎわっていた。','老若男女',['森羅万象','前代未聞','五里霧中'],'「老若男女」＝年よりも若者も、男も女も。',3],
+ ['どちらの案にも、よい点と悪い点があり、【　　】だ。','一長一短',['一石二鳥','一心同体','一刀両断'],'「一長一短」＝よい点もあれば、悪い点もあること。',3],
+ ['彼は【　　】な態度で、批判に耳をかたむけた。','真摯',['傲慢','軽薄','怠惰'],'「真摯」＝まじめでひたむきな様子。ほかは、よくない態度を表す言葉。',3],
+ ['先生が、私におすすめの本を紹介して【　　】。','くださった',['いただいた','さしあげた','申しあげた'],'先生（目上の人）の動作には「くださる」を使う。「いただく」は自分がもらうときの言い方。',3],
+ ['先生は、さきほど教室に【　　】。','いらっしゃった',['伺った','参った','拝見した'],'先生の動作は、尊敬語「いらっしゃる」で表す。「伺う」「参る」は自分がへりくだる言い方。',3],
+ ['彼は大勢の前でも【　　】ことなく、堂々と話した。','臆する',['怠る','偽る','欺く'],'「臆する」＝おじけづくこと。',3],
+ ['練習を重ね、【　　】、彼女は本番にのぞんだ。','満を持して',['気が置けなくて','間が抜けて','底を突いて'],'「満を持す」＝十分に準備をして、機会を待つこと。',3],
+ ['彼は自分の失敗なのに、責任を部下に【　　】ばかりいる。','転嫁して',['転用して','転換して','転居して'],'「転嫁」＝自分の責任や罪を、人におしつけること。',4],
+ ['彼女の歌声は、聴く人の【　　】に触れ、会場は静まり返った。','琴線',['逆鱗','核心','肝胆'],'「琴線に触れる」＝心に深く感動を与えること。「逆鱗に触れる」は、目上の人をひどく怒らせること。',4],
+ ['上司の【　　】に触れ、彼は遠くの支店に移された。','逆鱗',['琴線','核心','肝胆'],'「逆鱗に触れる」＝目上の人をひどく怒らせること。「琴線に触れる」は、感動をよびおこすこと。',4],
+ ['彼の主張は【　　】で、結局、何が言いたいのかわからなかった。','支離滅裂',['理路整然','首尾一貫','単刀直入'],'「支離滅裂」＝筋道が通らず、ばらばらなこと。',4],
+ ['部下の意見を【　　】に退けず、まず最後まで聞くべきだ。','頭ごなし',['手放し','差し向かい','歯に衣着せず'],'「頭ごなし」＝相手の言い分を聞かず、はじめから決めつけること。',4],
+ ['その選手は、【　　】の活躍で、チームを勝利に導いた。','獅子奮迅',['暗中模索','小心翼々','呉越同舟'],'「獅子奮迅」＝ししがふるい立つように、はげしい勢いで活動すること。',4],
+ ['それは、まさに青天の【　　】の出来事だった。','霹靂',['鳴動','雷鳴','閃光'],'「青天の霹靂」＝思いがけず起こる、おどろくような出来事。',4],
+ ['この小説は、【　　】とした筆致で書かれ、読み終えたあとに深い余韻が残る。','淡々',['堂々','悠々','朗々'],'「淡々」＝あっさりして、こだわりのない様子。',4],
+ ['必要とあれば、協力することに【　　】。','やぶさかでない',['余念がない','事欠かない','他ならない'],'「やぶさかでない」＝よろこんでする。努力をおしまない。',4],
+ ['不当な扱いを受けても、彼は【　　】とした態度をくずさなかった。','毅然',['憮然','悠然','漠然'],'「毅然」＝意志が強く、ゆるがない様子。「憮然」は、失望してぼんやりする様子。',4],
+ ['約束をやぶってしまったことに、【　　】たる思いだった。','忸怩',['嬉々','昂然','憮然'],'「忸怩たる思い」＝自分のおこないを、はずかしく思うこと。',4],
+ ['（取引先に）「部長の山田は、ただいま席を外して【　　】。」','おります',['いらっしゃいます','おいでになります','ご在席です'],'社外の人に自分の側の人の動作を言うときは、身内に敬語を使わず、へりくだった「おる」を使う。',4],
+];
+
 // ---------- 単元（メニュー） ----------
 // lv:true の単元は、学校のレベルで問題が変わる。sec は1問の制限時間（秒）。
 const UNITS={
@@ -3112,6 +4012,7 @@ const UNITS={
  yoji:{name:'四字熟語',ic:'四',items:YOJI,sec:15},
  koto:{name:'ことわざ・慣用句',ic:'諺',items:KOTO,sec:20},
  taigi:{name:'対義語・類義語',ic:'対',items:TAIGI,sec:12},
+ tsukai:{name:'語句の使い分け',ic:'用',items:TSUKAI,lv:true,sec:25},   // 文の中での正しい使い方（難関・最難関）
 };
 const GOAL=10;            // 1日の目標（問）
 const PER=10;             // 1回の問題数
@@ -3166,7 +4067,12 @@ function title(lv){return lv<3?'ことばのたね':lv<5?'ことばの芽':lv<8?
 function streakNow(){return(S.lastDay===dayStr()||S.lastDay===yesterday())?S.streak:0;}
 const KANA='アイウエオカキ';
 // 単元のうち、いまのレベルで出る問題の番号
-function unitIdx(u){const U=UNITS[u];return U.items.map((_,i)=>i).filter(i=>!U.lv||U.items[i][U.items[i].length-1]===curLv());}
+// 問題の「レベル」：データの最後が数字なら、それがレベル（1標準〜4最難関）。数字がない問題は、標準・上位の共通の問題
+function itemLv(it){const l=it[it.length-1];return typeof l==='number'?l:0;}
+// この問題を、レベル L のときに出すか：読み・書き取り・使い分けは、同じレベルの問題だけ。
+// ほかの語句の単元（同音異義語・四字熟語・ことわざ・対義語）は、レベルの印がある問題はそのレベルだけ、印がない問題は標準・上位（1〜2）だけ
+function inLevel(u,it,L){const l=itemLv(it);return UNITS[u].lv?l===L:(l?l===L:L<=2);}
+function unitIdx(u){const U=UNITS[u],c=curLv();return U.items.map((_,i)=>i).filter(i=>inLevel(u,U.items[i],c));}
 function mastered(u){return unitIdx(u).filter(i=>{const r=S.items[u+':'+i];return r&&r.s>=2;}).length;}
 function fmt(sec){sec=Math.max(0,Math.ceil(sec));return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0');}
 
@@ -3260,7 +4166,7 @@ function makeQ(u,i){
       const w=it[0].split('');w[it[2]]='□';
       q=choiceQ(id,u,'<span class="big">'+w.join('')+'</span><span class="ask">意味：'+esc(it[1])+'</span>','□に入る漢字を選ぼう',it[0][it[2]],it[3],true,ex);
     }else{
-      const others=shuffle(YOJI.filter(x=>x!==it)).slice(0,3).map(x=>x[0]);
+      const yp=YOJI.filter(x=>x!==it&&itemLv(x)===itemLv(it)),others=shuffle(yp.length>=3?yp:YOJI.filter(x=>x!==it)).slice(0,3).map(x=>x[0]);
       q=choiceQ(id,u,esc(it[1]),'この意味の四字熟語を選ぼう',it[0],others,true,ex);
     }
   }
@@ -3270,15 +4176,25 @@ function makeQ(u,i){
       q=choiceQ(id,u,'<span class="big">'+esc(it[0].replace(it[4],'□'))+'</span><span class="ask">意味：'+esc(it[1])+'</span>','□に入る漢字（体の部分）を選ぼう',it[4],it[5],true,ex);
     }else{
       const wrong=[];if(it[3])wrong.push(it[3]);
-      shuffle(KOTO.filter(x=>x!==it)).forEach(x=>{if(wrong.length<3)wrong.push(x[1]);});
+      const kp=KOTO.filter(x=>x!==it&&itemLv(x)===itemLv(it));
+      shuffle(kp.length>=4?kp:KOTO.filter(x=>x!==it)).forEach(x=>{if(wrong.length<3)wrong.push(x[1]);});
       q=choiceQ(id,u,'<span class="big" style="font-size:1.6rem;letter-spacing:.05em">'+esc(it[0])+'</span>','この'+it[2]+'の意味を選ぼう',it[1],wrong,false,ex);
     }
   }
   if(u==='taigi'){
     const rev=Math.random()<0.5,a=rev?it[1]:it[0],b=rev?it[0]:it[1],k=it[2]==='対'?'対義語（反対の意味）':'類義語（にた意味）';
-    const pool=shuffle(TAIGI.filter(x=>x!==it&&x[2]===it[2]).map(x=>x[Math.random()<0.5?0:1])).slice(0,3);
+    const wd=f=>TAIGI.filter(f).map(x=>x[Math.random()<0.5?0:1]);
+    let pool=shuffle(wd(x=>x!==it&&x[2]===it[2]&&itemLv(x)===itemLv(it)));
+    if(pool.length<3)pool=pool.concat(shuffle(wd(x=>x!==it&&x[2]===it[2])));
+    pool=pool.filter((w,k,arr)=>arr.indexOf(w)===k&&w!==a&&w!==b).slice(0,3);
     q=choiceQ(id,u,'<span class="big">'+a+'</span>','「'+a+'」の'+k+'を選ぼう',b,pool,true,
       '<span class="ans">'+a+(it[2]==='対'?' ⇔ ':' ＝ ')+b+'</span>');
+  }
+  if(u==='tsukai'){
+    // 文の中に入る言葉をえらぶ。選択肢はどれも、ぱっと見ると合いそうな言葉にしてある
+    const ex='<span class="ans">'+esc(it[0].replace(/【.+?】/,it[1]))+'</span><br>'+esc(it[3]);
+    const short=[it[1]].concat(it[2]).every(x=>[...x].length<=5);
+    q=choiceQ(id,u,mark(it[0]),'文に合う言葉を選ぼう',it[1],it[2],short,ex);
   }
   if(!q.sec)q.sec=UNITS[u].sec;
   return q;
@@ -3319,7 +4235,7 @@ function home(){ {const m=mainSchool(); if(m&&S.lvMain!==m.id){S.level=m.level;S
   '<div class="sec">漢字 <span class="tag">'+LEVELS[curLv()]+'</span>　<span class="muted">⏱ 1問ごとにタイマー</span></div><div class="units">'+unitBtn('yomi')+unitBtn('kaki')+'</div>'+
   '<div class="sec">長文読解 <span class="tag">'+LEVELS[curLv()]+'</span></div><div class="units">'+dokuBtn('物語文')+dokuBtn('説明文')+'</div>'+
   '<div class="sec">詩 <span class="tag">'+LEVELS[curLv()]+'</span></div><div class="units">'+dokuBtn('詩')+'</div>'+
-  '<div class="sec">ことばの知識 <span class="muted">（全レベル共通）</span></div><div class="units">'+unitBtn('douon',true)+unitBtn('yoji')+unitBtn('koto')+unitBtn('taigi',true)+'</div>'+
+  '<div class="sec">ことばの知識 <span class="muted">（レベルに合わせて出ます）</span></div><div class="units">'+unitBtn('douon',true)+unitBtn('yoji')+unitBtn('koto')+unitBtn('taigi',true)+(unitIdx('tsukai').length?unitBtn('tsukai',true):'')+'</div>'+
   '<div class="sec">ふくしゅう</div><button class="unit wide" onclick="startNote()"><div class="ic" style="background:var(--red2);color:var(--red)">誤</div><div style="flex:1"><div class="nm">まちがいノート</div><div class="muted">まちがえた問題に、もう一度。2回続けて正解で卒業。</div></div>'+(missN?'<span class="pill">'+missN+'</span>':'<span class="muted">0</span>')+'</button>'+
   '<div class="sec">苦手をなくす <span class="muted">（記録から自動で分析）</span></div><div class="units">'+
    '<button class="unit" onclick="startWeakKanji()"><div class="ic" style="background:var(--gold2);color:#8a6418">🎯</div><div class="nm">苦手モード<br><span class="muted">漢字・語句'+(isPremium()?'':'<br>無料：今日あと'+freeLeftQ()+'問')+'</span></div></button>'+
@@ -3387,7 +4303,7 @@ function finishOne(q,ok,inTime,timeout,meta){
   Q.xp+=record(q.id,ok);
   if(Q.weakMode&&!isPremium()){freeUse().q++;save();}     // 苦手モード（無料）は、答えた問題の数をかぞえる
   {const it=UNITS[q.unit].items[+q.id.split(':')[1]];
-   logQ({c:q.unit,d:UNITS[q.unit].name,s:'',f:q.kind==='write'?'write':'choice',lv:UNITS[q.unit].lv?it[it.length-1]:0,sc:ok?1:0,tm:Math.round(meta.tm),tg:q.sec,ex:meta.ext?1:0,k:q.id});}if(ok){Q.ok++;if(inTime)Q.inTime++;}else Q.wrong.push(q);
+   logQ({c:q.unit,d:UNITS[q.unit].name,s:'',f:q.kind==='write'?'write':'choice',lv:itemLv(it),sc:ok?1:0,tm:Math.round(meta.tm),tg:q.sec,ex:meta.ext?1:0,k:q.id});}if(ok){Q.ok++;if(inTime)Q.inTime++;}else Q.wrong.push(q);
   snd(ok?'ok':'ng');
   $('after').innerHTML='<div class="expl'+(ok?'':' ng')+'"><h3>'+(ok?'⭕ 正解！':timeout?'⏰ 時間切れ':'❌ ざんねん')+(ok&&!inTime?' <span class="muted">（延長して正解）</span>':'')+'</h3>'+q.expl+(q.memo?kanjiMemo(q.memo,!ok):'')+'</div>'+
     '<div class="stick"><button class="btn" id="next" onclick="nextQ()">'+(Q.i+1<Q.list.length?'つぎへ':'結果を見る')+'</button></div>';
@@ -3517,7 +4433,7 @@ function resultBox(q,i){
   if(q.t==='kiji'){
     const v=String(D.ans[i]).replace(/\n/g,''),warn=[];
     if(v.length>q.limit)warn.push('字数オーバー（'+v.length+'字）。本番では0点になることもあるので、この問題は0点にします。');
-    if(v&&q.must&&!v.includes(q.must))warn.push('指定された言葉「'+q.must+'」が入っていないよ。');
+    if(v&&q.must)(Array.isArray(q.must)?q.must:[q.must]).forEach(w=>{if(v.indexOf(w)<0)warn.push('指定された言葉「'+w+'」が入っていないよ。');});
     if(!v)warn.push('何も書いていないので、解答例を読んでから書き直してみよう。');
     h+='<div class="ex"><b>解答例</b><br><span style="font-family:var(--kanji);font-weight:600">'+esc(q.ex)+'</span></div>'+
       (warn.length?'<p style="color:var(--red);font-size:.9rem;margin:6px 0">⚠ '+warn.join('<br>⚠ ')+'</p>':'')+
@@ -3598,7 +4514,8 @@ const KANJI_ADV={
  douon:'同音異義語は、意味のちがいを短い言葉で言えるようにすると迷わなくなる。',
  yoji:'四字熟語は、意味とセットで声に出して覚えよう。',
  koto:'ことわざ・慣用句は、使う場面を思いうかべて覚えると、意味を取りちがえにくい。',
- taigi:'対義語・類義語は、ペアで覚えて、にた言葉との使い分けも確かめよう。'};
+ taigi:'対義語・類義語は、ペアで覚えて、にた言葉との使い分けも確かめよう。',
+ tsukai:'文の中での使い方は、前後の言葉とのつながりと、似た言葉との意味のちがいを確かめて選ぼう。'};
 const SKILL_ADV={
  心情:'心情は「前の気持ち→きっかけ→後の気持ち」の順で。言葉・行動・表情・情景に注目しよう。',
  理由:'「なぜ」の答えは、傍線部の前後の「だから・ので」に注目。記述は文末を「〜から。」に。',
@@ -3693,12 +4610,13 @@ function itemWeak(key){
     if(e.sc<1)w+=3*rec*(1-e.sc);else if(e.ex)w+=1.5*rec;else if(e.tg>0&&e.tm>e.tg*0.8)w+=rec;else w-=rec;});
   return Math.max(-2,w);
 }
-const KANJI_U=['yomi','kaki','douon','yoji','koto','taigi'];
+const KANJI_U=['yomi','kaki','douon','yoji','koto','taigi','tsukai'];
 function wordOf(u,i){
   const it=UNITS[u].items[i];
   if(u==='yomi')return it[0].match(/【(.+?)】/)[1];
   if(u==='kaki'||u==='douon')return it[1];
   if(u==='yoji'||u==='koto')return it[0];
+  if(u==='tsukai')return it[1];
   return it[0]+it[1];
 }
 // 2つの言葉が「なかま」か：同じ漢字／同じ音読み／同じ部首
@@ -3719,7 +4637,7 @@ function startWeakKanji(){
   let cap=PER;
   if(!isPremium()){const left=freeLeftQ();if(left<=0){showPack('苦手モードの今日の無料分（'+FREE_WEAK_Q+'問）は終わりました');return;}cap=Math.min(PER,left);}
   const all=[];
-  KANJI_U.forEach(u=>UNITS[u].items.forEach((it,i)=>isPremium()||!UNITS[u].lv||it[it.length-1]<=3?all.push({u,i,key:u+':'+i,w:itemWeak(u+':'+i),word:wordOf(u,i),lvok:!UNITS[u].lv||it[it.length-1]===curLv()}):0));
+  KANJI_U.forEach(u=>UNITS[u].items.forEach((it,i)=>isPremium()||itemLv(it)<=3?all.push({u,i,key:u+':'+i,w:itemWeak(u+':'+i),word:wordOf(u,i),lvok:inLevel(u,it,curLv())}):0));
   const cw={};aggregate().forEach(a=>{cw[a.c]=a.weak;});
   const seeds=all.filter(x=>x.w>0.5).sort((a,b)=>b.w-a.w).slice(0,6);
   const sc=[];
@@ -3897,10 +4815,10 @@ function startSchoolKanji(){
   const sc=mainSchool();if(!sc){showSetup(false);return;}
   const ko=KO[sc.id]||{},L=sc.level,kj=[],vc=[];
   // 漢字（読み・書き取り）と語句に分けて、決まった数ずつ出す。漢字がよく出る学校は漢字を多めに（7問／ふつう5問）
-  Object.keys(UNITS).forEach(u=>{const U=UNITS[u];U.items.forEach((it,i)=>{if(U.lv&&it[it.length-1]!==L)return;
+  Object.keys(UNITS).forEach(u=>{const U=UNITS[u];U.items.forEach((it,i)=>{if(!inLevel(u,it,L))return;
     const key=u+':'+i,r=S.items[key],unseen=!r||r.s<2;
     const w=(1+(unseen?0.8:0)+Math.max(0,itemWeak(key))*0.4)*(u==='kaki'&&ko.kanji?1.6:1);
-    (U.lv?kj:vc).push({u,i,k:Math.pow(Math.random(),1/w)});});});
+    ((u==='yomi'||u==='kaki')?kj:vc).push({u,i,k:Math.pow(Math.random(),1/w)});});});
   const nk=Math.min(kj.length,ko.kanji?7:5);
   kj.sort((a,b)=>b.k-a.k);vc.sort((a,b)=>b.k-a.k);
   const list=shuffle(kj.slice(0,nk).concat(vc.slice(0,PER-nk))).map(c=>{const q=makeQ(c.u,c.i);
@@ -3919,7 +4837,7 @@ function startSchoolDoku(){
   const wt=kinds.map(k=>{const a=accOf(k);return a<0?2.5:1+(1-a)*3;});
   let rr=Math.random()*wt.reduce((x,y)=>x+y,0),kind=kinds[kinds.length-1];
   for(let i=0;i<kinds.length;i++){rr-=wt[i];if(rr<=0){kind=kinds[i];break;}}
-  const p=PASSAGES.find(x=>x.lv===L&&x.kind===kind)||PASSAGES.find(x=>x.lv===L);
+  const pl=PASSAGES.filter(x=>x.lv===L&&x.kind===kind),p=pl.length?pl[Math.floor(Math.random()*pl.length)]:PASSAGES.find(x=>x.lv===L);
   if(!p){toast('このレベルの文章がまだありません');return;}
   if(ko.kiji){
     const sel=p.qs.map((q,i)=>i).filter(i=>p.qs[i].t==='kiji'||['理由','心情','言いかえ','要旨'].indexOf(skillOf(p.id,i))>=0);
@@ -3930,7 +4848,7 @@ function startSchoolDoku(){
 
 // ---------- 分析：得意・目安との比較・レーダー ----------
 const AXES=[
- {k:'読み',f:e=>e.c==='yomi'},{k:'書き取り',f:e=>e.c==='kaki'},{k:'語句',f:e=>['douon','yoji','koto','taigi'].indexOf(e.c)>=0},
+ {k:'読み',f:e=>e.c==='yomi'},{k:'書き取り',f:e=>e.c==='kaki'},{k:'語句',f:e=>['douon','yoji','koto','taigi','tsukai'].indexOf(e.c)>=0},
  {k:'物語文',f:e=>e.d==='物語文'},{k:'説明文',f:e=>e.d==='説明文'},{k:'詩',f:e=>e.d==='詩'},{k:'記述',f:e=>e.f==='kiji'},{k:'速さ',time:true}];
 function radarData(L){
   const last=S.log.slice(-200),vals=[],tgs=[];
